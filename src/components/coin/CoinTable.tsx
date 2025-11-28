@@ -91,11 +91,12 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
             // Show skeleton rows while loading
             Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} />)
           ) : (
-            sortedCoins.map((coin) => (
+            sortedCoins.map((coin, index) => (
               <tr
                 key={coin.id}
                 onClick={() => onCoinClick?.(coin)}
-                className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors"
+                className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:shadow-lg animate-in fade-in slide-in-from-left-2"
+                style={{ animationDelay: `${index * 20}ms` }}
               >
                 <td className="px-4 py-2 font-medium">{coin.symbol}</td>
                 <td className="px-4 py-2 text-right mono-number">

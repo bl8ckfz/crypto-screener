@@ -44,16 +44,16 @@ export function CoinModal({ coin, isOpen, onClose }: CoinModalProps) {
         : 'text-neutral'
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto animate-in fade-in duration-200">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 transition-opacity"
+        className="fixed inset-0 bg-black/80 transition-opacity duration-200"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-gray-900 rounded-lg shadow-2xl w-full max-w-4xl border border-gray-700">
+        <div className="relative bg-gray-900 rounded-lg shadow-2xl w-full max-w-4xl border border-gray-700 animate-in slide-in-from-bottom-8 duration-300">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-700">
             <div className="flex items-center space-x-4">
