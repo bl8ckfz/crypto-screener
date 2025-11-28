@@ -2,8 +2,8 @@ import { useMemo } from 'react'
 import type { Coin } from '@/types/coin'
 import { useStore } from '@/hooks/useStore'
 import { sortCoins } from '@/utils/sort'
-import { formatPrice, formatPercent, formatVolume } from '@/utils/format'
 import { TableRowSkeleton } from '@/components/ui'
+import { CoinTableRow } from './CoinTableRow'
 
 interface CoinTableProps {
   coins: Coin[]
@@ -29,12 +29,6 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
   const getSortIndicator = (field: typeof sort.field) => {
     if (sort.field !== field) return ''
     return sort.direction === 'desc' ? ' ↓' : ' ↑'
-  }
-
-  const getChangeColor = (value: number) => {
-    if (value > 0) return 'text-bullish'
-    if (value < 0) return 'text-bearish'
-    return 'text-neutral'
   }
 
   return (
@@ -92,36 +86,12 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
             Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} />)
           ) : (
             sortedCoins.map((coin, index) => (
-              <tr
+              <CoinTableRow
                 key={coin.id}
-                onClick={() => onCoinClick?.(coin)}
-                className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:shadow-lg animate-in fade-in slide-in-from-left-2"
-                style={{ animationDelay: `${index * 20}ms` }}
-              >
-                <td className="px-4 py-2 font-medium">{coin.symbol}</td>
-                <td className="px-4 py-2 text-right mono-number">
-                  {formatPrice(coin.lastPrice)}
-                </td>
-                <td
-                  className={`px-4 py-2 text-right mono-number font-medium ${getChangeColor(coin.priceChangePercent)}`}
-                >
-                  {formatPercent(coin.priceChangePercent)}
-                </td>
-                <td className="px-4 py-2 text-right mono-number text-gray-400">
-                  {formatVolume(coin.volume)}
-                </td>
-                <td className="px-4 py-2 text-right mono-number text-gray-400">
-                  {formatVolume(coin.quoteVolume)}
-                </td>
-                <td
-                  className={`px-4 py-2 text-right mono-number ${getChangeColor(coin.indicators.vcp)}`}
-                >
-                  {coin.indicators.vcp.toFixed(3)}
-                </td>
-                <td className="px-4 py-2 text-right mono-number text-gray-400">
-                  {coin.indicators.priceToWeightedAvg.toFixed(3)}
-                </td>
-              </tr>
+                coin={coin}
+                index={index}
+                onClick={onCoinClick}
+              />
             ))
           )}
         </tbody>

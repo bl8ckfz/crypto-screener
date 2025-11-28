@@ -1,9 +1,9 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, lazy, Suspense } from 'react'
 import { useMarketData } from '@/hooks/useMarketData'
 import { useStore } from '@/hooks/useStore'
 import { useKeyboardShortcuts } from '@/hooks'
 import { Layout } from '@/components/layout'
-import { CoinTable, CoinModal } from '@/components/coin'
+import { CoinTable } from '@/components/coin'
 import { MarketSummary } from '@/components/market'
 import {
   PairSelector,
@@ -16,6 +16,9 @@ import { ErrorStates, EmptyStates, ShortcutHelp } from '@/components/ui'
 import { sortCoinsByList } from '@/utils'
 import { getListById } from '@/types'
 import type { Coin, Timeframe } from '@/types/coin'
+
+// Lazy load heavy components
+const CoinModal = lazy(() => import('@/components/coin/CoinModal').then(m => ({ default: m.CoinModal })))
 
 function App() {
   const { data: coins, isLoading, error } = useMarketData()
@@ -198,11 +201,13 @@ function App() {
       </div>
 
       {/* Coin Detail Modal */}
-      <CoinModal
-        coin={selectedCoin}
-        isOpen={!!selectedCoin}
-        onClose={() => setSelectedCoin(null)}
-      />
+      <Suspense fallback={null}>
+        <CoinModal
+          coin={selectedCoin}
+          isOpen={!!selectedCoin}
+          onClose={() => setSelectedCoin(null)}
+        />
+      </Suspense>
 
       {/* Keyboard Shortcuts Help */}
       <ShortcutHelp
