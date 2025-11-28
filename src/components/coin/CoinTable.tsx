@@ -3,13 +3,15 @@ import type { Coin } from '@/types/coin'
 import { useStore } from '@/hooks/useStore'
 import { sortCoins } from '@/utils/sort'
 import { formatPrice, formatPercent, formatVolume } from '@/utils/format'
+import { TableRowSkeleton } from '@/components/ui'
 
 interface CoinTableProps {
   coins: Coin[]
   onCoinClick?: (coin: Coin) => void
+  isLoading?: boolean
 }
 
-export function CoinTable({ coins, onCoinClick }: CoinTableProps) {
+export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTableProps) {
   const { sort, setSort } = useStore()
 
   const sortedCoins = useMemo(() => {
@@ -85,37 +87,42 @@ export function CoinTable({ coins, onCoinClick }: CoinTableProps) {
           </tr>
         </thead>
         <tbody>
-          {sortedCoins.map((coin) => (
-            <tr
-              key={coin.id}
-              onClick={() => onCoinClick?.(coin)}
-              className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors"
-            >
-              <td className="px-4 py-2 font-medium">{coin.symbol}</td>
-              <td className="px-4 py-2 text-right mono-number">
-                {formatPrice(coin.lastPrice)}
-              </td>
-              <td
-                className={`px-4 py-2 text-right mono-number font-medium ${getChangeColor(coin.priceChangePercent)}`}
+          {isLoading ? (
+            // Show skeleton rows while loading
+            Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} />)
+          ) : (
+            sortedCoins.map((coin) => (
+              <tr
+                key={coin.id}
+                onClick={() => onCoinClick?.(coin)}
+                className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors"
               >
-                {formatPercent(coin.priceChangePercent)}
-              </td>
-              <td className="px-4 py-2 text-right mono-number text-gray-400">
-                {formatVolume(coin.volume)}
-              </td>
-              <td className="px-4 py-2 text-right mono-number text-gray-400">
-                {formatVolume(coin.quoteVolume)}
-              </td>
-              <td
-                className={`px-4 py-2 text-right mono-number ${getChangeColor(coin.indicators.vcp)}`}
-              >
-                {coin.indicators.vcp.toFixed(3)}
-              </td>
-              <td className="px-4 py-2 text-right mono-number text-gray-400">
-                {coin.indicators.priceToWeightedAvg.toFixed(3)}
-              </td>
-            </tr>
-          ))}
+                <td className="px-4 py-2 font-medium">{coin.symbol}</td>
+                <td className="px-4 py-2 text-right mono-number">
+                  {formatPrice(coin.lastPrice)}
+                </td>
+                <td
+                  className={`px-4 py-2 text-right mono-number font-medium ${getChangeColor(coin.priceChangePercent)}`}
+                >
+                  {formatPercent(coin.priceChangePercent)}
+                </td>
+                <td className="px-4 py-2 text-right mono-number text-gray-400">
+                  {formatVolume(coin.volume)}
+                </td>
+                <td className="px-4 py-2 text-right mono-number text-gray-400">
+                  {formatVolume(coin.quoteVolume)}
+                </td>
+                <td
+                  className={`px-4 py-2 text-right mono-number ${getChangeColor(coin.indicators.vcp)}`}
+                >
+                  {coin.indicators.vcp.toFixed(3)}
+                </td>
+                <td className="px-4 py-2 text-right mono-number text-gray-400">
+                  {coin.indicators.priceToWeightedAvg.toFixed(3)}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 

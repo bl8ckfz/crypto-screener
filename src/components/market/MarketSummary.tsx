@@ -1,13 +1,25 @@
 import { useMarketStats } from '@/hooks/useMarketData'
+import { StatsCardSkeleton } from '@/components/ui'
 
 export function MarketSummary() {
-  const stats = useMarketStats()
+  const { isLoading, stats } = useMarketStats()
 
-  if (!stats) {
+  if (isLoading || !stats) {
     return (
       <div className="bg-gray-900 rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-2">Market Summary</h2>
-        <div className="text-gray-500">Loading...</div>
+        <h2 className="text-lg font-semibold mb-4">Market Summary</h2>
+        <div className="space-y-4">
+          <StatsCardSkeleton />
+          <div className="h-4 bg-surface-light rounded animate-pulse" />
+          <div className="grid grid-cols-3 gap-2">
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+          </div>
+          <div className="pt-4 border-t border-gray-800">
+            <StatsCardSkeleton />
+          </div>
+        </div>
       </div>
     )
   }

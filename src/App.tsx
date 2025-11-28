@@ -97,15 +97,6 @@ function App() {
 
             {/* Content */}
             <div className="min-h-[600px]">
-              {isLoading && (
-                <div className="flex items-center justify-center h-96">
-                  <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-accent mb-4"></div>
-                    <div className="text-gray-400">Loading market data...</div>
-                  </div>
-                </div>
-              )}
-
               {error && (
                 <div className="flex items-center justify-center h-96">
                   <div className="text-center text-bearish">
@@ -118,28 +109,30 @@ function App() {
                 </div>
               )}
 
-              {!isLoading && !error && filteredCoins && (
-                <CoinTable
-                  coins={filteredCoins}
-                  onCoinClick={setSelectedCoin}
-                />
-              )}
+              {!error && (
+                <>
+                  <CoinTable
+                    coins={filteredCoins}
+                    onCoinClick={setSelectedCoin}
+                    isLoading={isLoading}
+                  />
 
-              {!isLoading &&
-                !error &&
-                filteredCoins &&
-                filteredCoins.length === 0 &&
-                searchQuery && (
-                  <div className="flex items-center justify-center h-96">
-                    <div className="text-center text-gray-400">
-                      <div className="text-4xl mb-2">🔍</div>
-                      <div className="font-semibold mb-2">No results found</div>
-                      <div className="text-sm">
-                        No coins match "{searchQuery}"
+                  {!isLoading &&
+                    filteredCoins &&
+                    filteredCoins.length === 0 &&
+                    searchQuery && (
+                      <div className="flex items-center justify-center h-96">
+                        <div className="text-center text-gray-400">
+                          <div className="text-4xl mb-2">🔍</div>
+                          <div className="font-semibold mb-2">No results found</div>
+                          <div className="text-sm">
+                            No coins match "{searchQuery}"
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    )}
+                </>
+              )}
             </div>
           </div>
         </div>

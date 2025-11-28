@@ -64,7 +64,7 @@ export function useMarketStats() {
   const { data: coins, isLoading } = useMarketData()
 
   if (isLoading || !coins) {
-    return null
+    return { isLoading, stats: null }
   }
 
   const bullishCoins = coins.filter((c) => c.priceChangePercent > 0)
@@ -77,18 +77,21 @@ export function useMarketStats() {
   const neutralCount = neutralCoins.length
 
   return {
-    totalCoins,
-    bullishCount,
-    bearishCount,
-    neutralCount,
-    bullishPercent: (bullishCount / totalCoins) * 100,
-    bearishPercent: (bearishCount / totalCoins) * 100,
-    neutralPercent: (neutralCount / totalCoins) * 100,
-    sentiment:
-      bullishCount > bearishCount
-        ? ('bullish' as const)
-        : bearishCount > bullishCount
-          ? ('bearish' as const)
-          : ('neutral' as const),
+    isLoading: false,
+    stats: {
+      totalCoins,
+      bullishCount,
+      bearishCount,
+      neutralCount,
+      bullishPercent: (bullishCount / totalCoins) * 100,
+      bearishPercent: (bearishCount / totalCoins) * 100,
+      neutralPercent: (neutralCount / totalCoins) * 100,
+      sentiment:
+        bullishCount > bearishCount
+          ? ('bullish' as const)
+          : bearishCount > bullishCount
+            ? ('bearish' as const)
+            : ('neutral' as const),
+    },
   }
 }

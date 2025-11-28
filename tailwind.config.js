@@ -176,6 +176,13 @@ export default {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'spin-slow': 'spin 2s linear infinite',
         'bounce-slow': 'bounce 2s infinite',
+        'shimmer': 'shimmer 2s infinite',
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
+        },
       },
       
       // Z-Index
