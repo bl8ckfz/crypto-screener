@@ -8,18 +8,20 @@
  * 3. Use Binance's websocket API (no CORS)
  */
 
-const isDevelopment = import.meta.env.DEV
-
-// CORS proxy for development (use with caution, not for production)
-const CORS_PROXY = 'https://api.allorigins.win/raw?url='
+/**
+ * CORS proxy options for development
+ * Note: Binance blocks most CORS proxies due to geo-restrictions
+ * For development, we'll rely on mock data fallback when CORS fails
+ * 
+ * To use a custom proxy, set VITE_CORS_PROXY in .env file
+ */
+const CORS_PROXY = import.meta.env.VITE_CORS_PROXY || ''
 
 export const API_CONFIG = {
-  // Use CORS proxy in development, direct API in production (with backend)
-  baseUrl: isDevelopment
-    ? `${CORS_PROXY}https://api.binance.com/api/v3`
-    : import.meta.env.VITE_BINANCE_API_URL || 'https://api.binance.com/api/v3',
+  // Direct API URL - CORS errors will be caught and fallback to mock data
+  baseUrl: import.meta.env.VITE_BINANCE_API_URL || 'https://api.binance.com/api/v3',
   timeout: 10000,
   retries: 3,
 }
 
-export const isUsingProxy = isDevelopment
+export const isUsingProxy = !!CORS_PROXY
