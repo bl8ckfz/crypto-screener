@@ -1,0 +1,112 @@
+import { useMarketStats } from '@/hooks/useMarketData'
+
+export function MarketSummary() {
+  const stats = useMarketStats()
+
+  if (!stats) {
+    return (
+      <div className="bg-gray-900 rounded-lg p-4">
+        <h2 className="text-lg font-semibold mb-2">Market Summary</h2>
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    )
+  }
+
+  const { bullishPercent, bearishPercent, neutralPercent, sentiment } = stats
+
+  const getSentimentColor = () => {
+    switch (sentiment) {
+      case 'bullish':
+        return 'text-bullish'
+      case 'bearish':
+        return 'text-bearish'
+      default:
+        return 'text-neutral'
+    }
+  }
+
+  const getSentimentIcon = () => {
+    switch (sentiment) {
+      case 'bullish':
+        return '↑'
+      case 'bearish':
+        return '↓'
+      default:
+        return '→'
+    }
+  }
+
+  return (
+    <div className="bg-gray-900 rounded-lg p-4">
+      <h2 className="text-lg font-semibold mb-4">Market Summary</h2>
+
+      {/* Sentiment Indicator */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-gray-400">Market Sentiment</span>
+          <span className={`font-bold text-lg ${getSentimentColor()}`}>
+            {getSentimentIcon()} {sentiment.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      {/* Distribution Bar */}
+      <div className="mb-4">
+        <div className="flex h-4 rounded overflow-hidden">
+          <div
+            className="bg-bullish"
+            style={{ width: `${bullishPercent}%` }}
+            title={`Bullish: ${bullishPercent.toFixed(1)}%`}
+          />
+          <div
+            className="bg-neutral"
+            style={{ width: `${neutralPercent}%` }}
+            title={`Neutral: ${neutralPercent.toFixed(1)}%`}
+          />
+          <div
+            className="bg-bearish"
+            style={{ width: `${bearishPercent}%` }}
+            title={`Bearish: ${bearishPercent.toFixed(1)}%`}
+          />
+        </div>
+      </div>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-3 gap-2 text-sm">
+        <div className="text-center">
+          <div className="text-bullish font-bold text-lg">
+            {stats.bullishCount}
+          </div>
+          <div className="text-gray-400">Bullish</div>
+          <div className="text-xs text-gray-500">
+            {bullishPercent.toFixed(1)}%
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-neutral font-bold text-lg">
+            {stats.neutralCount}
+          </div>
+          <div className="text-gray-400">Neutral</div>
+          <div className="text-xs text-gray-500">
+            {neutralPercent.toFixed(1)}%
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-bearish font-bold text-lg">
+            {stats.bearishCount}
+          </div>
+          <div className="text-gray-400">Bearish</div>
+          <div className="text-xs text-gray-500">
+            {bearishPercent.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+
+      {/* Total */}
+      <div className="mt-4 pt-4 border-t border-gray-800 text-center">
+        <div className="text-gray-400 text-sm">Total Coins</div>
+        <div className="text-2xl font-bold">{stats.totalCoins}</div>
+      </div>
+    </div>
+  )
+}

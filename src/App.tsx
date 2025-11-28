@@ -1,0 +1,158 @@
+import { useState, useMemo } from 'react'
+import { useMarketData } from '@/hooks/useMarketData'
+import { useStore } from '@/hooks/useStore'
+import { Layout } from '@/components/layout'
+import { CoinTable, CoinModal } from '@/components/coin'
+import { MarketSummary } from '@/components/market'
+import {
+  PairSelector,
+  RefreshControl,
+  SearchBar,
+  TimeframeSelector,
+  ListSelector,
+} from '@/components/controls'
+import { sortCoinsByList } from '@/utils'
+import { getListById } from '@/types'
+import type { Coin, Timeframe } from '@/types/coin'
+
+function App() {
+  const { data: coins, isLoading, error } = useMarketData()
+  const currentPair = useStore((state) => state.currentPair)
+  const currentList = useStore((state) => state.currentList)
+  const setCurrentList = useStore((state) => state.setCurrentList)
+
+  // Local state for UI interactions
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedTimeframe, setSelectedTimeframe] =
+    useState<Timeframe>('5s')
+  const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null)
+
+  // Filter and sort coins based on search query and selected list
+  const filteredCoins = useMemo(() => {
+    if (!coins) return []
+
+    // Apply search filter
+    let filtered = coins
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = coins.filter(
+        (coin) =>
+          coin.symbol.toLowerCase().includes(query) ||
+          coin.fullSymbol.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply list-based sorting
+    const list = getListById(currentList)
+    if (list) {
+      return sortCoinsByList(filtered, currentList, list.sortField, list.isBull)
+    }
+
+    return filtered
+  }, [coins, searchQuery, currentList])
+
+  return (
+    <Layout
+      title="Crypto Screener"
+      subtitle={`Real-time ${currentPair} market analysis`}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sidebar - Controls */}
+        <div className="lg:col-span-1 space-y-4">
+          <ListSelector 
+            selectedListId={currentList} 
+            onSelectList={setCurrentList} 
+          />
+          <PairSelector />
+          <RefreshControl />
+          <TimeframeSelector
+            selectedTimeframe={selectedTimeframe}
+            onSelect={setSelectedTimeframe}
+          />
+          <MarketSummary />
+        </div>
+
+        {/* Main Content - Coin Table */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Search Bar */}
+          <SearchBar onSearch={setSearchQuery} />
+
+          {/* Coin Table */}
+          <div className="bg-gray-900 rounded-lg overflow-hidden">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-800">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">
+                  Market Data{' '}
+                  <span className="text-accent">{currentPair}</span>
+                </h2>
+                {coins && (
+                  <span className="text-sm text-gray-400">
+                    {filteredCoins.length} of {coins.length} coins
+                    {searchQuery && ' (filtered)'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="min-h-[600px]">
+              {isLoading && (
+                <div className="flex items-center justify-center h-96">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-accent mb-4"></div>
+                    <div className="text-gray-400">Loading market data...</div>
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="flex items-center justify-center h-96">
+                  <div className="text-center text-bearish">
+                    <div className="text-4xl mb-2">⚠</div>
+                    <div className="font-semibold mb-2">Error loading data</div>
+                    <div className="text-sm text-gray-400">
+                      {error.message || 'Failed to fetch market data'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!isLoading && !error && filteredCoins && (
+                <CoinTable
+                  coins={filteredCoins}
+                  onCoinClick={setSelectedCoin}
+                />
+              )}
+
+              {!isLoading &&
+                !error &&
+                filteredCoins &&
+                filteredCoins.length === 0 &&
+                searchQuery && (
+                  <div className="flex items-center justify-center h-96">
+                    <div className="text-center text-gray-400">
+                      <div className="text-4xl mb-2">🔍</div>
+                      <div className="font-semibold mb-2">No results found</div>
+                      <div className="text-sm">
+                        No coins match "{searchQuery}"
+                      </div>
+                    </div>
+                  </div>
+                )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Coin Detail Modal */}
+      <CoinModal
+        coin={selectedCoin}
+        isOpen={!!selectedCoin}
+        onClose={() => setSelectedCoin(null)}
+      />
+    </Layout>
+  )
+}
+
+export default App

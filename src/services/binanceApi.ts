@@ -1,0 +1,171 @@
+import type {
+  BinanceTicker24hr,
+  ProcessedTicker,
+  ApiError,
+  ApiRequestOptions,
+} from '@/types/api'
+import { API_CONFIG } from '@/config/api'
+
+/**
+ * Binance API client for fetching 24hr ticker data
+ */
+export class BinanceApiClient {
+  private baseUrl: string
+  private timeout: number
+  private retries: number
+
+  constructor(
+    baseUrl: string = API_CONFIG.baseUrl,
+    timeout: number = API_CONFIG.timeout,
+    retries: number = API_CONFIG.retries
+  ) {
+    this.baseUrl = baseUrl
+    this.timeout = timeout
+    this.retries = retries
+  }
+
+  /**
+   * Fetch 24hr ticker data for all symbols
+   */
+  async fetch24hrTickers(): Promise<BinanceTicker24hr[]> {
+    const url = `${this.baseUrl}/ticker/24hr`
+    const data = await this.fetchWithRetry<BinanceTicker24hr[]>(url)
+
+    // Ensure we have an array
+    if (!Array.isArray(data)) {
+      console.error('Unexpected response format:', data)
+      throw new Error('Invalid response format: expected array')
+    }
+
+    return data
+  }
+
+  /**
+   * Fetch 24hr ticker data for a specific symbol
+   */
+  async fetch24hrTicker(symbol: string): Promise<BinanceTicker24hr> {
+    const url = `${this.baseUrl}/ticker/24hr?symbol=${symbol.toUpperCase()}`
+    return this.fetchWithRetry<BinanceTicker24hr>(url)
+  }
+
+  /**
+   * Fetch with automatic retry logic
+   */
+  private async fetchWithRetry<T>(
+    url: string,
+    options?: ApiRequestOptions
+  ): Promise<T> {
+    const maxRetries = options?.retries ?? this.retries
+    const timeout = options?.timeout ?? this.timeout
+    const retryDelay = options?.retryDelay ?? 1000
+
+    let lastError: Error | null = null
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await this.fetchWithTimeout(url, timeout)
+
+        if (!response.ok) {
+          // Try to parse Binance error response
+          const errorData: ApiError = await response.json()
+          throw new Error(
+            `Binance API Error ${errorData.code}: ${errorData.msg}`
+          )
+        }
+
+        const data: T = await response.json()
+        return data
+      } catch (error) {
+        lastError = error as Error
+
+        // Don't retry on the last attempt
+        if (attempt < maxRetries) {
+          console.warn(
+            `API request failed (attempt ${attempt + 1}/${maxRetries + 1}): ${lastError.message}`
+          )
+          await this.delay(retryDelay * (attempt + 1)) // Exponential backoff
+        }
+      }
+    }
+
+    throw new Error(
+      `Failed to fetch from Binance API after ${maxRetries + 1} attempts: ${lastError?.message}`
+    )
+  }
+
+  /**
+   * Fetch with timeout
+   */
+  private async fetchWithTimeout(
+    url: string,
+    timeout: number
+  ): Promise<Response> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      return response
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        throw new Error(`Request timeout after ${timeout}ms`)
+      }
+      throw error
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  }
+
+  /**
+   * Delay helper for retry logic
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Parse raw ticker data to ProcessedTicker with numeric values
+   */
+  static parseTickerData(ticker: BinanceTicker24hr): ProcessedTicker {
+    return {
+      symbol: ticker.symbol,
+      priceChange: parseFloat(ticker.priceChange),
+      priceChangePercent: parseFloat(ticker.priceChangePercent),
+      weightedAvgPrice: parseFloat(ticker.weightedAvgPrice),
+      prevClosePrice: parseFloat(ticker.prevClosePrice),
+      lastPrice: parseFloat(ticker.lastPrice),
+      lastQty: parseFloat(ticker.lastQty),
+      bidPrice: parseFloat(ticker.bidPrice),
+      bidQty: parseFloat(ticker.bidQty),
+      askPrice: parseFloat(ticker.askPrice),
+      askQty: parseFloat(ticker.askQty),
+      openPrice: parseFloat(ticker.openPrice),
+      highPrice: parseFloat(ticker.highPrice),
+      lowPrice: parseFloat(ticker.lowPrice),
+      volume: parseFloat(ticker.volume),
+      quoteVolume: parseFloat(ticker.quoteVolume),
+      openTime: ticker.openTime,
+      closeTime: ticker.closeTime,
+      firstId: ticker.firstId,
+      lastId: ticker.lastId,
+      count: ticker.count,
+    }
+  }
+
+  /**
+   * Parse all tickers in a batch
+   */
+  static parseTickerBatch(tickers: BinanceTicker24hr[]): ProcessedTicker[] {
+    return tickers.map((ticker) => BinanceApiClient.parseTickerData(ticker))
+  }
+}
+
+/**
+ * Singleton instance for easy access
+ */
+export const binanceApi = new BinanceApiClient()
