@@ -35,10 +35,8 @@ export function WatchlistBadge({ symbol }: WatchlistBadgeProps) {
     }
   }
 
-  if (watchlists.length === 0) {
-    return null
-  }
-
+  // Always show the badge, even if no watchlists exist yet
+  // User can create watchlists later
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Badge Button */}
@@ -135,7 +133,8 @@ export function WatchlistBadge({ symbol }: WatchlistBadgeProps) {
 
           {watchlists.length === 0 && (
             <div className="px-3 py-4 text-center text-xs text-gray-400">
-              No watchlists available
+              <div className="mb-1">No watchlists yet</div>
+              <div className="text-gray-500">Create one in the sidebar</div>
             </div>
           )}
         </div>
