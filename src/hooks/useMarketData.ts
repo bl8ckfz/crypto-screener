@@ -8,6 +8,9 @@ import { timeframeService } from '@/services/timeframeService'
 import { USE_MOCK_DATA, getMockDataWithVariations } from '@/services/mockData'
 import { isTabVisible, onVisibilityChange } from '@/utils/performance'
 import { evaluateAlertRules } from '@/services/alertEngine'
+import { showCryptoAlertNotification, getNotificationPermission } from '@/services/notification'
+import { audioNotificationService } from '@/services/audioNotification'
+import { sendDiscordWebhook, sendToWebhooks } from '@/services/webhookService'
 import type { Coin } from '@/types/coin'
 import type { Alert } from '@/types/alert'
 
@@ -18,6 +21,10 @@ export function useMarketData() {
   const currentPair = useStore((state) => state.currentPair)
   const refreshInterval = useStore((state) => state.refreshInterval)
   const autoRefresh = useStore((state) => state.autoRefresh)
+  
+  // Watchlist filtering
+  const currentWatchlistId = useStore((state) => state.currentWatchlistId)
+  const watchlists = useStore((state) => state.watchlists)
   
   // Alert system integration
   const alertRules = useStore((state) => state.alertRules)
@@ -46,7 +53,7 @@ export function useMarketData() {
 
   // Query for market data
   const query = useQuery({
-    queryKey: ['marketData', currentPair],
+    queryKey: ['marketData', currentPair, currentWatchlistId],
     queryFn: async (): Promise<Coin[]> => {
       // Use mock data if enabled, otherwise fetch from Binance API
       let tickers
@@ -76,6 +83,14 @@ export function useMarketData() {
 
       // Update timeframe snapshots
       coins = timeframeService.updateSnapshots(coins)
+
+      // Filter by watchlist if one is selected
+      if (currentWatchlistId) {
+        const selectedWatchlist = watchlists.find((wl) => wl.id === currentWatchlistId)
+        if (selectedWatchlist) {
+          coins = coins.filter((coin) => selectedWatchlist.symbols.includes(coin.symbol))
+        }
+      }
 
       return coins
     },
@@ -170,6 +185,57 @@ export function useMarketData() {
 
         // Add to store (will trigger notification and save to history)
         addAlert(alert)
+
+        // Map alert severity for notifications
+        const notificationSeverity: 'info' | 'warning' | 'critical' = 
+          alert.severity === 'critical' ? 'critical' :
+          alert.severity === 'high' ? 'warning' : 'info'
+
+        // Play sound notification if enabled
+        if (alertSettings.soundEnabled) {
+          audioNotificationService.playAlert(notificationSeverity)
+        }
+
+        // Show browser notification if enabled and permitted
+        if (alertSettings.browserNotificationEnabled) {
+          const permission = getNotificationPermission()
+          if (permission === 'granted') {
+            showCryptoAlertNotification({
+              symbol: alert.symbol,
+              title: alert.title,
+              message: alert.message,
+              severity: notificationSeverity,
+              onClick: () => {
+                // Focus window when notification clicked
+                window.focus()
+              },
+            })
+          }
+        }
+
+        // Send webhooks if enabled
+        if (alertSettings.webhookEnabled) {
+          // Use new multi-webhook system if webhooks configured
+          if (alertSettings.webhooks && alertSettings.webhooks.length > 0) {
+            sendToWebhooks(alertSettings.webhooks, alert).then((results) => {
+              results.forEach((result, webhookId) => {
+                if (result.success) {
+                  console.log(`✅ Webhook ${webhookId} delivered (${result.attempts} attempts)`)
+                } else {
+                  console.error(`❌ Webhook ${webhookId} failed: ${result.error}`)
+                }
+              })
+            }).catch((error) => {
+              console.error('Webhook delivery error:', error)
+            })
+          }
+          // Backwards compatibility: Legacy Discord webhook
+          else if (alertSettings.discordWebhookUrl) {
+            sendDiscordWebhook(alertSettings.discordWebhookUrl, alert).catch((error) => {
+              console.error('Discord webhook delivery failed:', error)
+            })
+          }
+        }
 
         // Update cooldown tracker
         recentAlerts.current.set(symbol, now)

@@ -108,7 +108,7 @@ export function ListSelector({ selectedListId, onSelectList, className = '' }: L
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full bg-surface-dark border border-border rounded-lg shadow-xl max-h-[600px] overflow-hidden">
+        <div className="absolute z-[900] mt-2 w-full bg-surface-dark border border-border rounded-lg shadow-xl max-h-[600px] overflow-hidden">
           {/* Search & Mode Toggle */}
           <div className="p-3 border-b border-border space-y-2">
             {/* Search Input */}

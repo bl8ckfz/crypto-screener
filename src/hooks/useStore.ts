@@ -1,12 +1,14 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { CurrencyPair, Coin, CoinSort } from '@/types/coin'
-import type { ScreeningListId } from '@/types/screener'
+import type { ScreeningListId, Watchlist } from '@/types/screener'
 import type { AppConfig } from '@/types/config'
 import { DEFAULT_CONFIG, STORAGE_KEYS } from '@/types/config'
 import type { AlertRule, AlertSettings, Alert } from '@/types/alert'
 import { createIndexedDBStorage } from '@/services/storage'
 import { alertHistory } from '@/services/alertHistory'
+import { supabase } from '@/config'
+import type { User, Session } from '@supabase/supabase-js'
 
 interface AppState {
   // Current selections
@@ -39,6 +41,16 @@ interface AppState {
   alertSettings: AlertSettings
   activeAlerts: Alert[]
 
+  // Watchlists
+  watchlists: Watchlist[]
+  currentWatchlistId: string | null
+
+  // Auth
+  user: User | null
+  session: Session | null
+  isAuthenticated: boolean
+  isSyncing: boolean
+
   // Actions
   setCurrentPair: (pair: CurrencyPair) => void
   setCurrentList: (list: ScreeningListId) => void
@@ -65,6 +77,23 @@ interface AppState {
   addAlert: (alert: Alert) => void
   dismissAlert: (alertId: string) => void
   clearAlerts: () => void
+  
+  // Watchlist actions
+  addWatchlist: (watchlist: Omit<Watchlist, 'id' | 'createdAt' | 'updatedAt'>) => void
+  updateWatchlist: (watchlistId: string, updates: Partial<Omit<Watchlist, 'id' | 'createdAt'>>) => void
+  deleteWatchlist: (watchlistId: string) => void
+  setCurrentWatchlist: (watchlistId: string | null) => void
+  addToWatchlist: (watchlistId: string, symbol: string) => void
+  removeFromWatchlist: (watchlistId: string, symbol: string) => void
+  setWatchlists: (watchlists: Watchlist[]) => void
+  setAlertRules: (rules: AlertRule[]) => void
+  
+  // Auth actions
+  setUser: (user: User | null) => void
+  setSession: (session: Session | null) => void
+  signOut: () => Promise<void>
+  syncToCloud: () => Promise<void>
+  syncFromCloud: () => Promise<void>
   
   reset: () => void
 }
@@ -95,11 +124,27 @@ const initialState = {
     enabled: true,
     soundEnabled: false,
     notificationEnabled: true,
+    browserNotificationEnabled: false, // Requires user permission
+    webhookEnabled: false,
+    discordWebhookUrl: '', // Legacy field for backwards compatibility
+    telegramBotToken: '',
+    telegramChatId: '',
+    webhooks: [],
     maxAlertsPerSymbol: 5,
     alertCooldown: 60, // 1 minute between alerts for same symbol
     autoDismissAfter: 30, // Auto-dismiss after 30 seconds
   } as AlertSettings,
   activeAlerts: [] as Alert[],
+  
+  // Watchlist defaults
+  watchlists: [] as Watchlist[],
+  currentWatchlistId: null,
+  
+  // Auth defaults
+  user: null,
+  session: null,
+  isAuthenticated: false,
+  isSyncing: false,
 }
 
 export const useStore = create<AppState>()(
@@ -202,6 +247,157 @@ export const useStore = create<AppState>()(
       clearAlerts: () =>
         set({ activeAlerts: [] }),
 
+      // Watchlist actions
+      addWatchlist: (watchlist) => {
+        const now = Date.now()
+        const newWatchlist: Watchlist = {
+          ...watchlist,
+          id: `watchlist_${now}_${Math.random().toString(36).substr(2, 9)}`,
+          createdAt: now,
+          updatedAt: now,
+        }
+        set((state) => ({
+          watchlists: [...state.watchlists, newWatchlist],
+        }))
+      },
+
+      updateWatchlist: (watchlistId, updates) =>
+        set((state) => ({
+          watchlists: state.watchlists.map((wl) =>
+            wl.id === watchlistId
+              ? { ...wl, ...updates, updatedAt: Date.now() }
+              : wl
+          ),
+        })),
+
+      deleteWatchlist: (watchlistId) =>
+        set((state) => ({
+          watchlists: state.watchlists.filter((wl) => wl.id !== watchlistId),
+          currentWatchlistId: state.currentWatchlistId === watchlistId ? null : state.currentWatchlistId,
+        })),
+
+      setCurrentWatchlist: (watchlistId) =>
+        set({ currentWatchlistId: watchlistId }),
+
+      addToWatchlist: (watchlistId, symbol) =>
+        set((state) => ({
+          watchlists: state.watchlists.map((wl) =>
+            wl.id === watchlistId && !wl.symbols.includes(symbol)
+              ? { ...wl, symbols: [...wl.symbols, symbol], updatedAt: Date.now() }
+              : wl
+          ),
+        })),
+
+      removeFromWatchlist: (watchlistId, symbol) =>
+        set((state) => ({
+          watchlists: state.watchlists.map((wl) =>
+            wl.id === watchlistId
+              ? { ...wl, symbols: wl.symbols.filter((s) => s !== symbol), updatedAt: Date.now() }
+              : wl
+          ),
+        })),
+
+      setWatchlists: (watchlists) =>
+        set({ watchlists }),
+
+      setAlertRules: (alertRules) =>
+        set({ alertRules }),
+
+      // Auth actions
+      setUser: (user) =>
+        set({ user, isAuthenticated: !!user }),
+
+      setSession: (session) =>
+        set({ session }),
+
+      signOut: async () => {
+        await supabase.auth.signOut()
+        set({ user: null, session: null, isAuthenticated: false })
+      },
+
+      syncToCloud: async () => {
+        const state = useStore.getState()
+        if (!state.user) return
+
+        set({ isSyncing: true })
+        try {
+          const { pushAllToCloud } = await import('@/services/syncService')
+          
+          await pushAllToCloud(state.user.id, {
+            userSettings: {
+              currentPair: state.currentPair,
+              currentList: state.currentList,
+              refreshInterval: state.refreshInterval,
+              sortField: state.sort.field,
+              sortDirection: state.sort.direction,
+              theme: state.theme,
+            },
+            alertSettings: state.alertSettings,
+            watchlists: state.watchlists,
+            alertRules: state.alertRules,
+            webhooks: state.alertSettings.webhooks,
+          })
+          
+          console.log('✅ Synced to cloud successfully')
+        } catch (error) {
+          console.error('❌ Sync to cloud failed:', error)
+          throw error
+        } finally {
+          set({ isSyncing: false })
+        }
+      },
+
+      syncFromCloud: async () => {
+        const state = useStore.getState()
+        if (!state.user) return
+
+        set({ isSyncing: true })
+        try {
+          const { pullAllFromCloud } = await import('@/services/syncService')
+          
+          const cloudData = await pullAllFromCloud(state.user.id)
+          
+          // Update store with cloud data
+          if (cloudData.userSettings) {
+            set({
+              currentPair: cloudData.userSettings.currentPair,
+              currentList: cloudData.userSettings.currentList,
+              refreshInterval: cloudData.userSettings.refreshInterval,
+              sort: {
+                field: cloudData.userSettings.sortField || 'priceChangePercent',
+                direction: cloudData.userSettings.sortDirection || 'desc',
+              },
+              theme: cloudData.userSettings.theme,
+            })
+          }
+          
+          if (cloudData.alertSettings) {
+            set({
+              alertSettings: {
+                ...state.alertSettings,
+                ...cloudData.alertSettings,
+              },
+            })
+          }
+          
+          set({
+            watchlists: cloudData.watchlists,
+            alertRules: cloudData.alertRules,
+            alertSettings: {
+              ...state.alertSettings,
+              webhooks: cloudData.webhooks,
+            },
+          })
+          
+          console.log('✅ Synced from cloud successfully')
+        } catch (error) {
+          console.error('❌ Sync from cloud failed:', error)
+          throw error
+        } finally {
+          set({ isSyncing: false })
+        }
+      },
+
       reset: () =>
         set(initialState),
     }),
@@ -220,6 +416,8 @@ export const useStore = create<AppState>()(
         rightSidebarCollapsed: state.rightSidebarCollapsed,
         alertRules: state.alertRules,
         alertSettings: state.alertSettings,
+        watchlists: state.watchlists,
+        currentWatchlistId: state.currentWatchlistId,
       }),
     }
   )

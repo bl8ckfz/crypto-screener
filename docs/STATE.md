@@ -6,9 +6,9 @@
 
 - **Project**: Crypto Screener Refactoring
 - **Current Phase**: Phase 7 - Quality Assurance (IN PROGRESS)
-- **Progress**: 67% (6 of 9 phases complete)
-- **Bundle Size**: 71.84KB gzipped (target: <500KB) ✅
-- **Files Created**: 97+ files from monolithic `fast.html`
+- **Progress**: 76% (6.85 of 9 phases complete)
+- **Bundle Size**: 168.39KB gzipped (target: <500KB) ✅
+- **Files Created**: 103 files from monolithic `fast.html`
 
 ## Completed Phases
 
@@ -17,7 +17,8 @@
 ✅ **Phase 3**: Component Architecture  
 ✅ **Phase 4**: Modern UI/UX Design  
 ✅ **Phase 5**: Performance Optimization  
-✅ **Phase 6**: Advanced Features - Alert System
+✅ **Phase 6**: Advanced Features - Alert System  
+✅ **Phase 6.2**: Enhanced Features - Watchlists, Browser Notifications, Audio Alerts (COMPLETED)
 
 ## Phase 7: Quality Assurance (IN PROGRESS)
 
@@ -25,8 +26,9 @@
 - Vitest + jsdom + React Testing Library configured
 - Test scripts added to package.json
 - 52 tests created across 3 test suites
+- All utility tests passing (100% success rate)
 
-### Current Test Status (December 1, 2025)
+### Current Test Status (December 1, 2025) - ALL PASSING ✅
 
 **Test Suites Created**:
 1. `tests/utils/format.test.ts` (28 tests) - ✅ **28 passing**
@@ -47,6 +49,55 @@
 #### Indicator Utilities (11 tests - ALL PASSING):
 - ✅ Exported `calculateFibonacciPivots()` with dual property names (resistance1/r3, support1/s3)
 - ✅ Updated `calculateVCP()` to handle field name aliases (price vs lastPrice)
+
+### Phase 6.2 Enhancements Completed ✅
+
+**Watchlists (Completed December 1)**:
+- Created 3 components: WatchlistManager (262 lines), WatchlistSelector (156 lines), WatchlistBadge (139 lines)
+- Zustand store extended with watchlist state and 6 CRUD actions
+- IndexedDB persistence for unlimited watchlist storage
+- Table integration with filtering and UI badges
+
+**Browser Notifications (Completed December 1)**:
+- notification.ts service (152 lines) with Notification API wrapper
+- Permission handling UI in AlertConfig component
+- Integrated into alert flow with severity mapping
+- Window focus on notification click
+
+**Audio Alerts (Completed December 1)**:
+- audioNotification.ts service using Web Audio API
+- Three severity levels: info (500Hz single tone), warning (600→800Hz dual), critical (900→1100→900Hz triple)
+- Toggle and test controls in AlertConfig
+- Integrated with alert evaluation in useMarketData
+- Bundle impact: ~2KB
+
+**Discord Webhook Integration (Completed December 1)**:
+- webhookService.ts (initially 195 lines) with Discord embed API
+- Rich embed formatting with colors, emojis, and formatted values
+- URL validation and test webhook functionality
+- UI controls in AlertConfig: URL input, test button, toggle switch
+- Integrated into alert flow after audio/browser notifications
+- Error handling and user feedback
+- Bundle impact: ~4KB
+
+**Full Webhook System (Completed December 1)**:
+- Extended webhookService.ts to ~400 lines with enterprise features
+- Telegram Bot API support with HTML formatting
+- Rate limiting: WebhookRateLimiter class (5 messages per 5 seconds per webhook)
+- Retry logic: sendWebhookWithRetry() with 3 attempts, exponential backoff (1s → 2s → 4s, max 10s)
+- Multi-webhook parallel delivery: sendToWebhooks() for batch delivery
+- Extended types: WebhookConfig, WebhookDelivery interfaces
+- WebhookManager component (273 lines): Full CRUD UI for managing multiple webhooks
+- Integrated WebhookManager into AlertConfig with legacy webhook warning
+- Updated useMarketData alert flow to use multi-webhook system
+- Backwards compatibility maintained for legacy discordWebhookUrl
+- Bundle impact: ~12KB total
+
+**UI Bug Fixes (Completed December 1)**:
+- Fixed z-index conflicts: WatchlistSelector (z-[1000]), ListSelector (z-[900])
+- Removed conflicting backdrop element
+- Replaced undefined Tailwind classes (card-bg, primary-bg, etc.) with proper design system colors
+- All dropdowns now render with solid, opaque backgrounds
 - ✅ Rewrote `calculateMarketDominance()` for volume-based percentages
 - ✅ Fixed test data (price 50000→51000 for positive VCP)
 - ✅ Fixed test expectations (negative VCP is correct for bearish signals)
@@ -107,7 +158,7 @@
 
 ## Key Technical Context
 
-### Alert System Features (Phase 6 - Complete)
+### Alert System Features (Phase 6.1 - Complete)
 - **8 Legacy Alert Types**: Pioneer Bull/Bear, Big Bull/Bear, Bottom/Top Hunter, Price Pump/Dump, Volume Spike, VCP Signal
 - **18 Evaluator Functions**: Timeframe-specific logic (5s/15s/30s/1m/3m/5m/15m)
 - **Color-Coded Notifications**:
@@ -117,6 +168,44 @@
 - **Alert History**: Filtering, sorting, export (CSV/JSON), statistics dashboard
 - **Anti-Spam**: 60s cooldown per symbol, max alerts tracking
 - **UI Integration**: Right sidebar with collapsible toggle button
+
+### Watchlist Features (Phase 6.2 - Complete)
+- **Full CRUD Operations**: Create, read, update, delete watchlists via Zustand store
+- **Persistence**: Watchlists saved to IndexedDB with automatic sync
+- **UI Components**:
+  - `WatchlistManager`: Create/edit watchlists with 8 preset colors and 16 icons
+  - `WatchlistSelector`: Dropdown to switch between watchlists (shows coin count)
+  - `WatchlistBadge`: Star badge in coin table for quick add/remove
+- **Data Filtering**: Filter coins by selected watchlist in `useMarketData` hook
+- **Multiple Watchlists**: Coins can belong to multiple watchlists simultaneously
+- **Integration**: Seamlessly works with existing list filtering and sorting
+
+### Browser Notification Features (Phase 6.2 - Complete)
+- **Notification API Integration**: Desktop notifications with permission management
+- **Permission Handling**: Request/check permission status, enable/disable UI
+- **Alert Integration**: Triggered on alert evaluation in useMarketData
+- **Severity Mapping**: Alert severity → notification urgency (low/normal/high)
+- **Window Focus**: Clicking notification focuses browser window
+- **UI Controls**: Permission badge, enable button, toggle switch in AlertConfig
+
+### Audio Alert Features (Phase 6.2 - Complete)
+- **Web Audio API**: Sine wave tone generation with fade in/out
+- **Three Severity Levels**:
+  - Info: Single 500Hz tone (200ms)
+  - Warning: Dual ascending tones (600Hz → 800Hz)
+  - Critical: Triple urgent tones (900Hz → 1100Hz → 900Hz)
+- **User Controls**: Toggle and test button in AlertConfig
+- **Lazy Initialization**: AudioContext created on first user interaction (autoplay policy)
+
+### Webhook Features (Phase 6.2 - Complete)
+- **Discord Integration**: Rich embeds with severity colors, emoji icons, formatted values
+- **Telegram Integration**: HTML-formatted messages via Bot API
+- **Rate Limiting**: 5 messages per 5 seconds per webhook (prevents API abuse)
+- **Retry Logic**: 3 attempts with exponential backoff (1s → 2s → 4s, max 10s)
+- **Multi-Webhook Support**: Parallel delivery to unlimited webhooks
+- **WebhookManager UI**: Full CRUD for webhook configurations (273 lines)
+- **Backwards Compatibility**: Legacy discordWebhookUrl still works
+- **Delivery Tracking**: WebhookDelivery interface for status/attempts/errors
 
 ### Test Infrastructure
 - **Framework**: Vitest 2.1.9 + jsdom + React Testing Library
@@ -131,6 +220,37 @@
 - **Timeframe Snapshots**: Independent tracking at 5s/15s/30s/1m/3m/5m/15m intervals
 
 ## Recent Changes (December 1, 2025)
+
+### Browser Notification Implementation (Phase 6.2)
+- Created `src/services/notification.ts` (152 lines)
+  - Feature detection: `isNotificationSupported()`
+  - Permission management: `getNotificationPermission()`, `requestNotificationPermission()`
+  - Show notifications: `showNotification()`, `showCryptoAlertNotification()`
+  - Test notification for permission grant confirmation
+- Extended `AlertSettings` type with `browserNotificationEnabled: boolean`
+- Updated Zustand store default settings (disabled by default, requires permission)
+- Modified `useMarketData.ts` to trigger browser notifications on alerts
+  - Maps alert severity to notification urgency (info/warning/critical)
+  - Focuses window when notification clicked
+- Enhanced `AlertConfig.tsx` component (280 lines → 330+ lines)
+  - Permission status badge with color coding
+  - "Enable" button for permission request flow
+  - Toggle switch for enabled/disabled state
+  - Handles denied/unsupported states gracefully
+  - Shows test notification on first grant
+- All TypeScript checks passing ✅
+
+### Watchlist Feature Implementation (Phase 6.2)
+- Extended Zustand store with watchlist state and 6 actions
+- Created `src/components/watchlist/` directory with 3 components:
+  - `WatchlistManager.tsx` (262 lines) - Full CRUD UI with color/icon pickers
+  - `WatchlistSelector.tsx` (156 lines) - Dropdown selector with management link
+  - `WatchlistBadge.tsx` (139 lines) - Quick add/remove badge for coin table
+- Modified `useMarketData.ts` to filter by `currentWatchlistId`
+- Updated query key to include watchlist for proper caching
+- Added watchlist column to `CoinTable.tsx` with badge integration
+- Integrated `WatchlistSelector` into left sidebar in `App.tsx`
+- All TypeScript checks passing ✅
 
 ### Test Suite Creation
 - Created `tests/utils/indicators.test.ts` (193 lines, 11 tests)

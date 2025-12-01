@@ -1,7 +1,8 @@
-import { useState, useMemo, useRef, lazy, Suspense } from 'react'
+import { useState, useMemo, useRef, lazy, Suspense, useEffect } from 'react'
 import { useMarketData } from '@/hooks/useMarketData'
 import { useStore } from '@/hooks/useStore'
 import { useKeyboardShortcuts } from '@/hooks'
+import { supabase } from '@/config'
 import { Layout, Sidebar } from '@/components/layout'
 import { SmartCoinTable } from '@/components/coin'
 import { MarketSummary } from '@/components/market'
@@ -13,6 +14,7 @@ import {
   ListSelector,
   ExportButton,
 } from '@/components/controls'
+import { WatchlistSelector } from '@/components/watchlist'
 import { ErrorStates, EmptyStates, ShortcutHelp } from '@/components/ui'
 import { StorageMigration } from '@/components/StorageMigration'
 import { AlertNotificationContainer, AlertConfig, AlertHistory } from '@/components/alerts'
@@ -32,6 +34,79 @@ function App() {
   const rightSidebarCollapsed = useStore((state) => state.rightSidebarCollapsed)
   const setLeftSidebarCollapsed = useStore((state) => state.setLeftSidebarCollapsed)
   const setRightSidebarCollapsed = useStore((state) => state.setRightSidebarCollapsed)
+  
+  // Auth state
+  const setUser = useStore((state) => state.setUser)
+  const setSession = useStore((state) => state.setSession)
+  const syncFromCloud = useStore((state) => state.syncFromCloud)
+  const user = useStore((state) => state.user)
+  
+  // Initialize auth state on mount
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+    })
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      
+      // Auto-sync on sign in
+      if (event === 'SIGNED_IN' && session?.user) {
+        try {
+          await syncFromCloud()
+        } catch (error) {
+          console.error('Auto-sync on sign in failed:', error)
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [setUser, setSession, syncFromCloud])
+  
+  // Setup real-time sync when user is authenticated
+  useEffect(() => {
+    if (!user) return
+    
+    const setupSync = async () => {
+      const { setupRealtimeSync } = await import('@/services/syncService')
+      
+      const cleanup = setupRealtimeSync(user.id, {
+        onWatchlistChange: (newWatchlists) => {
+          console.log('🔄 Watchlists updated from cloud')
+          useStore.setState({ watchlists: newWatchlists })
+        },
+        onAlertRuleChange: (newRules) => {
+          console.log('🔄 Alert rules updated from cloud')
+          useStore.setState({ alertRules: newRules })
+        },
+        onWebhookChange: (newWebhooks) => {
+          console.log('🔄 Webhooks updated from cloud')
+          const currentSettings = useStore.getState().alertSettings
+          useStore.setState({
+            alertSettings: {
+              ...currentSettings,
+              webhooks: newWebhooks,
+            },
+          })
+        },
+      })
+      
+      return cleanup
+    }
+    
+    let cleanup: (() => void) | undefined
+    setupSync().then((fn) => { cleanup = fn })
+    
+    return () => {
+      cleanup?.()
+    }
+  }, [user])
   
   // Alert system state
   const alertRules = useStore((state) => state.alertRules)
@@ -156,6 +231,7 @@ function App() {
             isCollapsed={leftSidebarCollapsed}
             onToggle={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
           >
+            <WatchlistSelector />
             <ListSelector 
               selectedListId={currentList} 
               onSelectList={setCurrentList} 

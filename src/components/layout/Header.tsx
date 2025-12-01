@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { ThemeToggle } from '@/components/controls'
+import { AuthModal, UserMenu } from '@/components/auth'
 
 interface HeaderProps {
   title?: string
@@ -6,24 +8,34 @@ interface HeaderProps {
 }
 
 export function Header({ title = 'Crypto Screener', subtitle }: HeaderProps) {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+
   return (
-    <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-800 backdrop-blur-sm bg-opacity-95">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{title}</h1>
-            {subtitle && (
-              <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
-            )}
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-400">
-              <span className="text-bullish">●</span> Live
+    <>
+      <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-800 backdrop-blur-sm bg-opacity-95">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">{title}</h1>
+              {subtitle && (
+                <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
+              )}
             </div>
-            <ThemeToggle />
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-400">
+                <span className="text-bullish">●</span> Live
+              </div>
+              <UserMenu onSignIn={() => setIsAuthModalOpen(true)} />
+              <ThemeToggle />
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+    </>
   )
 }

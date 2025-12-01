@@ -8,6 +8,7 @@
 import { memo } from 'react'
 import type { Coin } from '@/types/coin'
 import { formatPrice, formatPercent, formatVolume } from '@/utils/format'
+import { WatchlistBadge } from '@/components/watchlist'
 
 interface CoinTableRowProps {
   coin: Coin
@@ -50,6 +51,11 @@ function CoinTableRowComponent({ coin, index, onClick }: CoinTableRowProps) {
       </td>
       <td className="px-4 py-2 text-right mono-number text-gray-400">
         {coin.indicators.priceToWeightedAvg.toFixed(3)}
+      </td>
+      <td className="px-4 py-2 text-center">
+        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+          <WatchlistBadge symbol={coin.symbol} />
+        </div>
       </td>
     </tr>
   )

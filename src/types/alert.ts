@@ -66,8 +66,34 @@ export interface AlertRule {
   severity: AlertSeverity
   notificationEnabled: boolean
   soundEnabled: boolean
+  webhookEnabled?: boolean // Per-rule webhook override (if undefined, uses global setting)
   createdAt: number
   lastTriggered?: number
+}
+
+/**
+ * Webhook configuration
+ */
+export interface WebhookConfig {
+  id: string
+  name: string
+  type: 'discord' | 'telegram'
+  url: string
+  enabled: boolean
+  createdAt: number
+}
+
+/**
+ * Webhook delivery status
+ */
+export interface WebhookDelivery {
+  id: string
+  webhookId: string
+  alertId: string
+  status: 'pending' | 'success' | 'failed' | 'retrying'
+  attempts: number
+  lastAttempt: number
+  error?: string
 }
 
 /**
@@ -76,7 +102,13 @@ export interface AlertRule {
 export interface AlertSettings {
   enabled: boolean
   soundEnabled: boolean
-  notificationEnabled: boolean
+  notificationEnabled: boolean // In-app toast notifications
+  browserNotificationEnabled: boolean // Browser desktop notifications
+  webhookEnabled: boolean // Global webhook toggle
+  discordWebhookUrl: string // Legacy: Primary Discord webhook (backwards compatibility)
+  telegramBotToken: string // Telegram bot token
+  telegramChatId: string // Telegram chat/channel ID
+  webhooks: WebhookConfig[] // Multiple webhook configurations
   maxAlertsPerSymbol: number // Prevent spam
   alertCooldown: number // Seconds between alerts for same symbol
   autoDismissAfter: number // Auto-dismiss alerts after N seconds (0 = never)

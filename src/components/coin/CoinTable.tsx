@@ -78,6 +78,9 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
             >
               P/WA{getSortIndicator('priceToWeightedAvg')}
             </th>
+            <th className="px-4 py-2 text-center">
+              Watchlist
+            </th>
           </tr>
         </thead>
         <tbody>
