@@ -41,4 +41,10 @@
   .mono-number {
     @apply font-mono tabular-nums;
   }
+
+  /* Vertical writing mode for collapsed sidebar */
+  .writing-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
 }

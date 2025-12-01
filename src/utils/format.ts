@@ -3,50 +3,85 @@
  */
 
 /**
- * Format number with specified decimal places
+ * Format number with specified decimal places and comma separators
  */
 export function formatNumber(
   value: number,
   decimals: number = 2,
   showSign: boolean = false
 ): string {
-  const formatted = value.toFixed(decimals)
+  // Check if value is a whole number (integer)
+  const isWholeNumber = Number.isInteger(value)
+  
+  // If it's a whole number and decimals wasn't explicitly specified (using default),
+  // format without decimals
+  const effectiveDecimals = isWholeNumber && decimals === 2 ? 0 : decimals
+  
+  const formatted = value.toFixed(effectiveDecimals)
+  // Add comma separators
+  const parts = formatted.split('.')
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  
+  const withCommas = effectiveDecimals === 0 ? parts[0] : parts.join('.')
+  
   if (showSign && value > 0) {
-    return `+${formatted}`
+    return `+${withCommas}`
   }
-  return formatted
+  return withCommas
 }
 
 /**
  * Format price with dynamic decimal places based on value
+ * Always shows decimal places for prices
  */
-export function formatPrice(price: number): string {
+export function formatPrice(price: number, decimals?: number): string {
   if (price === 0) return '0.00'
-  if (price >= 1000) return formatNumber(price, 2)
-  if (price >= 1) return formatNumber(price, 4)
-  if (price >= 0.01) return formatNumber(price, 6)
-  return formatNumber(price, 8)
+  
+  // If custom decimals specified, use them
+  if (decimals !== undefined) {
+    // Force showing decimals by using toFixed directly with commas
+    const formatted = price.toFixed(decimals)
+    const parts = formatted.split('.')
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return parts.join('.')
+  }
+  
+  // Dynamic decimals based on price magnitude - always show decimals
+  const absPrice = Math.abs(price)
+  let targetDecimals = 2
+  if (absPrice >= 1000) targetDecimals = 2
+  else if (absPrice >= 1) targetDecimals = 2
+  else if (absPrice >= 0.01) targetDecimals = 2
+  else targetDecimals = 8
+  
+  const formatted = price.toFixed(targetDecimals)
+  const parts = formatted.split('.')
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return parts.join('.')
 }
 
 /**
- * Format percentage with sign
+ * Format percentage with sign (always shows decimals)
  */
 export function formatPercent(value: number, decimals: number = 2): string {
-  return formatNumber(value, decimals, true) + '%'
+  // Always show decimals for percentages
+  const formatted = value.toFixed(decimals)
+  const sign = value > 0 ? '+' : ''
+  return sign + formatted + '%'
 }
 
 /**
- * Format large numbers with K/M/B suffixes
+ * Format large numbers with K/M/B suffixes (no comma separators in suffix format)
  */
 export function formatLargeNumber(value: number, decimals: number = 2): string {
-  if (value >= 1_000_000_000) {
-    return formatNumber(value / 1_000_000_000, decimals) + 'B'
+  if (Math.abs(value) >= 1_000_000_000) {
+    return (value / 1_000_000_000).toFixed(decimals) + 'B'
   }
-  if (value >= 1_000_000) {
-    return formatNumber(value / 1_000_000, decimals) + 'M'
+  if (Math.abs(value) >= 1_000_000) {
+    return (value / 1_000_000).toFixed(decimals) + 'M'
   }
-  if (value >= 1_000) {
-    return formatNumber(value / 1_000, decimals) + 'K'
+  if (Math.abs(value) >= 1_000) {
+    return (value / 1_000).toFixed(decimals) + 'K'
   }
   return formatNumber(value, decimals)
 }
@@ -55,6 +90,14 @@ export function formatLargeNumber(value: number, decimals: number = 2): string {
  * Format volume (quote volume)
  */
 export function formatVolume(volume: number): string {
+  const absVolume = Math.abs(volume)
+  
+  // For small volumes, return without suffix and without decimals
+  if (absVolume < 1000) {
+    return formatNumber(volume, 0)
+  }
+  
+  // For large volumes, use suffix
   return formatLargeNumber(volume, 2)
 }
 
@@ -102,6 +145,29 @@ export function getRelativeTime(timestamp: number): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
   return `${Math.floor(seconds / 86400)}d ago`
+}
+
+/**
+ * Format time ago from timestamp or Date object (e.g., "5s ago", "3m ago", "just now")
+ */
+export function formatTimeAgo(value: number | Date): string {
+  const timestamp = value instanceof Date ? value.getTime() : value
+  const now = Date.now()
+  const diff = now - timestamp
+  const seconds = Math.floor(diff / 1000)
+
+  // "just now" only for very recent (< 5 seconds)
+  if (seconds < 5) return 'just now'
+  if (seconds < 60) return `${seconds}s ago`
+  
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
 }
 
 /**

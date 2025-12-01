@@ -28,7 +28,11 @@ export class BinanceApiClient {
    * Fetch 24hr ticker data for all symbols
    */
   async fetch24hrTickers(): Promise<BinanceTicker24hr[]> {
-    const url = `${this.baseUrl}/ticker/24hr`
+    // If using proxy, construct URL properly
+    const endpoint = '/ticker/24hr'
+    const url = API_CONFIG.corsProxy 
+      ? `${API_CONFIG.corsProxy}${encodeURIComponent('https://api.binance.com/api/v3' + endpoint)}`
+      : `${this.baseUrl}${endpoint}`
     const data = await this.fetchWithRetry<BinanceTicker24hr[]>(url)
 
     // Ensure we have an array
@@ -44,7 +48,10 @@ export class BinanceApiClient {
    * Fetch 24hr ticker data for a specific symbol
    */
   async fetch24hrTicker(symbol: string): Promise<BinanceTicker24hr> {
-    const url = `${this.baseUrl}/ticker/24hr?symbol=${symbol.toUpperCase()}`
+    const endpoint = `/ticker/24hr?symbol=${symbol.toUpperCase()}`
+    const url = API_CONFIG.corsProxy 
+      ? `${API_CONFIG.corsProxy}${encodeURIComponent('https://api.binance.com/api/v3' + endpoint)}`
+      : `${this.baseUrl}${endpoint}`
     return this.fetchWithRetry<BinanceTicker24hr>(url)
   }
 
@@ -106,9 +113,8 @@ export class BinanceApiClient {
     try {
       const response = await fetch(url, {
         signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        mode: 'cors',
+        cache: 'no-cache',
       })
       return response
     } catch (error) {

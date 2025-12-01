@@ -13,3 +13,21 @@ export {
 
 // Timeframe Tracking
 export { TimeframeService, timeframeService } from './timeframeService'
+
+// Storage
+export {
+  storage,
+  createIndexedDBStorage,
+  migrateFromLocalStorage,
+  getStorageStats,
+  exportAllData,
+  importAllData,
+} from './storage'
+export type { Storage } from './storage'
+
+// Alert System
+export {
+  evaluateAlertRules,
+  createDefaultAlertRules,
+} from './alertEngine'
+export { AlertHistoryService, alertHistory } from './alertHistory'

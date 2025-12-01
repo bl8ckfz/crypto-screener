@@ -4,15 +4,15 @@
 Real-time cryptocurrency market screener refactored from a 3,029-line monolithic HTML file into a modern React/TypeScript application. Fetches data from Binance API, processes 134+ screening criteria, and provides multi-timeframe technical analysis for 25+ trading pairs.
 
 **Legacy Version**: `fast.html` (preserved for reference) - do NOT modify  
-**Current Status**: Phase 3 complete (33% overall)  
-**Project Tracking**: See `ROADMAP.md` for 9-phase plan and `docs/STATE.md` for detailed action log
+**Current Status**: Phase 7 in progress (67% overall)  
+**Project Tracking**: See `docs/ROADMAP.md` for 9-phase plan and `docs/STATE.md` for detailed action log
 
 ### Project Lifecycle Context
 - **Start Date**: November 28, 2025
-- **Completed Phases**: 1 (Foundation), 2 (Modularization), 3 (Components)
-- **Current Phase**: Ready for Phase 4 (Modern UI/UX Design)
-- **Next Priorities**: Screening list selector (134 lists), TradingView charts, advanced filtering
-- **Files Created**: 74+ files from 1 monolithic HTML file
+- **Completed Phases**: 1-6 (Foundation through Alert System)
+- **Current Phase**: Phase 7 - Quality Assurance (Testing)
+- **Current Focus**: Fix 36 failing tests, add alert engine tests, achieve 80%+ coverage
+- **Files Created**: 97+ files from 1 monolithic HTML file
 - **Bundle Size**: 71.84KB gzipped (target: <500KB) ✅
 
 ## Core Architecture
@@ -180,14 +180,14 @@ const isPending = isLoading || isFetching  // No useMemo needed
 4. **`src/types/coin.ts`** - Core data model (228 lines, 32+ fields)
 
 ### For Understanding Project State
-1. **`ROADMAP.md`** - 9-phase refactor plan with checkmarks showing completed work
-2. **`docs/STATE.md`** - Complete action log with 1,191 lines of decisions/changes
+1. **`docs/ROADMAP.md`** - 9-phase refactor plan with checkmarks showing completed work
+2. **`docs/STATE.md`** - Current phase status with pending tasks (150 lines, cleaned up)
 3. **`README.md`** - Setup instructions and architecture overview
 4. **`fast.html`** - Legacy version (DO NOT MODIFY - reference only)
 
 ### For Adding Features
-- Check `ROADMAP.md` Phase 4-6 tasks to align with planned work
-- Review `docs/STATE.md` "files.created" section to avoid duplication
+- Check `docs/ROADMAP.md` Phase 7-9 tasks to align with planned work
+- Review `docs/STATE.md` "Pending Tasks" section for current priorities
 - Verify against "Working Features" and "Known Issues" in ROADMAP status
 
 ## Debugging Tips
@@ -205,28 +205,28 @@ This refactor transforms a monolithic HTML/CSS/JS file into modular architecture
 
 **Do NOT**: Reference `fast.html` patterns - it represents the OLD architecture
 
-## Working with ROADMAP.md and docs/STATE.md
+## Working with docs/ROADMAP.md and docs/STATE.md
 
 ### Before Starting Any Task
-1. **Check ROADMAP.md** - Is this task already planned? Which phase?
+1. **Check docs/ROADMAP.md** - Is this task already planned? Which phase?
 2. **Check docs/STATE.md** - Has similar work been done? Any relevant decisions?
 3. **Update both files** after completing significant work
 
-### ROADMAP.md Structure
+### docs/ROADMAP.md Structure
 - **9 Phases**: Foundation → Modularization → Components → UI/UX → Performance → Advanced Features → QA → Deployment → Migration
 - **Phase Status**: Uses checkmarks (✅) for completed tasks
 - **Current Status Summary**: Bottom section with metrics (bundle size, file count, features)
 - **Known Issues**: Lists limitations and planned improvements
 
 ### docs/STATE.md Structure
-- **JSON Metadata**: Phase tracking, dates, progress percentages
-- **Phase Tasks**: Detailed completion status with notes
-- **Files Section**: Complete list of created/modified files with purposes
-- **Codebase Insights**: Technical analysis of original `fast.html`
-- **Tech Stack Decisions**: Rationale for React/TypeScript/Zustand/etc.
+- **Current Status**: Phase tracking, dates, progress percentages
+- **Completed Phases**: List of finished phases (1-6)
+- **Phase 7 Progress**: Detailed test status and pending tasks
+- **Failing Tests Breakdown**: 36 tests categorized by utility (format/indicator/sort)
+- **Key Technical Context**: Alert system features, test infrastructure, critical notes
 
 ### When to Update These Files
-**Update ROADMAP.md when**:
+**Update docs/ROADMAP.md when**:
 - Completing a major task (add ✅)
 - Adding new features to track
 - Updating "Current Status Summary" metrics
@@ -234,16 +234,16 @@ This refactor transforms a monolithic HTML/CSS/JS file into modular architecture
 
 **Update docs/STATE.md when**:
 - Starting/completing a phase
-- Creating new files (add to "files.created")
-- Making architectural decisions
-- Fixing critical bugs (add to "files.modified")
+- Updating test status (passing/failing counts)
+- Completing pending tasks (check off items)
+- Adding new technical context or critical notes
 
 ### Example Workflow
 ```
-1. Check ROADMAP.md Phase 4 tasks → "Add screening list selector"
-2. Check docs/STATE.md → No similar component exists
-3. Implement feature
-4. Update ROADMAP.md → Add ✅ to task
-5. Update docs/STATE.md → Add to files.created with purpose
-6. Update "Current Status Summary" if bundle size/metrics changed
+1. Check docs/ROADMAP.md Phase 7 tasks → "Fix failing tests"
+2. Check docs/STATE.md → See breakdown of 36 failing tests
+3. Fix format utilities (implement formatTimeAgo, add comma separators)
+4. Update docs/STATE.md → Check off completed tasks, update test counts
+5. Update docs/ROADMAP.md → Add ✅ to task if fully complete
+6. Update "Current Status Summary" if test coverage changed
 ```

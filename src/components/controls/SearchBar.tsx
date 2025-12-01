@@ -79,7 +79,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
       {/* Search hint */}
       {query && (
         <div className="mt-1 text-xs text-gray-400">
-          Searching for "{query}"
+          Searching for &ldquo;{query}&rdquo;
         </div>
       )}
     </div>

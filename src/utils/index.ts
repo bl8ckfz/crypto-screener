@@ -29,3 +29,21 @@ export {
   getBottomCoins,
   sortCoinsByList,
 } from './sort'
+
+// Export
+export {
+  exportToCSV,
+  exportToJSON,
+  generateFilename,
+} from './export'
+
+// Performance
+export {
+  memoize,
+  debounce,
+  throttle,
+  isTabVisible,
+  onVisibilityChange,
+  requestIdleCallback,
+  cancelIdleCallback,
+} from './performance'

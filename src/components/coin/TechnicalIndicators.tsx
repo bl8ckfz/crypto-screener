@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { Coin } from '@/types/coin'
 import { formatPrice, formatPercent, formatNumber } from '@/utils/format'
 import { Badge } from '@/components/ui'
@@ -8,8 +9,9 @@ export interface TechnicalIndicatorsProps {
 
 /**
  * TechnicalIndicators component displays VCP, Fibonacci levels, and other technical data
+ * Memoized to prevent unnecessary re-renders
  */
-export function TechnicalIndicators({ coin }: TechnicalIndicatorsProps) {
+function TechnicalIndicatorsComponent({ coin }: TechnicalIndicatorsProps) {
   const { indicators } = coin
 
   return (
@@ -255,3 +257,21 @@ export function TechnicalIndicators({ coin }: TechnicalIndicatorsProps) {
     </div>
   )
 }
+
+/**
+ * Memoized TechnicalIndicators component
+ * Only re-renders when coin.indicators change
+ */
+export const TechnicalIndicators = memo(
+  TechnicalIndicatorsComponent,
+  (prevProps, nextProps) => {
+    // Deep comparison of indicators object
+    return (
+      prevProps.coin.id === nextProps.coin.id &&
+      prevProps.coin.lastUpdated === nextProps.coin.lastUpdated &&
+      JSON.stringify(prevProps.coin.indicators) === JSON.stringify(nextProps.coin.indicators)
+    )
+  }
+)
+
+TechnicalIndicators.displayName = 'TechnicalIndicators'

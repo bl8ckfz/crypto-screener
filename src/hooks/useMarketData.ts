@@ -1,28 +1,58 @@
+import { useEffect, useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from './useStore'
 import { binanceApi, BinanceApiClient } from '@/services/binanceApi'
 import { processTickersForPair } from '@/services/dataProcessor'
 import { applyTechnicalIndicators } from '@/utils/indicators'
 import { timeframeService } from '@/services/timeframeService'
-import { MOCK_TICKERS, USE_MOCK_DATA } from '@/services/mockData'
+import { USE_MOCK_DATA, getMockDataWithVariations } from '@/services/mockData'
+import { isTabVisible, onVisibilityChange } from '@/utils/performance'
+import { evaluateAlertRules } from '@/services/alertEngine'
 import type { Coin } from '@/types/coin'
+import type { Alert } from '@/types/alert'
 
 /**
- * Fetch and process market data for current currency pair
+ * Fetch and process market data for current currency pair with smart polling
  */
 export function useMarketData() {
   const currentPair = useStore((state) => state.currentPair)
   const refreshInterval = useStore((state) => state.refreshInterval)
   const autoRefresh = useStore((state) => state.autoRefresh)
+  
+  // Alert system integration
+  const alertRules = useStore((state) => state.alertRules)
+  const alertSettings = useStore((state) => state.alertSettings)
+  const addAlert = useStore((state) => state.addAlert)
+  
+  // Track recent alerts to prevent spam (symbol -> last alert timestamp)
+  const recentAlerts = useRef<Map<string, number>>(new Map())
 
-  return useQuery({
+  // Track tab visibility for smart polling
+  const [isVisible, setIsVisible] = useState(isTabVisible())
+
+  useEffect(() => {
+    // Listen for tab visibility changes
+    const cleanup = onVisibilityChange((visible) => {
+      setIsVisible(visible)
+      if (visible) {
+        console.log('Tab visible - resuming data refresh')
+      } else {
+        console.log('Tab hidden - pausing data refresh')
+      }
+    })
+
+    return cleanup
+  }, [])
+
+  // Query for market data
+  const query = useQuery({
     queryKey: ['marketData', currentPair],
     queryFn: async (): Promise<Coin[]> => {
       // Use mock data if enabled, otherwise fetch from Binance API
       let tickers
       if (USE_MOCK_DATA) {
-        console.log('Using mock data for development')
-        tickers = MOCK_TICKERS
+        console.log('Using mock data with variations for alert testing')
+        tickers = getMockDataWithVariations()
       } else {
         try {
           tickers = await binanceApi.fetch24hrTickers()
@@ -31,7 +61,7 @@ export function useMarketData() {
             'Failed to fetch from Binance API, falling back to mock data:',
             error
           )
-          tickers = MOCK_TICKERS
+          tickers = getMockDataWithVariations()
         }
       }
 
@@ -50,11 +80,108 @@ export function useMarketData() {
       return coins
     },
     staleTime: (refreshInterval * 1000) / 2, // Half of refresh interval
-    refetchInterval: autoRefresh ? refreshInterval * 1000 : false,
+    // Smart polling: only refetch when tab is visible
+    refetchInterval: autoRefresh && isVisible ? refreshInterval * 1000 : false,
     refetchOnWindowFocus: autoRefresh,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
+
+  // Evaluate alerts when data is successfully fetched
+  useEffect(() => {
+    if (!query.data || !alertSettings.enabled || alertRules.length === 0) {
+      console.log('⚠️ Alert evaluation skipped:', {
+        hasData: !!query.data,
+        alertsEnabled: alertSettings.enabled,
+        ruleCount: alertRules.length,
+      })
+      return
+    }
+
+    const coins = query.data
+    const now = Date.now()
+
+    // Filter to enabled rules only
+    const enabledRules = alertRules.filter((rule) => rule.enabled)
+
+    if (enabledRules.length === 0) {
+      console.log('⚠️ No enabled alert rules')
+      return
+    }
+
+    console.log(`🔍 Evaluating ${enabledRules.length} alert rules against ${coins.length} coins...`)
+    
+    // Debug: Log first coin to see what data we have
+    if (coins.length > 0) {
+      const sampleCoin = coins[0]
+      console.log('📊 Sample coin data:', {
+        symbol: sampleCoin.symbol,
+        lastPrice: sampleCoin.lastPrice,
+        priceChange: sampleCoin.priceChangePercent,
+        hasHistory: !!sampleCoin.history,
+        historyKeys: sampleCoin.history ? Object.keys(sampleCoin.history) : [],
+        history1m: sampleCoin.history?.['1m'],
+        history3m: sampleCoin.history?.['3m'],
+      })
+    }
+
+    try {
+      // Evaluate all rules against current coins
+      const triggeredAlerts = evaluateAlertRules(coins, enabledRules)
+      
+      console.log(`✅ Alert evaluation complete: ${triggeredAlerts.length} alerts triggered`)
+
+      // Process each triggered alert
+      for (const triggeredAlert of triggeredAlerts) {
+        const { symbol } = triggeredAlert
+
+        // Check cooldown to prevent spam
+        const lastAlertTime = recentAlerts.current.get(symbol) || 0
+        const cooldownMs = alertSettings.alertCooldown * 1000
+
+        if (now - lastAlertTime < cooldownMs) {
+          continue // Skip if in cooldown period
+        }
+
+        // Check max alerts per symbol
+        const symbolAlertCount = Array.from(recentAlerts.current.entries()).filter(
+          ([sym]) => sym === symbol
+        ).length
+
+        if (symbolAlertCount >= alertSettings.maxAlertsPerSymbol) {
+          continue // Skip if reached max alerts for this symbol
+        }
+
+        // Create alert object
+        const alert: Alert = {
+          id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          symbol,
+          type: triggeredAlert.type,
+          severity: triggeredAlert.severity,
+          title: triggeredAlert.title,
+          message: triggeredAlert.message,
+          value: triggeredAlert.value,
+          threshold: triggeredAlert.threshold,
+          timeframe: triggeredAlert.timeframe,
+          timestamp: now,
+          read: false,
+          dismissed: false,
+        }
+
+        // Add to store (will trigger notification and save to history)
+        addAlert(alert)
+
+        // Update cooldown tracker
+        recentAlerts.current.set(symbol, now)
+
+        console.log(`🔔 Alert triggered: ${symbol} - ${alert.title}`)
+      }
+    } catch (error) {
+      console.error('Failed to evaluate alerts:', error)
+    }
+  }, [query.data, alertRules, alertSettings, addAlert])
+
+  return query
 }
 
 /**

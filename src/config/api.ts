@@ -18,10 +18,13 @@
 const CORS_PROXY = import.meta.env.VITE_CORS_PROXY || ''
 
 export const API_CONFIG = {
-  // Direct API URL - CORS errors will be caught and fallback to mock data
-  baseUrl: import.meta.env.VITE_BINANCE_API_URL || 'https://api.binance.com/api/v3',
+  // Use proxy if available, otherwise direct API URL
+  baseUrl: CORS_PROXY 
+    ? `${CORS_PROXY}${encodeURIComponent(import.meta.env.VITE_BINANCE_API_URL || 'https://api.binance.com/api/v3')}`
+    : import.meta.env.VITE_BINANCE_API_URL || 'https://api.binance.com/api/v3',
   timeout: 10000,
   retries: 3,
+  corsProxy: CORS_PROXY,
 }
 
 export const isUsingProxy = !!CORS_PROXY

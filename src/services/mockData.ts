@@ -469,6 +469,90 @@ export const MOCK_TICKERS: BinanceTicker24hr[] = [
 ]
 
 /**
+ * Generate realistic price variations for alert testing
+ * Simulates market movements that should trigger alerts
+ */
+export function getMockDataWithVariations(): BinanceTicker24hr[] {
+  const now = Date.now()
+  const baseData = [...MOCK_TICKERS]
+  
+  // Add some coins with strong movements to trigger alerts
+  const variations = [
+    // Pioneer Bull candidate - BTC with strong upward movement
+    {
+      ...baseData[0],
+      symbol: 'BTCUSDT',
+      lastPrice: '42500.00',
+      priceChange: '520.00',
+      priceChangePercent: '1.24', // >1% for Pioneer Bull
+      weightedAvgPrice: '42300.00',
+      volume: '35000.00',
+      quoteVolume: '1480500000.00', // High volume
+      highPrice: '42650.00',
+      lowPrice: '41980.00',
+      openTime: now - 86400000,
+      closeTime: now,
+    },
+    // Big Bull candidate - ETH with volume spike
+    {
+      ...baseData[1],
+      symbol: 'ETHUSDT',
+      lastPrice: '2250.00',
+      priceChange: '45.00',
+      priceChangePercent: '2.04', // Strong movement
+      weightedAvgPrice: '2230.00',
+      volume: '125000.00',
+      quoteVolume: '278750000.00', // High volume
+      highPrice: '2275.00',
+      lowPrice: '2205.00',
+      openTime: now - 86400000,
+      closeTime: now,
+    },
+    // Bottom Hunter candidate - SOL recovering from dip
+    {
+      ...baseData[2],
+      symbol: 'SOLUSDT',
+      lastPrice: '98.50',
+      priceChange: '-2.50',
+      priceChangePercent: '-2.48', // Was down, now recovering
+      weightedAvgPrice: '97.80',
+      volume: '45000.00',
+      quoteVolume: '4401000.00',
+      highPrice: '101.00',
+      lowPrice: '96.80', // Recent low
+      openTime: now - 86400000,
+      closeTime: now,
+    },
+    // Add more USDT pairs for variety
+    {
+      ...baseData[3],
+      symbol: 'BNBUSDT',
+      lastPrice: '308.50',
+      priceChange: '4.20',
+      priceChangePercent: '1.38',
+      volume: '28000.00',
+      quoteVolume: '8638000.00',
+    },
+    {
+      ...baseData[4],
+      symbol: 'ADAUSDT',
+      lastPrice: '0.4825',
+      priceChange: '0.0125',
+      priceChangePercent: '2.66',
+      volume: '185000000.00',
+      quoteVolume: '89262500.00',
+    },
+  ]
+  
+  // Randomly vary prices slightly on each call to simulate live updates
+  return variations.map(ticker => ({
+    ...ticker,
+    lastPrice: (parseFloat(ticker.lastPrice) * (1 + (Math.random() - 0.5) * 0.002)).toFixed(2),
+    closeTime: now,
+  }))
+}
+
+/**
  * Check if we should use mock data
  */
 export const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true'

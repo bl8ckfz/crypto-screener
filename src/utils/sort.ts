@@ -1,4 +1,5 @@
 import type { Coin, CoinSort, CoinSortField, SortDirection } from '@/types/coin'
+import { memoize } from './performance'
 
 /**
  * Get value from coin for sorting
@@ -107,14 +108,14 @@ export function getBottomCoins(
 }
 
 /**
- * Sort coins by screening list
+ * Sort coins by screening list - Internal implementation
  * Lists 0-134: Bull mode (descending - highest first)
  * Lists 300-434: Bear mode (ascending - lowest first)
  * 
  * Note: sortField from list definition should map to a valid CoinSortField
  * For advanced fields not yet in CoinSortField, falls back to VCP sorting
  */
-export function sortCoinsByList(
+function sortCoinsByListInternal(
   coins: Coin[],
   listId: number,
   listSortField?: string,
@@ -143,4 +144,22 @@ export function sortCoinsByList(
   const direction: SortDirection = isBull !== false ? 'desc' : 'asc'
 
   return sortCoins(coins, { field: sortField, direction })
+}
+
+// Memoized version with 30s cache (shorter since sorting is less expensive than calculations)
+const sortCoinsByListMemoized = memoize(sortCoinsByListInternal, {
+  maxSize: 50,
+  maxAge: 30000,
+})
+
+/**
+ * Sort coins by screening list (memoized)
+ */
+export function sortCoinsByList(
+  coins: Coin[],
+  listId: number,
+  listSortField?: string,
+  isBull?: boolean
+): Coin[] {
+  return sortCoinsByListMemoized(coins, listId, listSortField, isBull)
 }

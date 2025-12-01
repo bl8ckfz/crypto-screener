@@ -1,3 +1,5 @@
+import { ThemeToggle } from '@/components/controls'
+
 interface HeaderProps {
   title?: string
   subtitle?: string
@@ -5,7 +7,7 @@ interface HeaderProps {
 
 export function Header({ title = 'Crypto Screener', subtitle }: HeaderProps) {
   return (
-    <header className="bg-gray-900 border-b border-gray-800">
+    <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-800 backdrop-blur-sm bg-opacity-95">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div>
@@ -18,6 +20,7 @@ export function Header({ title = 'Crypto Screener', subtitle }: HeaderProps) {
             <div className="text-sm text-gray-400">
               <span className="text-bullish">●</span> Live
             </div>
+            <ThemeToggle />
           </div>
         </div>
       </div>

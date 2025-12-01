@@ -11,6 +11,14 @@ export type AlertType =
   | 'vcp_signal' // VCP pattern detected
   | 'fibonacci_break' // Price broke Fibonacci level
   | 'trend_reversal' // Trend direction changed
+  | 'pioneer_bull' // Legacy: PIONEER BULL ALARM (strong bull signal)
+  | 'pioneer_bear' // Legacy: PIONEER BEAR ALARM (strong bear signal)
+  | '5m_big_bull' // Legacy: 5m BIG BULL ALARM (5-minute volume spike)
+  | '5m_big_bear' // Legacy: 5m BIG BEAR ALARM (5-minute volume drop)
+  | '15m_big_bull' // Legacy: 15m BIG BULL ALARM (15-minute volume spike)
+  | '15m_big_bear' // Legacy: 15m BIG BEAR ALARM (15-minute volume drop)
+  | 'bottom_hunter' // Legacy: BOTTOM HUNTER ALARM (potential bottom reversal)
+  | 'top_hunter' // Legacy: TOP HUNTER ALARM (potential top reversal)
   | 'custom' // User-defined custom alert
 
 /**
@@ -93,3 +101,185 @@ export interface AlertStats {
   last24h: number
   mostActiveSymbol: string
 }
+
+/**
+ * Legacy alert rule presets from fast.html
+ * These replicate the original alert logic for backward compatibility
+ */
+export interface LegacyAlertPreset {
+  type: AlertType
+  name: string
+  description: string
+  conditions: {
+    priceRatios?: Record<string, { min?: number; max?: number }> // e.g., { '1m/3m': { min: 1.01 } }
+    volumeDeltas?: Record<string, { min?: number }> // e.g., { '5m': { min: 100000 } }
+    volumeRatios?: Record<string, { min?: number }> // e.g., { 'current/1m': { min: 1.04 } }
+    trendConditions?: string[] // Complex conditions like "price ascending across timeframes"
+  }
+  severity: AlertSeverity
+  marketMode?: 'bull' | 'bear' | 'both' // Some alerts only trigger in bull/bear markets
+}
+
+/**
+ * Predefined legacy alert presets
+ */
+export const LEGACY_ALERT_PRESETS: LegacyAlertPreset[] = [
+  {
+    type: 'pioneer_bull',
+    name: 'Pioneer Bull',
+    description: 'Strong bullish momentum with accelerating price growth',
+    conditions: {
+      priceRatios: {
+        'current/3m': { min: 1.01 },
+        'current/15m': { min: 1.01 },
+      },
+      volumeRatios: {
+        'current/3m': { min: 1.5 }, // 2*current/3m > current/15m
+        'current/15m': { min: 1 },
+      },
+      trendConditions: ['3*price_1m > price_5m', 'accelerating_momentum'],
+    },
+    severity: 'critical',
+    marketMode: 'bull',
+  },
+  {
+    type: 'pioneer_bear',
+    name: 'Pioneer Bear',
+    description: 'Strong bearish momentum with accelerating price decline',
+    conditions: {
+      priceRatios: {
+        'current/3m': { max: 0.99 }, // price < 2-1.01 = 0.99
+        'current/15m': { max: 0.99 },
+      },
+      volumeRatios: {
+        'current/3m': { min: 1.5 },
+        'current/15m': { min: 1 },
+      },
+      trendConditions: ['3*price_1m < price_5m', 'accelerating_momentum'],
+    },
+    severity: 'critical',
+    marketMode: 'bear',
+  },
+  {
+    type: '5m_big_bull',
+    name: '5m Big Bull',
+    description: '5-minute significant volume and price increase',
+    conditions: {
+      priceRatios: {
+        'current/3m': { min: 1.006 },
+      },
+      volumeDeltas: {
+        '3m_delta': { min: 100000 },
+        '5m_delta': { min: 50000 },
+      },
+      trendConditions: [
+        'price: 3m < 1m < current',
+        'volume: 3m < 1m < 5m < current',
+      ],
+    },
+    severity: 'high',
+    marketMode: 'bull',
+  },
+  {
+    type: '5m_big_bear',
+    name: '5m Big Bear',
+    description: '5-minute significant volume and price decrease',
+    conditions: {
+      priceRatios: {
+        'current/3m': { max: 0.994 }, // < 2-1.006
+      },
+      volumeDeltas: {
+        '3m_delta': { min: 100000 },
+        '5m_delta': { min: 50000 },
+      },
+      trendConditions: [
+        'price: 3m > 1m > current',
+        'volume: 3m < 1m < 5m < current',
+      ],
+    },
+    severity: 'high',
+    marketMode: 'bear',
+  },
+  {
+    type: '15m_big_bull',
+    name: '15m Big Bull',
+    description: '15-minute significant volume and price increase',
+    conditions: {
+      priceRatios: {
+        'current/15m': { min: 1.01 },
+        'current/3m': { min: 1 },
+        '3m/15m': { min: 1 },
+      },
+      volumeDeltas: {
+        '15m_delta': { min: 400000 },
+        '3m_delta': { min: 100000 },
+      },
+      trendConditions: [
+        'price: 15m < 3m < current',
+        'volume: 15m < 3m < 5m < current',
+      ],
+    },
+    severity: 'high',
+    marketMode: 'bull',
+  },
+  {
+    type: '15m_big_bear',
+    name: '15m Big Bear',
+    description: '15-minute significant volume and price decrease',
+    conditions: {
+      priceRatios: {
+        'current/15m': { max: 0.99 },
+        'current/3m': { max: 1 },
+        '3m/15m': { max: 1 },
+      },
+      volumeDeltas: {
+        '15m_delta': { min: 400000 },
+        '3m_delta': { min: 100000 },
+      },
+      trendConditions: [
+        'price: 15m > 3m > current',
+        'volume: 15m < 3m < 5m < current',
+      ],
+    },
+    severity: 'high',
+    marketMode: 'bear',
+  },
+  {
+    type: 'bottom_hunter',
+    name: 'Bottom Hunter',
+    description: 'Potential bottom reversal - price declining but showing support',
+    conditions: {
+      priceRatios: {
+        'current/15m': { max: 0.994 }, // < 2-1.006
+        'current/3m': { max: 0.995 }, // < 2-1.005
+        'current/1m': { min: 1.004 },
+      },
+      volumeRatios: {
+        'current/5m': { min: 1 },
+        '5m/3m': { min: 1 },
+      },
+      trendConditions: ['price_declining_then_reversing', 'volume_increasing'],
+    },
+    severity: 'medium',
+    marketMode: 'both',
+  },
+  {
+    type: 'top_hunter',
+    name: 'Top Hunter',
+    description: 'Potential top reversal - price rising but losing momentum',
+    conditions: {
+      priceRatios: {
+        'current/15m': { min: 1.006 },
+        'current/3m': { min: 1.005 },
+        'current/1m': { min: 0.996 }, // > 2-1.004
+      },
+      volumeRatios: {
+        'current/5m': { min: 1 },
+        '5m/3m': { min: 1 },
+      },
+      trendConditions: ['price_rising_then_slowing', 'volume_increasing'],
+    },
+    severity: 'medium',
+    marketMode: 'both',
+  },
+]

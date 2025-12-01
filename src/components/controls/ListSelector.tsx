@@ -193,7 +193,7 @@ export function ListSelector({ selectedListId, onSelectList, className = '' }: L
           {filteredLists.length === 0 && (
             <div className="px-4 py-8 text-center text-text-secondary">
               <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No lists found matching "{searchQuery}"</p>
+              <p className="text-sm">No lists found matching &ldquo;{searchQuery}&rdquo;</p>
             </div>
           )}
 
