@@ -29,30 +29,30 @@ function CoinTableRowComponent({ coin, index, onClick }: CoinTableRowProps) {
       className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:shadow-lg animate-in fade-in slide-in-from-left-2"
       style={{ animationDelay: `${index * 20}ms` }}
     >
-      <td className="px-4 py-2 font-medium">{coin.symbol}</td>
-      <td className="px-4 py-2 text-right mono-number">
+      <td className="px-2 py-2 font-medium whitespace-nowrap">{coin.symbol}</td>
+      <td className="px-2 py-2 text-right mono-number whitespace-nowrap">
         {formatPrice(coin.lastPrice)}
       </td>
       <td
-        className={`px-4 py-2 text-right mono-number font-medium ${getChangeColor(coin.priceChangePercent)}`}
+        className={`px-2 py-2 text-right mono-number font-medium whitespace-nowrap ${getChangeColor(coin.priceChangePercent)}`}
       >
         {formatPercent(coin.priceChangePercent)}
       </td>
-      <td className="px-4 py-2 text-right mono-number text-gray-400">
+      <td className="px-2 py-2 text-right mono-number text-gray-400 whitespace-nowrap">
         {formatVolume(coin.volume)}
       </td>
-      <td className="px-4 py-2 text-right mono-number text-gray-400">
+      <td className="px-2 py-2 text-right mono-number text-gray-400 whitespace-nowrap">
         {formatVolume(coin.quoteVolume)}
       </td>
       <td
-        className={`px-4 py-2 text-right mono-number ${getChangeColor(coin.indicators.vcp)}`}
+        className={`px-2 py-2 text-right mono-number whitespace-nowrap ${getChangeColor(coin.indicators.vcp)}`}
       >
         {coin.indicators.vcp.toFixed(3)}
       </td>
-      <td className="px-4 py-2 text-right mono-number text-gray-400">
+      <td className="px-2 py-2 text-right mono-number text-gray-400 whitespace-nowrap">
         {coin.indicators.priceToWeightedAvg.toFixed(3)}
       </td>
-      <td className="px-4 py-2 text-center">
+      <td className="px-2 py-2 text-center whitespace-nowrap">
         <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
           <WatchlistBadge symbol={coin.symbol} />
         </div>

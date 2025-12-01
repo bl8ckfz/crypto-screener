@@ -33,52 +33,52 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="min-w-full text-sm">
         <thead className="bg-gray-900 sticky top-0">
           <tr>
             <th
-              className="px-4 py-2 text-left cursor-pointer hover:bg-gray-800"
+              className="px-2 py-2 text-left cursor-pointer hover:bg-gray-800 whitespace-nowrap"
               onClick={() => handleSort('symbol')}
             >
               Symbol{getSortIndicator('symbol')}
             </th>
             <th
-              className="px-4 py-2 text-right cursor-pointer hover:bg-gray-800"
+              className="px-2 py-2 text-right cursor-pointer hover:bg-gray-800 whitespace-nowrap"
               onClick={() => handleSort('lastPrice')}
             >
               Price{getSortIndicator('lastPrice')}
             </th>
             <th
-              className="px-4 py-2 text-right cursor-pointer hover:bg-gray-800"
+              className="px-2 py-2 text-right cursor-pointer hover:bg-gray-800 whitespace-nowrap"
               onClick={() => handleSort('priceChangePercent')}
             >
               Change %{getSortIndicator('priceChangePercent')}
             </th>
             <th
-              className="px-4 py-2 text-right cursor-pointer hover:bg-gray-800"
+              className="px-2 py-2 text-right cursor-pointer hover:bg-gray-800 whitespace-nowrap"
               onClick={() => handleSort('volume')}
             >
               Volume{getSortIndicator('volume')}
             </th>
             <th
-              className="px-4 py-2 text-right cursor-pointer hover:bg-gray-800"
+              className="px-2 py-2 text-right cursor-pointer hover:bg-gray-800 whitespace-nowrap"
               onClick={() => handleSort('quoteVolume')}
             >
               Quote Vol{getSortIndicator('quoteVolume')}
             </th>
             <th
-              className="px-4 py-2 text-right cursor-pointer hover:bg-gray-800"
+              className="px-2 py-2 text-right cursor-pointer hover:bg-gray-800 whitespace-nowrap"
               onClick={() => handleSort('vcp')}
             >
               VCP{getSortIndicator('vcp')}
             </th>
             <th
-              className="px-4 py-2 text-right cursor-pointer hover:bg-gray-800"
+              className="px-2 py-2 text-right cursor-pointer hover:bg-gray-800 whitespace-nowrap"
               onClick={() => handleSort('priceToWeightedAvg')}
             >
               P/WA{getSortIndicator('priceToWeightedAvg')}
             </th>
-            <th className="px-4 py-2 text-center">
+            <th className="px-2 py-2 text-center whitespace-nowrap">
               ⭐ Watchlist
             </th>
           </tr>
