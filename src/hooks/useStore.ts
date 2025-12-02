@@ -475,6 +475,10 @@ export const useStore = create<AppState>()(
         alertSettings: state.alertSettings,
         watchlists: state.watchlists,
         currentWatchlistId: state.currentWatchlistId,
+        activeView: state.activeView,
+        // Persist auth state
+        user: state.user,
+        session: state.session,
       }),
     }
   )

@@ -94,9 +94,9 @@ export function useMarketData() {
       return coins
     },
     staleTime: (refreshInterval * 1000) / 2, // Half of refresh interval
-    // Smart polling: only refetch when tab is visible
+    // Smart polling: only refetch when tab is visible AND user is authenticated
     refetchInterval: autoRefresh && isVisible ? refreshInterval * 1000 : false,
-    refetchOnWindowFocus: autoRefresh,
+    refetchOnWindowFocus: false, // Disable refetch on focus to prevent auth disruption
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })

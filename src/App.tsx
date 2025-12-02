@@ -51,16 +51,21 @@ function App() {
   
   // Initialize auth state on mount
   useEffect(() => {
-    // Get initial session
+    // Get initial session from Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+      // Only update if session exists or if current user is null
+      // This prevents overwriting persisted auth state with null on initial load
+      if (session || !user) {
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
     })
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth state change:', event, session?.user?.email)
       setSession(session)
       setUser(session?.user ?? null)
       
@@ -75,7 +80,7 @@ function App() {
     })
 
     return () => subscription.unsubscribe()
-  }, [setUser, setSession, syncFromCloud])
+  }, [setUser, setSession, syncFromCloud, user])
   
   // Setup real-time sync when user is authenticated
   useEffect(() => {
