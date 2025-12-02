@@ -105,6 +105,48 @@ function AlertNotificationToast({
     return '🔔'
   }
 
+  const renderAlertValue = (alert: Alert): JSX.Element => {
+    const momentumAlerts = ['pioneer_bull', 'pioneer_bear', '5m_big_bull', '5m_big_bear', '15m_big_bull', '15m_big_bear']
+    const isMomentum = momentumAlerts.includes(alert.type)
+
+    if (isMomentum) {
+      // Show percentage change for momentum alerts
+      const changeColor = alert.value >= 0 ? 'text-green-400' : 'text-red-400'
+      return (
+        <span className={`font-mono font-semibold ${changeColor}`}>
+          {alert.value >= 0 ? '+' : ''}{alert.value.toFixed(2)}%
+        </span>
+      )
+    }
+
+    // For price-based alerts, format based on magnitude
+    const price = alert.value
+    let formattedPrice: string
+    
+    if (price < 0.0001) {
+      // Very small values - show more decimals
+      formattedPrice = price.toFixed(8)
+    } else if (price < 1) {
+      // Small values
+      formattedPrice = price.toFixed(6)
+    } else if (price < 1000) {
+      // Medium values
+      formattedPrice = formatNumber(price)
+    } else {
+      // Large values
+      formattedPrice = formatNumber(price)
+    }
+
+    return (
+      <span className="font-mono">
+        {formattedPrice}
+        {alert.threshold > 0 && (
+          <span className="text-gray-500"> / {formatNumber(alert.threshold)}</span>
+        )}
+      </span>
+    )
+  }
+
   return (
     <div
       className={`
@@ -135,9 +177,7 @@ function AlertNotificationToast({
                   {alert.timeframe}
                 </span>
               )}
-              <span>
-                {formatNumber(alert.value)} / {formatNumber(alert.threshold)}
-              </span>
+              {renderAlertValue(alert)}
             </div>
           </div>
           <div className="ml-4 flex flex-shrink-0">

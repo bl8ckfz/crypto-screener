@@ -67,16 +67,21 @@ function evaluateRule(
 
   // Get first condition for alert metadata
   const firstCondition = rule.conditions[0]
+  const alertType = firstCondition?.type || 'custom'
+
+  // For momentum-based alerts, show price change % instead of absolute price
+  const momentumAlerts = ['pioneer_bull', 'pioneer_bear', '5m_big_bull', '5m_big_bear', '15m_big_bull', '15m_big_bear']
+  const usePercentage = momentumAlerts.includes(alertType)
 
   // Create alert
   return {
     id: `${coin.symbol}-${rule.id}-${Date.now()}`,
     symbol: coin.symbol,
-    type: firstCondition?.type || 'custom',
+    type: alertType,
     severity: rule.severity,
     title: generateAlertTitle(coin, rule),
     message: generateAlertMessage(coin, rule),
-    value: coin.lastPrice,
+    value: usePercentage ? coin.priceChangePercent : coin.lastPrice,
     threshold: firstCondition?.threshold || 0,
     timeframe: firstCondition?.timeframe,
     timestamp: Date.now(),
