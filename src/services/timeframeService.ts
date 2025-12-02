@@ -9,7 +9,6 @@ const TIMEFRAME_INTERVALS: Record<Timeframe, number> = {
   '15s': 15,
   '30s': 30,
   '45s': 45,
-  '60s': 60,
   '1m': 60,
   '3m': 180,
   '5m': 300,
@@ -137,6 +136,11 @@ export class TimeframeService {
 
     console.log(`📸 Updating snapshots for timeframes: ${timeframesToUpdate.join(', ')}`)
 
+    // Mark timeframes as updated BEFORE processing (only once, not per coin)
+    timeframesToUpdate.forEach((timeframe) => {
+      this.markUpdated(timeframe)
+    })
+
     return coins.map((coin) => {
       const updatedHistory = { ...coin.history }
       const updatedDeltas = { ...coin.deltas }
@@ -154,9 +158,6 @@ export class TimeframeService {
             previousSnapshot
           )
         }
-
-        // Mark this timeframe as updated
-        this.markUpdated(timeframe)
       })
 
       return {
