@@ -1,6 +1,6 @@
 # Project State Tracking
 
-**Last Updated**: December 1, 2025
+**Last Updated**: December 2, 2025
 
 ## Current Status
 
@@ -28,14 +28,17 @@
 - 52 tests created across 3 test suites
 - All utility tests passing (100% success rate)
 
-### Current Test Status (December 1, 2025) - ALL PASSING ✅
+### Current Test Status (December 2, 2025) - ALL PASSING ✅
 
 **Test Suites Created**:
 1. `tests/utils/format.test.ts` (28 tests) - ✅ **28 passing**
 2. `tests/utils/indicators.test.ts` (11 tests) - ✅ **11 passing**
 3. `tests/utils/sort.test.ts` (13 tests) - ✅ **13 passing**
+4. `tests/alerts/pioneer.test.ts` (4 tests) - ✅ **4 passing**
+5. `tests/alerts/bigMomentum.test.ts` (5 tests) - ✅ **5 passing**
+6. `tests/alerts/coreSignals.test.ts` (8 tests) - ✅ **8 passing**
 
-**Total**: 52 tests | ✅ **52 passing (100%)** | 0 failing
+**Total**: 69 tests | ✅ **69 passing (100%)** | 0 failing
 
 ### All Utility Tests Fixed ✅
 
@@ -110,11 +113,11 @@
 
 ### Pending Tasks
 
-1. **Create Alert Engine Tests**:
-   - [ ] Test all 18 evaluator functions (price change, volume spike, VCP patterns, Fibonacci levels)
+1. **Expand Alert Engine Tests**:
+   - [ ] Cover remaining evaluator functions beyond Pioneer (price pump/dump, volume spike/drop, VCP, Fibonacci break, bottom/top hunter, big bull/bear 5m/15m)
    - [ ] Test anti-spam logic (60s cooldown, max 5 per symbol)
    - [ ] Test fallback logic for missing history data
-   - Estimated: 30-40 new tests
+   - Estimated: +30 tests
 
 2. **Add Component Tests**:
    - [ ] AlertConfig: Preset selector, enable/disable toggles
@@ -219,7 +222,16 @@
 - **Currency Pair Parsing**: Handles 3-5 char suffixes (USDT, FDUSD, etc.) - sorted longest-first
 - **Timeframe Snapshots**: Independent tracking at 5s/15s/30s/1m/3m/5m/15m intervals
 
-## Recent Changes (December 1, 2025)
+## Recent Changes (December 2, 2025)
+
+### Market Mode & Pioneer Alert Modernization
+- Added `marketMode` (bull | bear) to Zustand store with auto-derivation from average momentum of top-volume coins.
+- Updated alert evaluation to pass dynamic marketMode instead of hard-coded 'bull'.
+- Aligned Pioneer Bull/Bear preset descriptions and ratio semantics with legacy logic.
+- Added outer gating to Pioneer evaluators (volume delta thresholds: >5000 bull, >1000 bear) to reduce false positives.
+- Created `docs/LEGACY_INDEX_MAP.md` mapping critical FAST_DIZI indices to new structured fields.
+- Added dedicated Pioneer alert tests (4) validating trigger and gating behavior.
+- Result: Pioneer Bear can now trigger correctly in bear market context; reduced noise in low-volume conditions.
 
 ### Browser Notification Implementation (Phase 6.2)
 - Created `src/services/notification.ts` (152 lines)

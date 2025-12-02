@@ -12,6 +12,7 @@ import type {
   AlertCondition,
 } from '@/types/alert'
 import { LEGACY_ALERT_PRESETS } from '@/types/alert'
+import { pioneerBullRatios, pioneerBearRatios, volumeAcceleration, pioneerBullGate, pioneerBearGate, hasDistinctHistory } from './alertHelpers'
 
 /**
  * Helper to get timeframe data from coin history
@@ -162,56 +163,31 @@ function evaluateCondition(
  * For testing: If history is unavailable, use priceChangePercent as proxy
  */
 function evaluatePioneerBull(coin: Coin): boolean {
-  // Get historical data - EXACT mapping from fast.html
-  const price5m = getTimeframeData(coin, '5m')?.price      // FAST_DIZI[t][102]
-  const price15m = getTimeframeData(coin, '15m')?.price    // FAST_DIZI[t][107]
-  const volume5m = getTimeframeData(coin, '5m')?.volume    // FAST_DIZI[t][101]
-  const volume15m = getTimeframeData(coin, '15m')?.volume  // FAST_DIZI[t][106]
-  const previousClose = coin.prevClosePrice                // FAST_DIZI[t][10]
-  
-  // If we have full history, use EXACT original logic
-  if (price5m && price15m && volume5m && volume15m && previousClose) {
-    const priceRatio5m = coin.lastPrice / price5m           // [6]/[102]
-    const priceRatio15m = coin.lastPrice / price15m         // [6]/[107]
-    const priceRatioPrev = coin.lastPrice / previousClose   // [6]/[10]
-    const volumeRatio = (2 * coin.quoteVolume) / volume5m > coin.quoteVolume / volume15m
-    
-    // Ensure historical prices are actually different (not stale snapshots)
-    // Require 5m and 15m to be different from each other
-    const hasValidHistory = price5m !== price15m
-    
-    const result = hasValidHistory && (
-      priceRatio5m > 1.01 &&                    // price/5m > 1.01
-      priceRatio15m > 1.01 &&                   // price/15m > 1.01
-      3 * priceRatio5m > priceRatioPrev &&      // 3*(price/5m) > price/prevClose
-      volumeRatio                                // 2*vol/vol5m > vol/vol15m
-    )
-    
-    if (result) {
-      console.log(`🎯 ${coin.symbol} PIONEER BULL triggered:`, {
-        currentPrice: coin.lastPrice,
-        price5m,
-        price15m,
-        previousClose,
-        priceRatio5m: priceRatio5m.toFixed(4),
-        priceRatio15m: priceRatio15m.toFixed(4),
-        priceRatioPrev: priceRatioPrev.toFixed(4),
-        volumeRatio,
-        '⚠️ IDENTICAL PRICES': price5m === price15m && price15m === previousClose,
-        checks: {
-          '5m>1.01': priceRatio5m > 1.01,
-          '15m>1.01': priceRatio15m > 1.01,
-          '3*5m>prev': 3 * priceRatio5m > priceRatioPrev,
-          'volRatio': volumeRatio
-        }
-      })
-    }
-    
-    return result
+  const ratios = pioneerBullRatios(coin)
+  const volume5m = getTimeframeData(coin, '5m')?.volume
+  const volume15m = getTimeframeData(coin, '15m')?.volume
+  if (!ratios || !volume5m || !volume15m) return false
+  const { priceRatio5m, priceRatio15m, priceRatioPrev } = ratios
+  const historyOk = hasDistinctHistory(coin)
+  const gatingOk = pioneerBullGate(coin)
+  const volAccel = volumeAcceleration(coin)
+  const result = historyOk && gatingOk && (
+    priceRatio5m > 1.01 &&
+    priceRatio15m > 1.01 &&
+    3 * priceRatio5m > priceRatioPrev &&
+    volAccel
+  )
+  if (result) {
+    console.log(`🎯 ${coin.symbol} PIONEER BULL triggered:`, {
+      priceRatio5m: priceRatio5m.toFixed(4),
+      priceRatio15m: priceRatio15m.toFixed(4),
+      priceRatioPrev: priceRatioPrev.toFixed(4),
+      gatingOk,
+      volAccel,
+      historyOk
+    })
   }
-  
-  // No fallback - require historical data for accurate evaluation
-  return false
+  return result
 }
 
 /**
@@ -224,55 +200,31 @@ function evaluatePioneerBull(coin: Coin): boolean {
  * For testing: If history unavailable, use priceChangePercent as proxy
  */
 function evaluatePioneerBear(coin: Coin): boolean {
-  // Get historical data - EXACT mapping from fast.html
-  const price5m = getTimeframeData(coin, '5m')?.price      // FAST_DIZI[t][102]
-  const price15m = getTimeframeData(coin, '15m')?.price    // FAST_DIZI[t][107]
-  const volume5m = getTimeframeData(coin, '5m')?.volume    // FAST_DIZI[t][101]
-  const volume15m = getTimeframeData(coin, '15m')?.volume  // FAST_DIZI[t][106]
-  const previousClose = coin.prevClosePrice                // FAST_DIZI[t][10]
-  
-  // If we have history, use EXACT original logic
-  // NOTE: For Bear, ratios are INVERTED vs Bull (5m/current instead of current/5m)
-  if (price5m && price15m && volume5m && volume15m && previousClose) {
-    const priceRatio5m = price5m / coin.lastPrice           // [102]/[6] - INVERTED for bear
-    const priceRatio15m = price15m / coin.lastPrice         // [107]/[6] - INVERTED for bear
-    const priceRatioPrev = previousClose / coin.lastPrice   // [10]/[6] - INVERTED for bear
-    const volumeRatio = (2 * coin.quoteVolume) / volume5m > coin.quoteVolume / volume15m
-    
-    // Ensure historical prices are actually different (not stale snapshots)
-    // Require 5m and 15m to be different from each other
-    const hasValidHistory = price5m !== price15m
-    
-    const check5m = priceRatio5m > 1.01       // 5m/current > 1.01 (price fell from 5m ago)
-    const check15m = priceRatio15m > 1.01     // 15m/current > 1.01 (price fell from 15m ago)
-    const check3x = 3 * priceRatio5m > priceRatioPrev  // 3*(5m/current) > prevClose/current
-    const result = hasValidHistory && check5m && check15m && check3x && volumeRatio
-    
-    // Debug logging for Pioneer Bear (less common, so log all near-misses)
-    if (hasValidHistory && (check5m || check15m) && !result) {
-      console.log(`🐻 ${coin.symbol} Pioneer Bear near-miss:`, {
-        currentPrice: coin.lastPrice,
-        price5m,
-        price15m,
-        previousClose,
-        priceRatio5m: priceRatio5m.toFixed(4),
-        priceRatio15m: priceRatio15m.toFixed(4),
-        priceRatioPrev: priceRatioPrev.toFixed(4),
-        volumeRatio,
-        checks: {
-          '5m>1.01': check5m,
-          '15m>1.01': check15m,
-          '3*5m>prev': check3x,
-          'volRatio': volumeRatio
-        }
-      })
-    }
-    
-    return result
+  const ratios = pioneerBearRatios(coin)
+  const volume5m = getTimeframeData(coin, '5m')?.volume
+  const volume15m = getTimeframeData(coin, '15m')?.volume
+  if (!ratios || !volume5m || !volume15m) return false
+  const { priceRatio5mInv, priceRatio15mInv, priceRatioPrevInv } = ratios
+  const historyOk = hasDistinctHistory(coin)
+  const gatingOk = pioneerBearGate(coin)
+  const volAccel = volumeAcceleration(coin)
+  const check5m = priceRatio5mInv > 1.01
+  const check15m = priceRatio15mInv > 1.01
+  const check3x = 3 * priceRatio5mInv > priceRatioPrevInv
+  const result = historyOk && gatingOk && check5m && check15m && check3x && volAccel
+  if (!result && historyOk && (check5m || check15m)) {
+    console.log(`🐻 ${coin.symbol} Pioneer Bear near-miss:`, {
+      priceRatio5mInv: priceRatio5mInv.toFixed(4),
+      priceRatio15mInv: priceRatio15mInv.toFixed(4),
+      priceRatioPrevInv: priceRatioPrevInv.toFixed(4),
+      gatingOk,
+      volAccel,
+      check5m,
+      check15m,
+      check3x
+    })
   }
-  
-  // No fallback - require historical data for accurate evaluation
-  return false
+  return result
 }
 
 /**

@@ -159,17 +159,16 @@ export const LEGACY_ALERT_PRESETS: LegacyAlertPreset[] = [
   {
     type: 'pioneer_bull',
     name: 'Pioneer Bull',
-    description: 'Strong bullish momentum with accelerating price growth',
+    description: 'Strong bullish momentum: price > +1% vs 5m & 15m, accelerating vs prev close, volume ratio confirms',
     conditions: {
       priceRatios: {
         'current/3m': { min: 1.01 },
         'current/15m': { min: 1.01 },
       },
       volumeRatios: {
-        'current/3m': { min: 1.5 }, // 2*current/3m > current/15m
-        'current/15m': { min: 1 },
+        '2*current/5m_vs_current/15m': { min: 1 }, // semantic placeholder for 2*vol/vol5m > vol/vol15m
       },
-      trendConditions: ['3*price_1m > price_5m', 'accelerating_momentum'],
+      trendConditions: ['3*(price/5m) > price/prevClose', 'accelerating_momentum'],
     },
     severity: 'critical',
     marketMode: 'bull',
@@ -177,17 +176,16 @@ export const LEGACY_ALERT_PRESETS: LegacyAlertPreset[] = [
   {
     type: 'pioneer_bear',
     name: 'Pioneer Bear',
-    description: 'Strong bearish momentum with accelerating price decline',
+    description: 'Strong bearish momentum: price < -1% vs 5m & 15m, accelerating decline vs prev close, volume ratio confirms',
     conditions: {
       priceRatios: {
-        'current/3m': { max: 0.99 }, // price < 2-1.01 = 0.99
-        'current/15m': { max: 0.99 },
+        '5m/current': { min: 1.01 }, // inverted ratio form
+        '15m/current': { min: 1.01 },
       },
       volumeRatios: {
-        'current/3m': { min: 1.5 },
-        'current/15m': { min: 1 },
+        '2*current/5m_vs_current/15m': { min: 1 },
       },
-      trendConditions: ['3*price_1m < price_5m', 'accelerating_momentum'],
+      trendConditions: ['3*(5m/current) > prevClose/current', 'accelerating_momentum'],
     },
     severity: 'critical',
     marketMode: 'bear',

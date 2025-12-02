@@ -683,13 +683,16 @@
 
 ### 7.1 Testing ⏳
 - [x] Test infrastructure setup (Vitest + jsdom + React Testing Library) ✅
-- [x] Create utility test suites (52 tests created: indicators, sort, format) ✅
-- [x] **Fix all failing utility tests** ✅ **52/52 passing (100%)**
+- [x] Create utility + alert test suites (69 tests created: indicators, sort, format, pioneer, big momentum, core signals) ✅
+- [x] **All utility + alert tests passing** ✅ **69/69 (100%)**
   - [x] Format utilities (28 tests): Implemented formatTimeAgo, added comma separators, fixed decimals
   - [x] Indicator utilities (11 tests): Exported functions, fixed field aliases, volume-based dominance
   - [x] Sort utilities (13 tests): Updated mock data structure, fixed function signatures, bear mode tests
+  - [x] Pioneer alert tests (4): Bull/Bear trigger + gating volume delta thresholds
+  - [x] Big momentum alerts (5): 5m/15m bull/bear with ascending price/volume patterns
+  - [x] Core signal alerts (8): price pump/dump, volume spike/drop, VCP signal, Fibonacci break, bottom/top hunter
 - [ ] Unit tests for business logic (alert engine, services, sync)
-  - [ ] Alert engine evaluators (18 functions): price change, volume spike, VCP patterns, Fibonacci
+  - [ ] Alert engine evaluators (remaining 14 functions): price pump/dump, volume spike/drop, VCP signal, Fibonacci break, big bull/bear 5m/15m, bottom/top hunter, generic conditions
   - [ ] Anti-spam logic: 60s cooldown, max 5 per symbol
   - [ ] Fallback logic for missing history data
   - [ ] Sync service: bidirectional sync, conflict resolution, real-time updates
@@ -879,7 +882,7 @@
 
 ## Current Status Summary
 
-**Last Updated**: 2025-12-01
+**Last Updated**: 2025-12-02
 **Status**: Phase 6.3 COMPLETE ✅ - User Accounts & Cloud Sync Fully Implemented
 **Progress**: 6.3 of 9 phases completed (70%)
 

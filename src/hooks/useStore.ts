@@ -16,6 +16,9 @@ interface AppState {
   currentPair: CurrencyPair
   currentList: ScreeningListId
   currentPage: number
+  
+  // Market mode (derived from aggregate momentum)
+  marketMode: 'bull' | 'bear'
 
   // Coin data
   coins: Coin[]
@@ -72,6 +75,7 @@ interface AppState {
   setError: (error: string | null) => void
   setLastUpdated: (timestamp: number) => void
   setSort: (sort: CoinSort) => void
+  setMarketMode: (mode: 'bull' | 'bear') => void
   setAutoRefresh: (enabled: boolean) => void
   setRefreshInterval: (interval: number) => void
   updateConfig: (config: Partial<AppConfig>) => void
@@ -114,6 +118,7 @@ const initialState = {
   currentPair: DEFAULT_CONFIG.data.currentPair,
   currentList: DEFAULT_CONFIG.data.currentList,
   currentPage: 1,
+  marketMode: 'bull',
   coins: [],
   filteredCoins: [],
   isLoading: false,
@@ -168,6 +173,7 @@ export const useStore = create<AppState>()(
   persist(
     (set) => ({
       ...initialState,
+      marketMode: initialState.marketMode as 'bull' | 'bear',
 
       setCurrentPair: (pair) =>
         set({ currentPair: pair, currentPage: 1, coins: [], filteredCoins: [] }),
@@ -195,6 +201,9 @@ export const useStore = create<AppState>()(
 
       setSort: (sort) =>
         set({ sort }),
+
+      setMarketMode: (marketMode) =>
+        set({ marketMode }),
 
       setAutoRefresh: (autoRefresh) =>
         set({ autoRefresh }),
@@ -466,7 +475,7 @@ export const useStore = create<AppState>()(
       },
 
       reset: () =>
-        set(initialState),
+        set(initialState as Partial<AppState>),
     }),
     {
       name: STORAGE_KEYS.USER_PREFERENCES,
