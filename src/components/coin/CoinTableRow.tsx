@@ -8,7 +8,7 @@
 import { memo } from 'react'
 import type { Coin } from '@/types/coin'
 import { formatPrice, formatPercent, formatVolume } from '@/utils/format'
-import { WatchlistBadge } from '@/components/watchlist'
+// Watchlist stars removed from table per new plan
 
 interface CoinTableRowProps {
   coin: Coin
@@ -49,14 +49,10 @@ function CoinTableRowComponent({ coin, index, onClick }: CoinTableRowProps) {
       >
         {coin.indicators.vcp.toFixed(3)}
       </td>
-      <td className="px-2 py-2 text-right mono-number text-gray-400 whitespace-nowrap min-w-[80px]">
+      <td className="px-2 py-2 text-right mono-number whitespace-nowrap min-w-[80px]">
         {coin.indicators.priceToWeightedAvg.toFixed(3)}
       </td>
-      <td className="px-2 py-2 text-center whitespace-nowrap min-w-[100px]">
-        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-          <WatchlistBadge symbol={coin.symbol} />
-        </div>
-      </td>
+      {/* Watchlist badge column removed */}
     </tr>
   )
 }
