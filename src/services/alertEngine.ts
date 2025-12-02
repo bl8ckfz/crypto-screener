@@ -242,12 +242,32 @@ function evaluatePioneerBear(coin: Coin): boolean {
     // Require 5m and 15m to be different from each other
     const hasValidHistory = price5m !== price15m
     
-    return hasValidHistory && (
-      priceRatio5m < 0.99 &&                    // price/5m < 0.99 (2-1.01 from fast.html)
-      priceRatio15m < 0.99 &&                   // price/15m < 0.99 (2-1.01 from fast.html)
-      3 * priceRatio5m < priceRatioPrev &&      // 3*(price/5m) < price/prevClose
-      volumeRatio                                // 2*vol/vol5m > vol/vol15m
-    )
+    const check5m = priceRatio5m < 0.99
+    const check15m = priceRatio15m < 0.99
+    const check3x = 3 * priceRatio5m < priceRatioPrev
+    const result = hasValidHistory && check5m && check15m && check3x && volumeRatio
+    
+    // Debug logging for Pioneer Bear (less common, so log all near-misses)
+    if (hasValidHistory && (check5m || check15m) && !result) {
+      console.log(`🐻 ${coin.symbol} Pioneer Bear near-miss:`, {
+        currentPrice: coin.lastPrice,
+        price5m,
+        price15m,
+        previousClose,
+        priceRatio5m: priceRatio5m.toFixed(4),
+        priceRatio15m: priceRatio15m.toFixed(4),
+        priceRatioPrev: priceRatioPrev.toFixed(4),
+        volumeRatio,
+        checks: {
+          '5m<0.99': check5m,
+          '15m<0.99': check15m,
+          '3*5m<prev': check3x,
+          'volRatio': volumeRatio
+        }
+      })
+    }
+    
+    return result
   }
   
   // No fallback - require historical data for accurate evaluation
