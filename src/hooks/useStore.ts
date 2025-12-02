@@ -35,6 +35,7 @@ interface AppState {
   // UI State
   leftSidebarCollapsed: boolean
   rightSidebarCollapsed: boolean
+  isAuthModalOpen: boolean
 
   // Alert system
   alertRules: AlertRule[]
@@ -76,6 +77,7 @@ interface AppState {
   setTheme: (theme: 'dark' | 'light') => void
   setLeftSidebarCollapsed: (collapsed: boolean) => void
   setRightSidebarCollapsed: (collapsed: boolean) => void
+  setAuthModalOpen: (open: boolean) => void
   
   // Alert actions
   addAlertRule: (rule: AlertRule) => void
@@ -126,6 +128,7 @@ const initialState = {
   theme: 'dark' as const,
   leftSidebarCollapsed: false,
   rightSidebarCollapsed: false,
+  isAuthModalOpen: false,
   
   // Alert system defaults
   alertRules: [] as AlertRule[],
@@ -211,6 +214,9 @@ export const useStore = create<AppState>()(
 
       setRightSidebarCollapsed: (rightSidebarCollapsed) =>
         set({ rightSidebarCollapsed }),
+
+      setAuthModalOpen: (isAuthModalOpen) =>
+        set({ isAuthModalOpen }),
 
       // Alert actions
       addAlertRule: (rule) =>
