@@ -155,30 +155,32 @@ function evaluateCondition(
 /**
  * PIONEER BULL ALARM
  * Condition: Strong bullish momentum with accelerating price growth
- * Original: price/3m > 1.01 && price/15m > 1.01 && 3*price/3m > price/5m
+ * Original fast.html logic (line 2028):
+ * price/5m > 1.01 && price/15m > 1.01 && 3*(price/5m) > price/prevClose
+ * && 2*volume/volume5m > volume/volume15m
  * 
  * For testing: If history is unavailable, use priceChangePercent as proxy
  */
 function evaluatePioneerBull(coin: Coin): boolean {
-  // Get historical prices from snapshots
-  const price1m = getTimeframeData(coin, '1m')?.price
-  const price3m = getTimeframeData(coin, '3m')?.price
-  const price15m = getTimeframeData(coin, '15m')?.price
+  // Get historical data - EXACT mapping from fast.html
+  const price5m = getTimeframeData(coin, '5m')?.price      // FAST_DIZI[t][102]
+  const price15m = getTimeframeData(coin, '15m')?.price    // FAST_DIZI[t][107]
+  const volume5m = getTimeframeData(coin, '5m')?.volume    // FAST_DIZI[t][101]
+  const volume15m = getTimeframeData(coin, '15m')?.volume  // FAST_DIZI[t][106]
+  const previousClose = coin.prevClosePrice                // FAST_DIZI[t][10]
   
-  // If we have full history, use original logic
-  if (price1m && price3m && price15m) {
-    const volume1m = getTimeframeData(coin, '1m')?.volume || coin.quoteVolume
-    const volume15m = getTimeframeData(coin, '15m')?.volume || coin.quoteVolume
-    
-    const priceRatio3m = coin.lastPrice / price3m
-    const priceRatio15m = coin.lastPrice / price15m
-    const volumeRatio = (2 * coin.quoteVolume) / volume1m > coin.quoteVolume / volume15m
+  // If we have full history, use EXACT original logic
+  if (price5m && price15m && volume5m && volume15m && previousClose) {
+    const priceRatio5m = coin.lastPrice / price5m           // [6]/[102]
+    const priceRatio15m = coin.lastPrice / price15m         // [6]/[107]
+    const priceRatioPrev = coin.lastPrice / previousClose   // [6]/[10]
+    const volumeRatio = (2 * coin.quoteVolume) / volume5m > coin.quoteVolume / volume15m
     
     return (
-      priceRatio3m > 1.01 &&
-      priceRatio15m > 1.01 &&
-      3 * priceRatio3m > coin.lastPrice / price1m &&
-      volumeRatio
+      priceRatio5m > 1.01 &&                    // price/5m > 1.01
+      priceRatio15m > 1.01 &&                   // price/15m > 1.01
+      3 * priceRatio5m > priceRatioPrev &&      // 3*(price/5m) > price/prevClose
+      volumeRatio                                // 2*vol/vol5m > vol/vol15m
     )
   }
   
@@ -190,26 +192,32 @@ function evaluatePioneerBull(coin: Coin): boolean {
 /**
  * PIONEER BEAR ALARM
  * Condition: Strong bearish momentum with accelerating price decline
- * Original: price/3m < 0.99 && price/15m < 0.99
+ * Original fast.html logic (line 2845):
+ * price/5m < 0.99 && price/15m < 0.99 && 3*(price/5m) < price/prevClose
+ * && 2*volume/volume5m > volume/volume15m
+ * 
  * For testing: If history unavailable, use priceChangePercent as proxy
  */
 function evaluatePioneerBear(coin: Coin): boolean {
-  const price3m = getTimeframeData(coin, '3m')?.price
-  const price15m = getTimeframeData(coin, '15m')?.price
+  // Get historical data - EXACT mapping from fast.html
+  const price5m = getTimeframeData(coin, '5m')?.price      // FAST_DIZI[t][102]
+  const price15m = getTimeframeData(coin, '15m')?.price    // FAST_DIZI[t][107]
+  const volume5m = getTimeframeData(coin, '5m')?.volume    // FAST_DIZI[t][101]
+  const volume15m = getTimeframeData(coin, '15m')?.volume  // FAST_DIZI[t][106]
+  const previousClose = coin.prevClosePrice                // FAST_DIZI[t][10]
   
-  // If we have history, use original logic
-  if (price3m && price15m) {
-    const volume1m = getTimeframeData(coin, '1m')?.volume || coin.quoteVolume
-    const volume15m = getTimeframeData(coin, '15m')?.volume || coin.quoteVolume
-    
-    const priceRatio3m = coin.lastPrice / price3m
-    const priceRatio15m = coin.lastPrice / price15m
-    const volumeRatio = (2 * coin.quoteVolume) / volume1m > coin.quoteVolume / volume15m
+  // If we have history, use EXACT original logic
+  if (price5m && price15m && volume5m && volume15m && previousClose) {
+    const priceRatio5m = coin.lastPrice / price5m           // [6]/[102]
+    const priceRatio15m = coin.lastPrice / price15m         // [6]/[107]
+    const priceRatioPrev = coin.lastPrice / previousClose   // [6]/[10]
+    const volumeRatio = (2 * coin.quoteVolume) / volume5m > coin.quoteVolume / volume15m
     
     return (
-      priceRatio3m < 0.99 &&
-      priceRatio15m < 0.99 &&
-      volumeRatio
+      priceRatio5m < 0.99 &&                    // price/5m < 0.99 (2-1.01)
+      priceRatio15m < 0.99 &&                   // price/15m < 0.99 (2-1.01)
+      3 * priceRatio5m < priceRatioPrev &&      // 3*(price/5m) < price/prevClose
+      volumeRatio                                // 2*vol/vol5m > vol/vol15m
     )
   }
   
