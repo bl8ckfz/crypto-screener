@@ -8,6 +8,9 @@ This guide covers deploying the Crypto Screener to Vercel with GitHub integratio
 - [x] Vercel account (free tier sufficient)
 - [x] Supabase project with credentials
 
+**⚠️ IMPORTANT**: Before deploying, configure Supabase properly to avoid authentication issues.  
+See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed configuration steps.
+
 ## Quick Start
 
 ### Option 1: Deploy via Vercel Dashboard (Recommended)

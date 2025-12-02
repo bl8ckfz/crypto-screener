@@ -127,7 +127,7 @@ function AuthModalComponent({ isOpen, onClose }: AuthModalProps) {
           view={view}
           appearance={authAppearance}
           providers={[]}
-          redirectTo={window.location.origin}
+          redirectTo={`${window.location.origin}/`}
         />
 
         {/* Toggle view */}
