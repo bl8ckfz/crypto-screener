@@ -50,6 +50,9 @@ export function useMarketData() {
     return cleanup
   }, [])
 
+  // Store previous coins data outside query for history preservation
+  const previousCoinsRef = useRef<Coin[]>([])
+
   // Query for market data
   const query = useQuery({
     queryKey: ['marketData', 'USDT', currentWatchlistId],
@@ -77,6 +80,19 @@ export function useMarketData() {
       // Convert to Coin objects (all are USDT pairs now)
       let coins = processTickersForPair(processedTickers)
 
+      // CRITICAL: Preserve history from previous fetch
+      const previousCoins = previousCoinsRef.current
+      if (previousCoins && previousCoins.length > 0) {
+        coins = coins.map(coin => {
+          const previousCoin = previousCoins.find((prev: Coin) => prev.symbol === coin.symbol)
+          if (previousCoin?.history && Object.keys(previousCoin.history).length > 0) {
+            // Preserve existing history and deltas
+            return { ...coin, history: previousCoin.history, deltas: previousCoin.deltas }
+          }
+          return coin
+        })
+      }
+
       // Apply technical indicators (VCP, Fibonacci, etc.)
       coins = applyTechnicalIndicators(coins)
 
@@ -90,6 +106,9 @@ export function useMarketData() {
           coins = coins.filter((coin) => selectedWatchlist.symbols.includes(coin.symbol))
         }
       }
+
+      // Save coins for next fetch to preserve history
+      previousCoinsRef.current = coins
 
       return coins
     },
