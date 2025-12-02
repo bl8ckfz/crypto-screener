@@ -33,7 +33,7 @@ export function Sidebar({
       className={`
         relative bg-gray-900 rounded-lg border border-gray-800 
         transition-all duration-300 ease-in-out
-        ${isCollapsed ? 'w-12' : 'w-full'}
+        ${isCollapsed ? 'w-16' : 'w-full'}
         ${isCollapsed ? 'overflow-hidden' : ''}
       `}
     >

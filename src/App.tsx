@@ -245,7 +245,7 @@ function App() {
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* Left Sidebar - Filters & Controls */}
-        <div className={`lg:col-span-2 transition-all duration-300 ${leftSidebarCollapsed ? 'self-start' : ''}`}>
+        <div className={`transition-all duration-300 ${leftSidebarCollapsed ? 'self-start lg:col-span-1' : 'lg:col-span-3'}`}>
           <Sidebar
             position="left"
             title="Filters & Controls"
@@ -260,7 +260,13 @@ function App() {
         </div>
 
         {/* Main Content - View Toggle + Tables */}
-        <div className="lg:col-span-8 transition-all duration-300 space-y-4">
+        <div className={`transition-all duration-300 space-y-4 ${
+          leftSidebarCollapsed && rightSidebarCollapsed
+            ? 'lg:col-span-10'
+            : leftSidebarCollapsed || rightSidebarCollapsed
+            ? 'lg:col-span-8'
+            : 'lg:col-span-6'
+        }`}>
           {/* View Toggle */}
           <ViewToggle
             activeView={activeView}
@@ -346,7 +352,7 @@ function App() {
         </div>
 
         {/* Right Sidebar - Alerts */}
-        <div className={`lg:col-span-2 transition-all duration-300 ${rightSidebarCollapsed ? 'self-start' : ''}`}>
+        <div className={`transition-all duration-300 ${rightSidebarCollapsed ? 'self-start lg:col-span-1' : 'lg:col-span-3'}`}>
           <Sidebar
             position="right"
             title="Alert Configuration"
