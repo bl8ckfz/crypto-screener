@@ -171,16 +171,6 @@ function evaluatePioneerBull(coin: Coin): boolean {
   
   // If we have full history, use EXACT original logic
   if (price5m && price15m && volume5m && volume15m && previousClose) {
-    console.log(`🐂 ${coin.symbol} Pioneer Bull check (with history):`, {
-      currentPrice: coin.lastPrice,
-      price5m,
-      price15m,
-      volume5m,
-      volume15m,
-      previousClose,
-      priceRatio5m: (coin.lastPrice / price5m).toFixed(4),
-      priceRatio15m: (coin.lastPrice / price15m).toFixed(4)
-    })
     const priceRatio5m = coin.lastPrice / price5m           // [6]/[102]
     const priceRatio15m = coin.lastPrice / price15m         // [6]/[107]
     const priceRatioPrev = coin.lastPrice / previousClose   // [6]/[10]
@@ -195,10 +185,6 @@ function evaluatePioneerBull(coin: Coin): boolean {
   }
   
   // No fallback - require historical data for accurate evaluation
-  console.log(`⚠️ ${coin.symbol} Pioneer Bull skipped - insufficient history (need 5m and 15m)`, {
-    hasHistory5m: !!price5m,
-    hasHistory15m: !!price15m
-  })
   return false
 }
 
@@ -221,16 +207,6 @@ function evaluatePioneerBear(coin: Coin): boolean {
   
   // If we have history, use EXACT original logic
   if (price5m && price15m && volume5m && volume15m && previousClose) {
-    console.log(`🐻 ${coin.symbol} Pioneer Bear check (with history):`, {
-      currentPrice: coin.lastPrice,
-      price5m,
-      price15m,
-      volume5m,
-      volume15m,
-      previousClose,
-      priceRatio5m: (coin.lastPrice / price5m).toFixed(4),
-      priceRatio15m: (coin.lastPrice / price15m).toFixed(4)
-    })
     const priceRatio5m = coin.lastPrice / price5m           // [6]/[102]
     const priceRatio15m = coin.lastPrice / price15m         // [6]/[107]
     const priceRatioPrev = coin.lastPrice / previousClose   // [6]/[10]
@@ -245,10 +221,6 @@ function evaluatePioneerBear(coin: Coin): boolean {
   }
   
   // No fallback - require historical data for accurate evaluation
-  console.log(`⚠️ ${coin.symbol} Pioneer Bear skipped - insufficient history (need 5m and 15m)`, {
-    hasHistory5m: !!price5m,
-    hasHistory15m: !!price15m
-  })
   return false
 }
 

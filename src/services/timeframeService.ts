@@ -134,8 +134,6 @@ export class TimeframeService {
       return coins // No updates needed
     }
 
-    console.log(`📸 Updating snapshots for timeframes: ${timeframesToUpdate.join(', ')}`)
-
     // Mark timeframes as updated BEFORE processing (only once, not per coin)
     timeframesToUpdate.forEach((timeframe) => {
       this.markUpdated(timeframe)

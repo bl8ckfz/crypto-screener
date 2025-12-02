@@ -122,19 +122,7 @@ export function useMarketData() {
 
   // Evaluate alerts when data is successfully fetched
   useEffect(() => {
-    console.log('🔄 Alert evaluation effect triggered', { 
-      hasData: !!query.data, 
-      alertsEnabled: alertSettings.enabled, 
-      ruleCount: alertRules.length,
-      timestamp: new Date().toISOString()
-    })
-    
     if (!query.data || !alertSettings.enabled || alertRules.length === 0) {
-      console.log('⚠️ Alert evaluation skipped:', {
-        hasData: !!query.data,
-        alertsEnabled: alertSettings.enabled,
-        ruleCount: alertRules.length,
-      })
       return
     }
 
@@ -149,50 +137,24 @@ export function useMarketData() {
     const hasMinimumHistory = has1m && has5m && has15m
     
     if (!hasMinimumHistory) {
-      console.log('⏳ Alert evaluation waiting for historical data:', {
-        has1m,
-        has5m,
-        has15m,
-        '1m_age': sampleCoin?.history?.['1m']?.timestamp ? `${Math.floor((now - sampleCoin.history['1m'].timestamp) / 1000)}s ago` : 'none',
-        '5m_age': sampleCoin?.history?.['5m']?.timestamp ? `${Math.floor((now - sampleCoin.history['5m'].timestamp) / 1000)}s ago` : 'none',
-        '15m_age': sampleCoin?.history?.['15m']?.timestamp ? `${Math.floor((now - sampleCoin.history['15m'].timestamp) / 1000)}s ago` : 'none',
-      })
       return
     }
 
     // Filter to enabled rules only
-    console.log(`📊 Total alert rules: ${alertRules.length}`)
-    console.log(`📋 All rules:`, alertRules.map(r => ({ id: r.id, name: r.name, enabled: r.enabled, type: r.conditions[0]?.type })))
     
     const enabledRules = alertRules.filter((rule) => rule.enabled)
 
     if (enabledRules.length === 0) {
-      console.log('⚠️ No enabled alert rules')
       return
-    }
-
-    console.log(`🔍 Evaluating ${enabledRules.length} ENABLED alert rules against ${coins.length} coins...`)
-    console.log(`✅ Enabled rules:`, enabledRules.map(r => ({ id: r.id, name: r.name, type: r.conditions[0]?.type })))
-    
-    // Debug: Log first coin to see what data we have
-    if (coins.length > 0) {
-      const sampleCoin = coins[0]
-      console.log('📊 Sample coin data:', {
-        symbol: sampleCoin.symbol,
-        lastPrice: sampleCoin.lastPrice,
-        priceChange: sampleCoin.priceChangePercent,
-        hasHistory: !!sampleCoin.history,
-        historyKeys: sampleCoin.history ? Object.keys(sampleCoin.history) : [],
-        history1m: sampleCoin.history?.['1m'],
-        history3m: sampleCoin.history?.['3m'],
-      })
     }
 
     try {
       // Evaluate all rules against current coins
       const triggeredAlerts = evaluateAlertRules(coins, enabledRules)
       
-      console.log(`✅ Alert evaluation complete: ${triggeredAlerts.length} alerts triggered`)
+      if (triggeredAlerts.length > 0) {
+        console.log(`🔔 ${triggeredAlerts.length} alert(s) triggered`)
+      }
 
       // Process each triggered alert
       for (const triggeredAlert of triggeredAlerts) {
@@ -296,8 +258,6 @@ export function useMarketData() {
 
         // Update cooldown tracker
         recentAlerts.current.set(symbol, now)
-
-        console.log(`🔔 Alert triggered: ${symbol} - ${alert.title}`)
       }
     } catch (error) {
       console.error('Failed to evaluate alerts:', error)

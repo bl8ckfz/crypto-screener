@@ -232,25 +232,17 @@ export const useStore = create<AppState>()(
           ),
         })),
 
-      deleteAlertRule: (ruleId) => {
-        console.log(`🗑️ Deleting alert rule ${ruleId}`)
-        set((state) => {
-          const updatedRules = state.alertRules.filter((rule) => rule.id !== ruleId)
-          console.log(`📝 Remaining rules:`, updatedRules.map(r => ({ id: r.id, name: r.name, enabled: r.enabled })))
-          return { alertRules: updatedRules }
-        })
-      },
+      deleteAlertRule: (ruleId) =>
+        set((state) => ({
+          alertRules: state.alertRules.filter((rule) => rule.id !== ruleId),
+        })),
 
-      toggleAlertRule: (ruleId, enabled) => {
-        console.log(`🔄 Toggling alert rule ${ruleId} to ${enabled ? 'ENABLED' : 'DISABLED'}`)
-        set((state) => {
-          const updatedRules = state.alertRules.map((rule) =>
+      toggleAlertRule: (ruleId, enabled) =>
+        set((state) => ({
+          alertRules: state.alertRules.map((rule) =>
             rule.id === ruleId ? { ...rule, enabled } : rule
-          )
-          console.log(`📝 Updated rules:`, updatedRules.map(r => ({ id: r.id, name: r.name, enabled: r.enabled })))
-          return { alertRules: updatedRules }
-        })
-      },
+          ),
+        })),
 
       updateAlertSettings: (settings) =>
         set((state) => ({
