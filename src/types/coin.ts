@@ -43,7 +43,6 @@ export type Timeframe =
   | '15s'
   | '30s'
   | '45s'
-  | '60s'
   | '1m'
   | '3m'
   | '5m'
@@ -58,7 +57,6 @@ export const TIMEFRAMES: Timeframe[] = [
   '15s',
   '30s',
   '45s',
-  '60s',
   '1m',
   '3m',
   '5m',
@@ -169,7 +167,6 @@ export interface Coin {
     '15s'?: TimeframeSnapshot
     '30s'?: TimeframeSnapshot
     '45s'?: TimeframeSnapshot
-    '60s'?: TimeframeSnapshot
     '1m'?: TimeframeSnapshot
     '3m'?: TimeframeSnapshot
     '5m'?: TimeframeSnapshot
