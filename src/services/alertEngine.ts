@@ -176,12 +176,29 @@ function evaluatePioneerBull(coin: Coin): boolean {
     const priceRatioPrev = coin.lastPrice / previousClose   // [6]/[10]
     const volumeRatio = (2 * coin.quoteVolume) / volume5m > coin.quoteVolume / volume15m
     
-    return (
+    const result = (
       priceRatio5m > 1.01 &&                    // price/5m > 1.01
       priceRatio15m > 1.01 &&                   // price/15m > 1.01
       3 * priceRatio5m > priceRatioPrev &&      // 3*(price/5m) > price/prevClose
       volumeRatio                                // 2*vol/vol5m > vol/vol15m
     )
+    
+    if (result) {
+      console.log(`🎯 ${coin.symbol} PIONEER BULL triggered:`, {
+        priceRatio5m: priceRatio5m.toFixed(4),
+        priceRatio15m: priceRatio15m.toFixed(4),
+        priceRatioPrev: priceRatioPrev.toFixed(4),
+        volumeRatio,
+        checks: {
+          '5m>1.01': priceRatio5m > 1.01,
+          '15m>1.01': priceRatio15m > 1.01,
+          '3*5m>prev': 3 * priceRatio5m > priceRatioPrev,
+          'volRatio': volumeRatio
+        }
+      })
+    }
+    
+    return result
   }
   
   // No fallback - require historical data for accurate evaluation
