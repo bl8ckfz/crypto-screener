@@ -9,6 +9,8 @@
 import { useRef, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Coin } from '@/types/coin'
+import { useStore } from '@/hooks/useStore'
+import { sortCoins } from '@/utils/sort'
 import { CoinTableRow } from './CoinTableRow'
 
 export interface VirtualizedCoinTableProps {
@@ -43,10 +45,24 @@ export function VirtualizedCoinTable({
 }: VirtualizedCoinTableProps) {
   // Container ref for virtualizer
   const parentRef = useRef<HTMLDivElement>(null)
+  const { sort, setSort } = useStore()
+
+  // Sort coins
+  const sortedCoins = useMemo(() => {
+    return sortCoins(coins, sort)
+  }, [coins, sort])
+
+  const handleSort = (field: typeof sort.field) => {
+    setSort({
+      field,
+      direction:
+        sort.field === field && sort.direction === 'desc' ? 'asc' : 'desc',
+    })
+  }
 
   // Create virtualizer instance
   const virtualizer = useVirtualizer({
-    count: coins.length,
+    count: sortedCoins.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 48, // Estimated row height in pixels
     overscan: 10, // Number of items to render outside visible area (for smooth scrolling)
@@ -64,14 +80,84 @@ export function VirtualizedCoinTable({
       <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-800">
         <table className="w-full table-fixed">
           <thead>
-            <tr className="text-left text-sm text-gray-400 bg-gray-800/50">
-              <th className="px-4 py-3 font-medium w-24">Symbol</th>
-              <th className="px-4 py-3 font-medium text-right w-32">Price</th>
-              <th className="px-4 py-3 font-medium text-right w-28">Change %</th>
-              <th className="px-4 py-3 font-medium text-right w-32">Volume</th>
-              <th className="px-4 py-3 font-medium text-right w-32">Quote Vol</th>
-              <th className="px-4 py-3 font-medium text-right w-24">VCP</th>
-              <th className="px-4 py-3 font-medium text-right w-28">P/WA</th>
+            <tr className="text-left text-sm bg-gray-800/50">
+              <th 
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none w-24"
+                onClick={() => handleSort('symbol')}
+              >
+                <div className="flex items-center gap-1">
+                  Symbol
+                  {sort.field === 'symbol' && (
+                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-32"
+                onClick={() => handleSort('lastPrice')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Price
+                  {sort.field === 'lastPrice' && (
+                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-28"
+                onClick={() => handleSort('priceChangePercent')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Change %
+                  {sort.field === 'priceChangePercent' && (
+                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-32"
+                onClick={() => handleSort('volume')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Volume
+                  {sort.field === 'volume' && (
+                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-32"
+                onClick={() => handleSort('quoteVolume')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Quote Vol
+                  {sort.field === 'quoteVolume' && (
+                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-24"
+                onClick={() => handleSort('vcp')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  VCP
+                  {sort.field === 'vcp' && (
+                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-28"
+                onClick={() => handleSort('priceToWeightedAvg')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  P/WA
+                  {sort.field === 'priceToWeightedAvg' && (
+                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
+              </th>
             </tr>
           </thead>
         </table>
@@ -96,7 +182,7 @@ export function VirtualizedCoinTable({
         >
           {/* Render only visible items */}
           {virtualItems.map((virtualRow) => {
-            const coin = coins[virtualRow.index]
+            const coin = sortedCoins[virtualRow.index]
             const isSelected = virtualRow.index === selectedRowIndex
 
             return (
@@ -132,10 +218,10 @@ export function VirtualizedCoinTable({
       <div className="px-4 py-2 bg-gray-800/30 border-t border-gray-800 text-xs text-gray-400">
         <div className="flex justify-between items-center">
           <span>
-            Showing {virtualItems.length} of {coins.length} rows (virtualized)
+            Showing {virtualItems.length} of {sortedCoins.length} rows (virtualized)
           </span>
           <span>
-            Performance: ~{Math.round((virtualItems.length / coins.length) * 100)}% rendered
+            Performance: ~{Math.round((virtualItems.length / sortedCoins.length) * 100)}% rendered
           </span>
         </div>
       </div>
@@ -149,6 +235,19 @@ export function VirtualizedCoinTable({
  */
 export function SmartCoinTable(props: VirtualizedCoinTableProps) {
   const { coins } = props
+  const { sort, setSort } = useStore()
+
+  const sortedCoins = useMemo(() => {
+    return sortCoins(coins, sort)
+  }, [coins, sort])
+
+  const handleSort = (field: typeof sort.field) => {
+    setSort({
+      field,
+      direction:
+        sort.field === field && sort.direction === 'desc' ? 'asc' : 'desc',
+    })
+  }
 
   // Use virtualization for large datasets
   if (coins.length >= VIRTUALIZATION_THRESHOLD) {
@@ -160,18 +259,88 @@ export function SmartCoinTable(props: VirtualizedCoinTableProps) {
     <div className="overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
       <table className="w-full">
         <thead className="sticky top-0 z-10 bg-gray-900 border-b border-gray-800">
-          <tr className="text-left text-sm text-gray-400 bg-gray-800/50">
-            <th className="px-4 py-3 font-medium">Symbol</th>
-            <th className="px-4 py-3 font-medium text-right">Price</th>
-            <th className="px-4 py-3 font-medium text-right">Change %</th>
-            <th className="px-4 py-3 font-medium text-right">Volume</th>
-            <th className="px-4 py-3 font-medium text-right">Quote Vol</th>
-            <th className="px-4 py-3 font-medium text-right">VCP</th>
-            <th className="px-4 py-3 font-medium text-right">P/WA</th>
+          <tr className="text-left text-sm bg-gray-800/50">
+            <th 
+              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none"
+              onClick={() => handleSort('symbol')}
+            >
+              <div className="flex items-center gap-1">
+                Symbol
+                {sort.field === 'symbol' && (
+                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
+              onClick={() => handleSort('lastPrice')}
+            >
+              <div className="flex items-center justify-end gap-1">
+                Price
+                {sort.field === 'lastPrice' && (
+                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
+              onClick={() => handleSort('priceChangePercent')}
+            >
+              <div className="flex items-center justify-end gap-1">
+                Change %
+                {sort.field === 'priceChangePercent' && (
+                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
+              onClick={() => handleSort('volume')}
+            >
+              <div className="flex items-center justify-end gap-1">
+                Volume
+                {sort.field === 'volume' && (
+                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
+              onClick={() => handleSort('quoteVolume')}
+            >
+              <div className="flex items-center justify-end gap-1">
+                Quote Vol
+                {sort.field === 'quoteVolume' && (
+                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
+              onClick={() => handleSort('vcp')}
+            >
+              <div className="flex items-center justify-end gap-1">
+                VCP
+                {sort.field === 'vcp' && (
+                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
+              onClick={() => handleSort('priceToWeightedAvg')}
+            >
+              <div className="flex items-center justify-end gap-1">
+                P/WA
+                {sort.field === 'priceToWeightedAvg' && (
+                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {coins.map((coin, index) => (
+          {sortedCoins.map((coin, index) => (
             <CoinTableRow
               key={coin.id}
               coin={coin}
