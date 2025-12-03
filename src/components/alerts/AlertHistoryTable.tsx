@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react'
 import type { CoinAlertStats } from '@/types/alertHistory'
 import { AlertBadges } from './AlertBadges'
 import { EmptyAlertHistory } from './EmptyAlertHistory'
@@ -10,13 +11,56 @@ interface AlertHistoryTableProps {
   onClearHistory: () => void
 }
 
+type SortField = 'symbol' | 'price' | 'change' | 'alerts' | 'lastAlert'
+type SortDirection = 'asc' | 'desc'
+
 /**
  * Alert History Table - displays coins sorted by alert count
  */
 export function AlertHistoryTable({ stats, onCoinClick, onClearHistory }: AlertHistoryTableProps) {
+  const [sortField, setSortField] = useState<SortField>('alerts')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+
   if (stats.length === 0) {
     return <EmptyAlertHistory />
   }
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection(field === 'symbol' ? 'asc' : 'desc')
+    }
+  }
+
+  const sortedStats = useMemo(() => {
+    const sorted = [...stats].sort((a, b) => {
+      let comparison = 0
+
+      switch (sortField) {
+        case 'symbol':
+          comparison = a.symbol.localeCompare(b.symbol)
+          break
+        case 'price':
+          comparison = a.currentPrice - b.currentPrice
+          break
+        case 'change':
+          comparison = a.priceChange - b.priceChange
+          break
+        case 'alerts':
+          comparison = a.totalAlerts - b.totalAlerts
+          break
+        case 'lastAlert':
+          comparison = a.lastAlertTimestamp - b.lastAlertTimestamp
+          break
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+
+    return sorted
+  }, [stats, sortField, sortDirection])
 
   const formatTimeAgo = (timestamp: number): string => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000)
@@ -53,28 +97,68 @@ export function AlertHistoryTable({ stats, onCoinClick, onClearHistory }: AlertH
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-700">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">
-                Symbol
+              <th 
+                onClick={() => handleSort('symbol')}
+                className="text-left py-3 px-4 text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none"
+              >
+                <div className="flex items-center gap-1">
+                  Symbol
+                  {sortField === 'symbol' && (
+                    <span className="text-accent">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
               </th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-400">
-                Price
+              <th 
+                onClick={() => handleSort('price')}
+                className="text-right py-3 px-4 text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Price
+                  {sortField === 'price' && (
+                    <span className="text-accent">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
               </th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-400">
-                24h Change
+              <th 
+                onClick={() => handleSort('change')}
+                className="text-right py-3 px-4 text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  24h Change
+                  {sortField === 'change' && (
+                    <span className="text-accent">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
               </th>
-              <th className="text-center py-3 px-4 text-sm font-semibold text-gray-400">
-                Total Alerts
+              <th 
+                onClick={() => handleSort('alerts')}
+                className="text-center py-3 px-4 text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  Total Alerts
+                  {sortField === 'alerts' && (
+                    <span className="text-accent">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
               </th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">
                 Alert Types
               </th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-400">
-                Last Alert
+              <th 
+                onClick={() => handleSort('lastAlert')}
+                className="text-right py-3 px-4 text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Last Alert
+                  {sortField === 'lastAlert' && (
+                    <span className="text-accent">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
               </th>
             </tr>
           </thead>
           <tbody>
-            {stats.map((stat) => (
+            {sortedStats.map((stat) => (
               <tr
                 key={stat.symbol}
                 onClick={() => onCoinClick(stat.symbol)}
@@ -137,7 +221,7 @@ export function AlertHistoryTable({ stats, onCoinClick, onClearHistory }: AlertH
 
       {/* Summary Footer */}
       <div className="text-sm text-gray-500 text-center py-2">
-        Total: {stats.reduce((sum, stat) => sum + stat.totalAlerts, 0)} alerts across {stats.length} coins
+        Total: {sortedStats.reduce((sum, stat) => sum + stat.totalAlerts, 0)} alerts across {sortedStats.length} coins
       </div>
     </div>
   )
