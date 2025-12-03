@@ -241,43 +241,52 @@ export function AlertNotificationContainer() {
   // Play sound for new alerts
   useEffect(() => {
     if (!alertSettings.soundEnabled) return
+    if (!activeAlerts || activeAlerts.length === 0) return
 
-    activeAlerts.forEach((alert) => {
-      if (!hasPlayedSound.has(alert.id)) {
-        playAlertSound(alert.severity)
-        setHasPlayedSound((prev) => new Set(prev).add(alert.id))
-      }
-    })
+    try {
+      activeAlerts.forEach((alert) => {
+        if (!hasPlayedSound.has(alert.id)) {
+          playAlertSound(alert.severity)
+          setHasPlayedSound((prev) => new Set(prev).add(alert.id))
+        }
+      })
+    } catch (error) {
+      console.error('Error playing alert sounds:', error)
+    }
   }, [activeAlerts, alertSettings.soundEnabled, hasPlayedSound])
 
   const playAlertSound = (severity: AlertSeverity) => {
-    // Use Web Audio API for alert sounds
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const oscillator = audioContext.createOscillator()
-    const gainNode = audioContext.createGain()
+    try {
+      // Use Web Audio API for alert sounds
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
 
-    oscillator.connect(gainNode)
-    gainNode.connect(audioContext.destination)
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
 
-    // Different frequencies for different severities
-    const frequencies = {
-      low: 440, // A4
-      medium: 554, // C#5
-      high: 659, // E5
-      critical: 880, // A5
+      // Different frequencies for different severities
+      const frequencies = {
+        low: 440, // A4
+        medium: 554, // C#5
+        high: 659, // E5
+        critical: 880, // A5
+      }
+
+      oscillator.frequency.value = frequencies[severity]
+      oscillator.type = 'sine'
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.5
+      )
+
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + 0.5)
+    } catch (error) {
+      console.warn('Failed to play alert sound:', error)
     }
-
-    oscillator.frequency.value = frequencies[severity]
-    oscillator.type = 'sine'
-
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.01,
-      audioContext.currentTime + 0.5
-    )
-
-    oscillator.start(audioContext.currentTime)
-    oscillator.stop(audioContext.currentTime + 0.5)
   }
 
   // Show only the most recent 5 alerts
