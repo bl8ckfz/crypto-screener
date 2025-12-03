@@ -505,6 +505,15 @@ export function setupRealtimeSync(
 
   // Return cleanup function
   return () => {
-    channels.forEach((channel) => supabase.removeChannel(channel))
+    console.log('🧹 Unsubscribing from', channels.length, 'realtime channels')
+    
+    channels.forEach((channel) => {
+      // Only unsubscribe channels that successfully connected
+      if (channel.state === 'joined') {
+        channel.unsubscribe()
+      }
+      // Remove from Supabase client regardless of state
+      supabase.removeChannel(channel)
+    })
   }
 }

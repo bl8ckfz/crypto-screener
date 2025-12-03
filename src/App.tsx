@@ -81,7 +81,9 @@ function App() {
   
   // Setup real-time sync when user is authenticated
   useEffect(() => {
-    if (!user) return
+    if (!user?.id) return
+    
+    console.log('🔄 Setting up realtime sync for user:', user.id)
     
     const setupSync = async () => {
       const { setupRealtimeSync } = await import('@/services/syncService')
@@ -114,9 +116,10 @@ function App() {
     setupSync().then((fn) => { cleanup = fn })
     
     return () => {
+      console.log('🔌 Cleaning up realtime sync')
       cleanup?.()
     }
-  }, [user])
+  }, [user?.id])
   
   // Alert history cleanup interval
   useEffect(() => {
