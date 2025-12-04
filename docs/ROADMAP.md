@@ -729,6 +729,62 @@
 - [ ] Rate limiting on API calls
 - [ ] Environment variable security
 
+### 7.4 State Persistence Fixes (CRITICAL) 🚨
+
+**Problem**: Alert configuration not persisting across page refreshes due to dual-storage pattern causing state contamination between IndexedDB and localStorage.
+
+**Root Cause Analysis**:
+- `storage.ts` writes to BOTH IndexedDB AND localStorage on every save (line 94-95)
+- Creates two sources of truth that can diverge
+- Old localStorage data contaminates fresh IndexedDB state on page load
+- Works in private window (clean state) but fails in normal browser (corrupted localStorage)
+- User and session objects from Supabase may not serialize properly (circular refs)
+- No state version/migration system to handle schema changes
+
+**Required Fixes**:
+- [ ] **Remove dual-storage pattern** - choose ONE source of truth
+  - Option A: IndexedDB only (recommended - larger capacity, async)
+  - Option B: localStorage only (simpler, sync, but 5-10MB limit)
+  - Remove line 95 in storage.ts that writes to localStorage as "backup"
+- [ ] **Add state version system**
+  - Add `version` field to persisted state (e.g., `stateVersion: 1`)
+  - Implement migration logic in Zustand persist `migrate` option
+  - Detect schema changes and run migrations automatically
+- [ ] **Don't persist user/session objects**
+  - Remove `user` and `session` from partialize list (lines 507-508 in useStore.ts)
+  - These should come from Supabase on mount via `getSession()`
+  - Supabase handles its own session persistence in localStorage
+  - Prevents circular reference and serialization issues
+- [ ] **Add error handling in persist lifecycle**
+  - Implement `onRehydrateStorage` callback in Zustand persist config
+  - Wrap in try-catch to handle corrupted data gracefully
+  - Log errors and fall back to default state if parse fails
+- [ ] **Add storage size monitoring**
+  - Check localStorage quota before writes
+  - Warn user if approaching 5-10MB limit
+  - Implement data pruning for alert history (keep last 1000 entries)
+- [ ] **Create storage migration utility**
+  - Script to clear old localStorage keys
+  - Export existing state before clearing
+  - Import into fresh storage after migration
+  - Add to docs/DEPLOYMENT.md for user instructions
+
+**Testing Requirements**:
+- [ ] Test state persistence across page refreshes
+- [ ] Test with corrupted localStorage (manual corruption)
+- [ ] Test with quota exceeded errors
+- [ ] Test state migration from v1 to v2 schema
+- [ ] Test concurrent writes from multiple tabs
+- [ ] Verify Supabase auth works without persisting user/session
+
+**Success Criteria**:
+- ✅ Alert configuration persists reliably in both normal and private windows
+- ✅ No dual-storage contamination issues
+- ✅ State version migrations work automatically
+- ✅ Graceful error handling for storage failures
+- ✅ User/session objects not persisted (Supabase handles this)
+- ✅ Storage size stays under 5MB for localStorage or unlimited for IndexedDB
+
 ---
 
 ## Phase 8: Deployment & DevOps (Week 9-10)
@@ -989,6 +1045,11 @@
 - ⚠️ Sparklines deferred to Phase 5 (performance considerations)
 - ⚠️ Heatmap view deferred to Phase 6 (advanced features)
 - ⚠️ Accessibility (WCAG 2.1 AA) partially implemented (full compliance deferred)
+- 🐛 **CRITICAL**: Alert configuration persistence broken in normal browser (works in private window)
+  - Root cause: Dual-storage pattern (IndexedDB + localStorage backup) causing state contamination
+  - localStorage contains old/corrupted state that overrides fresh IndexedDB data
+  - Requires clearing both IndexedDB AND localStorage to fix
+  - Long-term fixes needed (see Phase 7.4 below)
 
 ### Current Phase: Phase 6.4 - Production Deployment (Vercel) 🎯
 **Phase 6.3 Complete! User accounts and cloud sync fully implemented.**
