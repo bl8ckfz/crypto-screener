@@ -128,7 +128,8 @@ export class FuturesMetricsService {
     let completed = 0
 
     // Process symbols with controlled concurrency to avoid rate limits
-    const concurrency = 5 // Process 5 symbols at a time
+    // Reduced to 2 for market cap fetches (CoinGecko has stricter limits)
+    const concurrency = options.skipMarketCap ? 5 : 2
     for (let i = 0; i < symbols.length; i += concurrency) {
       const batch = symbols.slice(i, i + concurrency)
       const batchPromises = batch.map(async (symbol) => {

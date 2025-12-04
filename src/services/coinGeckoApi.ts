@@ -82,7 +82,7 @@ export class CoinGeckoApiClient {
   private retries: number
   private cache: Map<string, CacheEntry>
   private rateLimiter: RateLimiter
-  private readonly CACHE_TTL = 3600000 // 1 hour in milliseconds
+  private readonly CACHE_TTL = 86400000 // 24 hours in milliseconds (market cap changes slowly)
 
   constructor(
     baseUrl: string = API_CONFIG.coinGeckoBaseUrl,
@@ -93,7 +93,8 @@ export class CoinGeckoApiClient {
     this.timeout = timeout
     this.retries = retries
     this.cache = new Map()
-    this.rateLimiter = new RateLimiter(30, 60000) // 30 calls per minute
+    // Conservative limit: 20 calls/minute (leaving buffer for other requests)
+    this.rateLimiter = new RateLimiter(20, 60000)
   }
 
   /**
@@ -131,6 +132,12 @@ export class CoinGeckoApiClient {
   /**
    * Fetch market cap for a symbol with caching
    * 
+   * Strategy:
+   * - 24-hour cache (market cap changes slowly)
+   * - Rate-limited to 20 calls/minute (conservative)
+   * - Returns stale data on failure to avoid blocking alerts
+   * - Silently handles missing mappings
+   * 
    * @param symbol - Binance futures symbol (e.g., 'BTCUSDT')
    * @returns Market cap in USD or null if not available
    * 
@@ -141,21 +148,21 @@ export class CoinGeckoApiClient {
     // Get CoinGecko ID from symbol
     const coinId = getCoinGeckoId(symbol)
     if (!coinId) {
-      console.warn(`No CoinGecko mapping for ${symbol}`)
+      // Silently skip - not all Binance symbols have CoinGecko mappings
       return null
     }
 
-    // Check cache first
+    // Check cache first (24-hour TTL)
     const cached = this.cache.get(coinId)
     const now = Date.now()
 
     if (cached && now - cached.timestamp < this.CACHE_TTL) {
-      console.log(`📦 Using cached market cap for ${symbol} (${coinId})`)
+      // Cache hit - no API call needed
       return cached.marketCap
     }
 
     try {
-      // Fetch fresh data
+      // Fetch fresh data (with rate limiting)
       const data = await this.fetchCoinData(coinId)
       const marketCap = data.market_data.market_cap.usd
 
@@ -168,14 +175,15 @@ export class CoinGeckoApiClient {
       console.log(`✅ Fetched market cap for ${symbol}: $${marketCap.toLocaleString()}`)
       return marketCap
     } catch (error) {
-      console.error(`Failed to fetch market cap for ${symbol}:`, error)
+      console.warn(`⚠️ Failed to fetch market cap for ${symbol}, using fallback...`, error)
       
-      // Return stale cached data if available
+      // Return stale cached data if available (better than nothing for alerts)
       if (cached) {
-        console.warn(`Using stale cached data for ${symbol}`)
+        console.log(`📦 Using stale cache for ${symbol} (${Math.round((now - cached.timestamp) / 3600000)}h old)`)
         return cached.marketCap
       }
       
+      // No cached data available
       return null
     }
   }
@@ -272,14 +280,20 @@ export class CoinGeckoApiClient {
       if (!response.ok) {
         // Check for rate limit error (429)
         if (response.status === 429) {
+          // Don't retry indefinitely on 429 - respect max retries
+          if (attempt >= this.retries) {
+            console.error(`Rate limit exceeded after ${this.retries} attempts`)
+            throw new Error('CoinGecko rate limit exceeded')
+          }
+          
           const retryAfter = response.headers.get('Retry-After')
           const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 60000
           
-          console.warn(`Rate limited by CoinGecko, waiting ${waitTime / 1000}s...`)
+          console.warn(`⏳ Rate limited by CoinGecko (attempt ${attempt}), waiting ${waitTime / 1000}s...`)
           await new Promise(resolve => setTimeout(resolve, waitTime))
           
-          // Retry after waiting
-          return this.fetchWithRetry<T>(url, attempt)
+          // Retry after waiting (increments attempt count)
+          return this.fetchWithRetry<T>(url, attempt + 1)
         }
 
         const error: ApiError = {

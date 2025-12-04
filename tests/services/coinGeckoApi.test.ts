@@ -61,7 +61,7 @@ describe('CoinGeckoApiClient', () => {
 
       const status = client.getRateLimitStatus()
       expect(status.calls).toBe(2)
-      expect(status.maxCalls).toBe(30)
+      expect(status.maxCalls).toBe(20) // Reduced from 30 to be more conservative
     })
 
     it('should handle rate limit errors (429)', async () => {
@@ -328,7 +328,7 @@ describe('CoinGeckoApiClient', () => {
 
       const afterStatus = client.getRateLimitStatus()
       expect(afterStatus.calls).toBe(1)
-      expect(afterStatus.maxCalls).toBe(30)
+      expect(afterStatus.maxCalls).toBe(20) // Reduced from 30 to be more conservative
     })
   })
 })
