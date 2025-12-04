@@ -158,7 +158,7 @@ export function useMarketData() {
               console.log(`📊 Fetched metrics: ${progress.completed}/${progress.total}`)
             }
           },
-          { skipMarketCap: true } // Skip market cap to avoid rate limits
+          { skipMarketCap: false } // Include market cap for alerts (Pioneer Bull requires it)
         )
 
         // Update cache
@@ -169,12 +169,16 @@ export function useMarketData() {
         })
 
         console.log(`✅ Cached ${metricsArray.length} futures metrics (valid for 5 minutes)`)
-        console.log('ℹ️ Metrics will be attached on next scheduled refresh')
+        
+        // Trigger query refetch to:
+        // 1. Attach new metrics to coins
+        // 2. Trigger alert evaluation effect (dataUpdatedAt changes)
+        query.refetch()
       } catch (error) {
         console.warn('Failed to fetch/cache futures metrics in background:', error)
       }
     })()
-  }, [query.data, query.dataUpdatedAt])
+  }, [query.data, query.dataUpdatedAt, query.refetch])
 
   // Evaluate alerts when data is successfully fetched
   // IMPORTANT: This effect may run in multiple component instances,
@@ -223,21 +227,25 @@ export function useMarketData() {
     }
 
     // Check if we have futures metrics for alerts
-    const sampleCoin = coins[0]
-    const hasFuturesMetrics = !!sampleCoin?.futuresMetrics
+    const coinsWithMetrics = coins.filter(c => c.futuresMetrics)
+    const coinsWithMarketCap = coins.filter(c => c.futuresMetrics?.marketCap)
     
-    if (!hasFuturesMetrics) {
+    if (coinsWithMetrics.length === 0) {
       console.log('⏳ Waiting for futures metrics to be fetched for alert evaluation')
       return
     }
 
+    console.log(`📊 Alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (${coinsWithMarketCap.length} with market cap)`)
+
     // Filter to enabled rules only
-    
     const enabledRules = alertRules.filter((rule) => rule.enabled)
 
     if (enabledRules.length === 0) {
+      console.log('ℹ️ No enabled alert rules')
       return
     }
+
+    console.log(`📋 Evaluating ${enabledRules.length} enabled alert rules...`)
 
     try {
       // Evaluate all rules against current coins
