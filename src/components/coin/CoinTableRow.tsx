@@ -29,30 +29,21 @@ function CoinTableRowComponent({ coin, index, onClick }: CoinTableRowProps) {
       className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:shadow-lg animate-in fade-in slide-in-from-left-2"
       style={{ animationDelay: `${index * 20}ms` }}
     >
-      <td className="px-2 py-2 font-medium whitespace-nowrap">{coin.symbol}</td>
-      <td className="px-2 py-2 text-right mono-number whitespace-nowrap">
+      <td className="px-3 py-2.5 font-medium whitespace-nowrap text-base">{coin.symbol}</td>
+      <td className="px-3 py-2.5 text-right mono-number whitespace-nowrap text-base">
         {formatPrice(coin.lastPrice)}
       </td>
       <td
-        className={`px-2 py-2 text-right mono-number font-medium whitespace-nowrap ${getChangeColor(coin.priceChangePercent)}`}
+        className={`px-3 py-2.5 text-right mono-number font-medium whitespace-nowrap text-base ${getChangeColor(coin.priceChangePercent)}`}
       >
         {formatPercent(coin.priceChangePercent)}
       </td>
-      <td className="px-1.5 py-1.5 text-right mono-number text-gray-400 whitespace-nowrap">
-        {formatVolume(coin.volume)}
+      <td className="px-3 py-2.5 text-right mono-number whitespace-nowrap text-base">
+        {coin.indicators.priceToWeightedAvg.toFixed(4)}
       </td>
-      <td className="px-1.5 py-1.5 text-right mono-number text-gray-400 whitespace-nowrap">
+      <td className="px-3 py-2.5 text-right mono-number text-gray-400 whitespace-nowrap text-base">
         {formatVolume(coin.quoteVolume)}
       </td>
-      <td
-        className={`px-1.5 py-1.5 text-right mono-number whitespace-nowrap ${getChangeColor(coin.indicators.vcp)}`}
-      >
-        {coin.indicators.vcp.toFixed(3)}
-      </td>
-      <td className="px-1.5 py-1.5 text-right mono-number whitespace-nowrap min-w-[72px]">
-        {coin.indicators.priceToWeightedAvg.toFixed(3)}
-      </td>
-      {/* Watchlist badge column removed */}
     </tr>
   )
 }
@@ -67,9 +58,7 @@ export const CoinTableRow = memo(CoinTableRowComponent, (prevProps, nextProps) =
     prevProps.coin.id === nextProps.coin.id &&
     prevProps.coin.lastPrice === nextProps.coin.lastPrice &&
     prevProps.coin.priceChangePercent === nextProps.coin.priceChangePercent &&
-    prevProps.coin.volume === nextProps.coin.volume &&
     prevProps.coin.quoteVolume === nextProps.coin.quoteVolume &&
-    prevProps.coin.indicators.vcp === nextProps.coin.indicators.vcp &&
     prevProps.coin.indicators.priceToWeightedAvg === nextProps.coin.indicators.priceToWeightedAvg &&
     prevProps.index === nextProps.index
   )

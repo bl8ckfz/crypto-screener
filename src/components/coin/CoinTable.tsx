@@ -32,7 +32,7 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
         <thead className="bg-gray-900 sticky top-0">
           <tr className="border-b border-gray-700">
             <th
-              className="px-2 py-3 text-left text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
+              className="px-3 py-3 text-left text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
               onClick={() => handleSort('symbol')}
             >
               <div className="flex items-center gap-1">
@@ -43,7 +43,7 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
               </div>
             </th>
             <th
-              className="px-2 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
+              className="px-3 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
               onClick={() => handleSort('lastPrice')}
             >
               <div className="flex items-center justify-end gap-1">
@@ -54,7 +54,7 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
               </div>
             </th>
             <th
-              className="px-2 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
+              className="px-3 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
               onClick={() => handleSort('priceChangePercent')}
             >
               <div className="flex items-center justify-end gap-1">
@@ -65,40 +65,7 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
               </div>
             </th>
             <th
-              className="px-1.5 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
-              onClick={() => handleSort('volume')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                Volume
-                {sort.field === 'volume' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th
-              className="px-1.5 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
-              onClick={() => handleSort('quoteVolume')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                Quote Vol
-                {sort.field === 'quoteVolume' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th
-              className="px-1.5 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
-              onClick={() => handleSort('vcp')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                VCP
-                {sort.field === 'vcp' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th
-              className="px-1.5 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap min-w-[72px]"
+              className="px-3 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
               onClick={() => handleSort('priceToWeightedAvg')}
             >
               <div className="flex items-center justify-end gap-1">
@@ -108,7 +75,17 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
                 )}
               </div>
             </th>
-            {/* Watchlist column removed per new plan */}
+            <th
+              className="px-3 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
+              onClick={() => handleSort('quoteVolume')}
+            >
+              <div className="flex items-center justify-end gap-1">
+                24h Vol
+                {sort.field === 'quoteVolume' && (
+                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
