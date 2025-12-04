@@ -510,6 +510,158 @@ export const COINGECKO_CONFIG = {
 - ✅ Add UI for futures alerts
 - ✅ Testing with real data
 
+---
+
+## 12. Alert Rules to Implement
+
+### 12.1 60 Big Bull
+**Type:** `futures_big_bull_60`  
+**Purpose:** Detect coins with sustained momentum over multiple timeframes
+
+**Criteria:**
+1. `change_1h > 1.6%` - Significant 1-hour momentum
+2. `change_1d < 15%` - Not overextended on daily
+3. `change_15m > 0.13%` - Recent positive movement
+4. `change_8h > 0.67%` - Strong 8-hour trend
+5. `change_8h < 10%` - Not parabolic on 8h
+6. `volume_1h > 3.34 * volume_8h` - Recent volume spike
+7. `volume_15m > 1 * volume_1h` - Accelerating volume
+8. `marketCap > $500M` - Liquid coins only
+
+**Timeframes:** 15m, 1h, 8h, 1d  
+**Volume Intervals:** 15m, 1h, 8h
+
+---
+
+### 12.2 Pioneer Bull
+**Type:** `futures_pioneer_bull`  
+**Purpose:** Early detection of emerging trends
+
+**Criteria:**
+1. `change_5m > 0.13%` - Immediate momentum
+2. `change_15m > 0.34%` - Confirming short-term trend
+3. `volume_5m > 1.34 * volume_15m` - Volume acceleration
+
+**Timeframes:** 5m, 15m  
+**Volume Intervals:** 5m, 15m
+
+---
+
+### 12.3 5 Big Bull
+**Type:** `futures_5_big_bull`  
+**Purpose:** Catch explosive moves with high momentum
+
+**Criteria:**
+1. `change_15m > 0.5%` - Strong 15m momentum
+2. `change_1h > 1.6%` - Sustained 1h trend
+3. `change_8h > 5%` - Significant 8h move
+4. `change_1d < 20%` - Not overextended
+5. `volume_5m > 2 * volume_1h` - Massive volume spike
+6. `volume_15m > 1.5 * volume_8h` - Volume acceleration
+7. `marketCap > $100M` - Minimum liquidity
+
+**Timeframes:** 5m, 15m, 1h, 8h, 1d  
+**Volume Intervals:** 5m, 15m, 1h, 8h
+
+---
+
+### 12.4 15 Big Bull
+**Type:** `futures_15_big_bull`  
+**Purpose:** Identify strong trending moves with volume confirmation
+
+**Criteria:**
+1. `change_15m > 0.67%` - Strong recent momentum
+2. `change_1h > 2.1%` - Significant hourly move
+3. `change_8h > 8.4%` - Major 8h trend
+4. `change_1d < 25%` - Not overextended
+5. `volume_15m > 2.1 * volume_1h` - Volume surge
+6. `volume_1h > 1.67 * volume_8h` - Sustained volume
+7. `marketCap > $300M` - Liquid mid-caps
+
+**Timeframes:** 15m, 1h, 8h, 1d  
+**Volume Intervals:** 15m, 1h, 8h
+
+---
+
+### 12.5 Bottom Hunter
+**Type:** `futures_bottom_hunter`  
+**Purpose:** Detect potential reversals with volume confirmation
+
+**Criteria:**
+1. `change_5m > 0.21%` - Starting recovery
+2. `change_15m > 0.5%` - Confirming reversal
+3. `change_1h < 1%` - Not parabolic yet
+4. `volume_5m > 2.5 * volume_15m` - Volume spike at bottom
+5. `volume_15m > 1.67 * volume_1h` - Volume acceleration
+6. `marketCap > $200M` - Minimum liquidity
+
+**Timeframes:** 5m, 15m, 1h  
+**Volume Intervals:** 5m, 15m, 1h
+
+---
+
+### 12.6 Implementation Notes
+
+#### Alert Evaluator Structure
+```typescript
+// In src/services/alertEngine.ts
+
+function evaluateFuturesBigBull60(metrics: FuturesMetrics): boolean {
+  return (
+    metrics.change_1h > 1.6 &&
+    metrics.change_1d < 15 &&
+    metrics.change_15m > 0.13 &&
+    metrics.change_8h > 0.67 &&
+    metrics.change_8h < 10 &&
+    metrics.volume_1h > 3.34 * metrics.volume_8h &&
+    metrics.volume_15m > 1 * metrics.volume_1h &&
+    metrics.marketCap > 500_000_000
+  );
+}
+
+function evaluateFuturesPioneerBull(metrics: FuturesMetrics): boolean {
+  return (
+    metrics.change_5m > 0.13 &&
+    metrics.change_15m > 0.34 &&
+    metrics.volume_5m > 1.34 * metrics.volume_15m
+  );
+}
+
+// ... similar functions for other alerts
+```
+
+#### Alert Type Definitions
+```typescript
+// In src/types/alert.ts
+
+export type FuturesAlertType = 
+  | 'futures_big_bull_60'
+  | 'futures_pioneer_bull'
+  | 'futures_5_big_bull'
+  | 'futures_15_big_bull'
+  | 'futures_bottom_hunter';
+
+export interface FuturesAlertConfig extends BaseAlertConfig {
+  type: FuturesAlertType;
+  enabled: boolean;
+}
+```
+
+#### UI Labels
+```typescript
+// In src/components/alerts/AlertBadges.tsx
+
+const FUTURES_ALERT_LABELS: Record<FuturesAlertType, string> = {
+  futures_big_bull_60: '60 Big Bull',
+  futures_pioneer_bull: 'Pioneer Bull',
+  futures_5_big_bull: '5 Big Bull',
+  futures_15_big_bull: '15 Big Bull',
+  futures_bottom_hunter: 'Bottom Hunter',
+};
+```
+
+---
+
 ### Phase 5: Scanner & Monitoring (Week 3)
 - ✅ Implement futures scanner
 - ✅ Add background scanning job
@@ -518,7 +670,7 @@ export const COINGECKO_CONFIG = {
 
 ---
 
-## 12. File Structure
+## 13. File Structure
 
 ```
 src/
@@ -539,26 +691,26 @@ src/
 
 ---
 
-## 13. Performance Considerations
+## 14. Performance Considerations
 
-### 13.1 Parallel Processing
+### 14.1 Parallel Processing
 - Fetch all 5 kline intervals in parallel (5 concurrent requests)
 - Batch symbol processing with Promise.all
 - Target: <500ms per symbol
 
-### 13.2 Caching Strategy
+### 14.2 Caching Strategy
 - CoinGecko market cap: 1 hour cache
 - Futures symbols list: 1 hour cache
 - Kline data: No cache (real-time)
 
-### 13.3 Rate Limiting
+### 14.3 Rate Limiting
 - Binance: Max 50 symbols/minute (conservative)
 - CoinGecko: Max 30 calls/minute
 - Implement queue system for bulk operations
 
 ---
 
-## 14. Monitoring & Logging
+## 15. Monitoring & Logging
 
 ```typescript
 class MetricsLogger {
@@ -576,7 +728,7 @@ class MetricsLogger {
 
 ---
 
-## 15. Security Considerations
+## 16. Security Considerations
 
 1. **API Keys**: Store CoinGecko API key securely in environment variables
 2. **Rate Limiting**: Implement client-side rate limiting to avoid IP bans
