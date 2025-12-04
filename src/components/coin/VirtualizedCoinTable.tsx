@@ -82,7 +82,7 @@ export function VirtualizedCoinTable({
           <thead>
             <tr className="text-left text-sm bg-gray-800/50">
               <th 
-                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none w-24"
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none w-28"
                 onClick={() => handleSort('symbol')}
               >
                 <div className="flex items-center gap-1">
@@ -93,7 +93,7 @@ export function VirtualizedCoinTable({
                 </div>
               </th>
               <th 
-                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-32"
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-36"
                 onClick={() => handleSort('lastPrice')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -104,7 +104,7 @@ export function VirtualizedCoinTable({
                 </div>
               </th>
               <th 
-                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-28"
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-32"
                 onClick={() => handleSort('priceChangePercent')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -116,44 +116,22 @@ export function VirtualizedCoinTable({
               </th>
               <th 
                 className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-32"
-                onClick={() => handleSort('volume')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Volume
-                  {sort.field === 'volume' && (
-                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-32"
-                onClick={() => handleSort('quoteVolume')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Quote Vol
-                  {sort.field === 'quoteVolume' && (
-                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-24"
-                onClick={() => handleSort('vcp')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  VCP
-                  {sort.field === 'vcp' && (
-                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-28"
                 onClick={() => handleSort('priceToWeightedAvg')}
               >
                 <div className="flex items-center justify-end gap-1">
                   P/WA
                   {sort.field === 'priceToWeightedAvg' && (
+                    <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right w-36"
+                onClick={() => handleSort('quoteVolume')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  24h Vol
+                  {sort.field === 'quoteVolume' && (
                     <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
                   )}
                 </div>
@@ -295,11 +273,11 @@ export function SmartCoinTable(props: VirtualizedCoinTableProps) {
             </th>
             <th 
               className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
-              onClick={() => handleSort('volume')}
+              onClick={() => handleSort('priceToWeightedAvg')}
             >
               <div className="flex items-center justify-end gap-1">
-                Volume
-                {sort.field === 'volume' && (
+                P/WA
+                {sort.field === 'priceToWeightedAvg' && (
                   <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
                 )}
               </div>
@@ -309,30 +287,8 @@ export function SmartCoinTable(props: VirtualizedCoinTableProps) {
               onClick={() => handleSort('quoteVolume')}
             >
               <div className="flex items-center justify-end gap-1">
-                Quote Vol
+                24h Vol
                 {sort.field === 'quoteVolume' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th 
-              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
-              onClick={() => handleSort('vcp')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                VCP
-                {sort.field === 'vcp' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th 
-              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
-              onClick={() => handleSort('priceToWeightedAvg')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                P/WA
-                {sort.field === 'priceToWeightedAvg' && (
                   <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
                 )}
               </div>
