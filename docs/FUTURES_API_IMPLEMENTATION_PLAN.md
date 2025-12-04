@@ -7,8 +7,11 @@ Implement a service to retrieve price-change and volume metrics for USDT-M futur
 **5 timeframes:** 5m, 15m, 1h, 8h, 1d
 
 This provides data for multiple alert types:
-- **60 Big Bull**: Uses 15m, 1h, 8h, 1d for sustained momentum detection
-- **Bottom Hunter**: Uses 5m, 15m, 1h for reversal detection with volume acceleration
+- **60 Big Bull**: Uses 1h, 8h, 1d for sustained momentum detection (includes 1d volume)
+- **Pioneer Bull**: Uses 5m, 15m for early trend detection
+- **5 Big Bull**: Uses 5m, 15m, 1h, 8h, 1d for explosive moves
+- **15 Big Bull**: Uses 15m, 1h, 8h, 1d for strong trending moves
+- **Bottom Hunter**: Uses 5m, 15m, 1h for reversal detection
 
 ---
 
@@ -141,6 +144,7 @@ export interface FuturesMetrics {
   volume_15m: number
   volume_1h: number
   volume_8h: number
+  volume_1d: number
   
   // Market cap from CoinGecko
   marketCap: number | null
@@ -212,10 +216,10 @@ export class FuturesMetricsService {
 ```
 
 **Implementation flow:**
-1. Fetch klines for all 4 intervals (15m, 1h, 8h, 1d) in parallel
+1. Fetch klines for all 5 intervals (5m, 15m, 1h, 8h, 1d) in parallel
 2. Parse and process kline data
 3. Calculate price changes for each timeframe
-4. Extract quote volumes for each timeframe
+4. Extract quote volumes for each timeframe (5m, 15m, 1h, 8h, 1d)
 5. Fetch market cap from CoinGecko (cached)
 6. Apply all filter rules
 7. Return structured metrics object
@@ -521,15 +525,17 @@ export const COINGECKO_CONFIG = {
 **Criteria:**
 1. `change_1h > 1.6%` - Significant 1-hour momentum
 2. `change_1d < 15%` - Not overextended on daily
-3. `change_15m > 0.13%` - Recent positive movement
-4. `change_8h > 0.67%` - Strong 8-hour trend
-5. `change_8h < 10%` - Not parabolic on 8h
-6. `volume_1h > 3.34 * volume_8h` - Recent volume spike
-7. `volume_15m > 1 * volume_1h` - Accelerating volume
-8. `marketCap > $500M` - Liquid coins only
+3. `change_8h > change_1h` - 8h trend stronger than 1h (progressive validation)
+4. `change_1d > change_8h` - Daily trend continuing (progressive validation)
+5. `volume_1h > 500,000` - Minimum 1h volume (absolute threshold)
+6. `volume_8h > 5,000,000` - Minimum 8h volume (absolute threshold)
+7. `volume_1h > volume_8h / 6` - 1h volume acceleration (6x ratio)
+8. `volume_1h > volume_1d / 16` - 1h vs daily volume (16x ratio)
+9. `marketCap > $23M` - Minimum liquidity
+10. `marketCap < $2.5B` - Maximum cap (avoid mega-caps)
 
-**Timeframes:** 15m, 1h, 8h, 1d  
-**Volume Intervals:** 15m, 1h, 8h
+**Timeframes:** 1h, 8h, 1d  
+**Volume Intervals:** 1h, 8h, 1d
 
 ---
 
@@ -607,15 +613,19 @@ export const COINGECKO_CONFIG = {
 // In src/services/alertEngine.ts
 
 function evaluateFuturesBigBull60(metrics: FuturesMetrics): boolean {
+  if (!metrics.marketCap) return false;
+  
   return (
     metrics.change_1h > 1.6 &&
     metrics.change_1d < 15 &&
-    metrics.change_15m > 0.13 &&
-    metrics.change_8h > 0.67 &&
-    metrics.change_8h < 10 &&
-    metrics.volume_1h > 3.34 * metrics.volume_8h &&
-    metrics.volume_15m > 1 * metrics.volume_1h &&
-    metrics.marketCap > 500_000_000
+    metrics.change_8h > metrics.change_1h &&
+    metrics.change_1d > metrics.change_8h &&
+    metrics.volume_1h > 500_000 &&
+    metrics.volume_8h > 5_000_000 &&
+    6 * metrics.volume_1h > metrics.volume_8h &&
+    16 * metrics.volume_1h > metrics.volume_1d &&
+    metrics.marketCap > 23_000_000 &&
+    metrics.marketCap < 2_500_000_000
   );
 }
 
