@@ -95,6 +95,7 @@ export function useMarketData() {
 
       // Fetch futures metrics (klines data) for all coins
       // This replaces the old timeframe snapshot approach
+      // Skip market cap to avoid CoinGecko rate limits on frequent polls
       try {
         const symbols = coins.map(coin => coin.fullSymbol)
         const { futuresMetricsService } = await import('@/services/futuresMetricsService')
@@ -105,7 +106,8 @@ export function useMarketData() {
             if (progress.completed % 10 === 0) {
               console.log(`📊 Fetched metrics: ${progress.completed}/${progress.total}`)
             }
-          }
+          },
+          { skipMarketCap: true } // Skip market cap to avoid rate limits
         )
 
         // Attach futures metrics to coins

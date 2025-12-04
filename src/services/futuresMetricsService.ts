@@ -33,13 +33,18 @@ export class FuturesMetricsService {
    * Fetch comprehensive metrics for a single symbol
    * 
    * @param symbol - Binance futures symbol (e.g., 'BTCUSDT')
+   * @param options - Optional configuration
+   * @param options.skipMarketCap - Skip fetching market cap data (default: false)
    * @returns Complete metrics including price changes, volumes, market cap, and filter results
    * 
    * @example
    * const metrics = await service.fetchSymbolMetrics('BTCUSDT')
    * console.log(metrics.change_1h, metrics.volume_1h, metrics.marketCap)
    */
-  async fetchSymbolMetrics(symbol: string): Promise<FuturesMetrics> {
+  async fetchSymbolMetrics(
+    symbol: string,
+    options: { skipMarketCap?: boolean } = {}
+  ): Promise<FuturesMetrics> {
     const startTime = Date.now()
 
     try {
@@ -52,9 +57,13 @@ export class FuturesMetricsService {
       // Extract volumes for each interval
       const volumes = this.extractVolumes(klineData)
 
-      // Fetch market cap (with caching)
-      const marketCap = await this.coinGeckoClient.fetchMarketCap(symbol)
-      const coinGeckoId = this.getCoinGeckoId(symbol)
+      // Fetch market cap (with caching) - skip if requested to avoid rate limits
+      const marketCap = options.skipMarketCap 
+        ? null 
+        : await this.coinGeckoClient.fetchMarketCap(symbol)
+      const coinGeckoId = options.skipMarketCap 
+        ? null 
+        : this.getCoinGeckoId(symbol)
 
       // Build metrics object
       const metrics: Omit<FuturesMetrics, 'passes_filters' | 'filter_details'> = {
@@ -97,6 +106,8 @@ export class FuturesMetricsService {
    * 
    * @param symbols - Array of Binance futures symbols
    * @param onProgress - Optional callback for progress updates
+   * @param options - Optional configuration
+   * @param options.skipMarketCap - Skip fetching market cap data (default: false)
    * @returns Array of metrics for all symbols
    * 
    * @example
@@ -107,7 +118,8 @@ export class FuturesMetricsService {
    */
   async fetchMultipleSymbolMetrics(
     symbols: string[],
-    onProgress?: (progress: { completed: number; total: number; current: string }) => void
+    onProgress?: (progress: { completed: number; total: number; current: string }) => void,
+    options: { skipMarketCap?: boolean } = {}
   ): Promise<FuturesMetrics[]> {
     console.log(`📊 Fetching metrics for ${symbols.length} symbols...`)
     const startTime = Date.now()
@@ -121,7 +133,7 @@ export class FuturesMetricsService {
       const batch = symbols.slice(i, i + concurrency)
       const batchPromises = batch.map(async (symbol) => {
         try {
-          const metrics = await this.fetchSymbolMetrics(symbol)
+          const metrics = await this.fetchSymbolMetrics(symbol, options)
           completed++
           if (onProgress) {
             onProgress({ completed, total: symbols.length, current: symbol })
