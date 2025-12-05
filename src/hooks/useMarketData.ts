@@ -32,8 +32,9 @@ const KLINES_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
 /**
  * Fetch and process market data for current currency pair with smart polling
  * @param wsMetricsMap - WebSocket streaming metrics from useFuturesStreaming
+ * @param wsGetTickerData - Function to get live ticker data from WebSocket
  */
-export function useMarketData(wsMetricsMap?: Map<string, any>) {
+export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?: () => any[]) {
   const refreshInterval = useStore((state) => state.refreshInterval)
   const autoRefresh = useStore((state) => state.autoRefresh)
   
@@ -73,16 +74,28 @@ export function useMarketData(wsMetricsMap?: Map<string, any>) {
   const query = useQuery({
     queryKey: ['marketData', 'USDT', currentWatchlistId],
     queryFn: async (): Promise<Coin[]> => {
-      // Use mock data if enabled, otherwise fetch from Binance Futures API
+      // Use WebSocket ticker data if available, otherwise fetch from REST API
       let tickers
+      
       if (USE_MOCK_DATA) {
         console.log('Using mock data with variations for alert testing')
         tickers = getMockDataWithVariations()
-      } else {
-        try {
-          // Fetch from Futures API instead of Spot API
+      } else if (wsGetTickerData) {
+        // Use WebSocket ticker data (no API call!)
+        tickers = wsGetTickerData()
+        if (tickers && tickers.length > 0) {
+          console.log(`✅ Using ${tickers.length} tickers from WebSocket stream`)
+        } else {
+          // Fallback to REST API if WebSocket not ready
+          console.log('⏳ WebSocket not ready, fetching from REST API...')
           tickers = await futuresApi.fetch24hrTickers()
-          console.log(`✅ Fetched ${tickers.length} futures tickers`)
+          console.log(`✅ Fetched ${tickers.length} futures tickers from REST API`)
+        }
+      } else {
+        // No WebSocket available, use REST API
+        try {
+          tickers = await futuresApi.fetch24hrTickers()
+          console.log(`✅ Fetched ${tickers.length} futures tickers from REST API`)
         } catch (error) {
           console.warn(
             'Failed to fetch from Binance Futures API, falling back to mock data:',
@@ -423,49 +436,144 @@ export function useMarketData(wsMetricsMap?: Map<string, any>) {
 
   // Also evaluate alerts when WebSocket metrics update
   // This ensures alerts work even when query data isn't refetching
+  // NOTE: We DON'T refetch query data - just re-attach metrics and evaluate
   useEffect(() => {
-    console.log('🔍 WebSocket metrics effect triggered:', {
-      metricsMapSize: wsMetricsMap?.size || 0,
-      hasQueryData: !!query.data,
-      alertsEnabled: alertSettings.enabled,
-      rulesCount: alertRules.length,
-    })
-    
     if (!wsMetricsMap || wsMetricsMap.size === 0) {
-      console.log('⏳ Waiting for WebSocket metrics (map empty)')
       return
     }
     
     if (!query.data) {
-      console.log('⏳ Waiting for query data')
       return
     }
     
     if (!alertSettings.enabled) {
-      console.log('ℹ️ Alerts disabled in settings')
       return
     }
     
     if (alertRules.length === 0) {
-      console.log('ℹ️ No alert rules configured')
       return
     }
     
-    // Trigger a "fake" refetch by updating the query data with new metrics
-    // This will cause the main alert evaluation effect to run
     const now = Date.now()
     
-    // Throttle to max once per second to avoid spam
-    if (now - lastAlertEvaluationTimestamp < 1000) {
-      console.log('⏸️ Throttled - last evaluation was <1s ago')
+    // Throttle to max once per 5 seconds to avoid spam
+    if (now - lastAlertEvaluationTimestamp < 5000) {
       return
     }
     
-    console.log('🔄 WebSocket metrics updated, triggering alert evaluation')
+    console.log('🔄 WebSocket metrics updated, evaluating alerts with fresh data')
     
-    // Force re-evaluation by invalidating query
-    query.refetch()
-  }, [wsMetricsMap, query, alertSettings.enabled, alertRules.length])
+    // Re-attach WebSocket metrics to existing coins
+    const coins = query.data.map(coin => {
+      const metrics = wsMetricsMap.get(coin.fullSymbol)
+      return metrics ? { ...coin, futuresMetrics: metrics } : coin
+    })
+    
+    // Guard: Update timestamp
+    isEvaluatingAlerts = true
+    lastAlertEvaluationTimestamp = now
+    
+    try {
+      // Update market mode
+      const sortedByVolume = [...coins].sort((a, b) => b.quoteVolume - a.quoteVolume)
+      const sample = sortedByVolume.slice(0, Math.min(10, sortedByVolume.length))
+      const avgMomentum = sample.reduce((sum, c) => sum + c.priceChangePercent, 0) / (sample.length || 1)
+      const marketMode: 'bull' | 'bear' = avgMomentum >= 0 ? 'bull' : 'bear'
+      
+      const coinsWithMetrics = coins.filter(c => c.futuresMetrics)
+      console.log(`📊 WebSocket alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (market: ${marketMode})`)
+      
+      if (coinsWithMetrics.length === 0) {
+        return
+      }
+      
+      // Evaluate alerts
+      const triggeredAlerts = evaluateAlertRules(coins, alertRules.filter(r => r.enabled), marketMode)
+      
+      console.log(`✅ WebSocket alert evaluation complete: ${triggeredAlerts.length} alert(s) triggered`)
+      
+      if (triggeredAlerts.length > 0) {
+        console.log(`🔔 Triggered alerts:`, triggeredAlerts.map(a => `${a.symbol} (${a.type})`))
+      }
+      
+      // Process triggered alerts (same logic as main effect)
+      for (const triggeredAlert of triggeredAlerts) {
+        const { symbol } = triggeredAlert
+        
+        // Check cooldown
+        const lastAlertTime = recentAlerts.current.get(symbol) || 0
+        const cooldownMs = alertSettings.alertCooldown * 1000
+        
+        if (now - lastAlertTime < cooldownMs) {
+          continue
+        }
+        
+        recentAlerts.current.set(symbol, now)
+        
+        // Create and add alert
+        const alert: Alert = {
+          id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          symbol,
+          type: triggeredAlert.type,
+          severity: triggeredAlert.severity,
+          title: triggeredAlert.title,
+          message: triggeredAlert.message,
+          value: triggeredAlert.value,
+          threshold: triggeredAlert.threshold,
+          timeframe: triggeredAlert.timeframe,
+          timestamp: now,
+          read: false,
+          dismissed: false,
+        }
+        
+        const coin = coins.find(c => c.symbol === symbol)
+        addAlert(alert)
+        
+        if (coin) {
+          const addAlertToHistory = useStore.getState().addAlertToHistory
+          addAlertToHistory(alert, coin)
+        }
+        
+        // Notifications (map alert severity to notification severity)
+        const notificationSeverity: 'info' | 'warning' | 'critical' = 
+          alert.severity === 'high' ? 'critical' :
+          alert.severity === 'medium' ? 'warning' : 'info'
+        
+        if (alertSettings.soundEnabled) {
+          audioNotificationService.playAlert(notificationSeverity)
+        }
+        
+        if (alertSettings.browserNotificationEnabled) {
+          const permission = getNotificationPermission()
+          if (permission === 'granted') {
+            showCryptoAlertNotification({
+              symbol: alert.symbol,
+              title: alert.title,
+              message: alert.message,
+              severity: notificationSeverity,
+              onClick: () => window.focus(),
+            })
+          }
+        }
+        
+        if (alertSettings.webhookEnabled && alertSettings.webhooks && alertSettings.webhooks.length > 0) {
+          sendToWebhooks(alertSettings.webhooks, alert).then((results) => {
+            results.forEach((result, webhookId) => {
+              if (result.success) {
+                console.log(`✅ Webhook ${webhookId} delivered (${result.attempts} attempts)`)
+              } else {
+                console.error(`❌ Webhook ${webhookId} failed: ${result.error}`)
+              }
+            })
+          }).catch(console.error)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to evaluate WebSocket alerts:', error)
+    } finally {
+      isEvaluatingAlerts = false
+    }
+  }, [wsMetricsMap, query.data, alertSettings, alertRules, addAlert])
 
   return query
 }

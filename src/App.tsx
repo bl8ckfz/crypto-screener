@@ -32,11 +32,12 @@ function App() {
     error: wsError,
     warmupStatus,
     metricsMap,
+    getTickerData,
     lastUpdate,
   } = useFuturesStreaming()
   
-  // Pass WebSocket metrics to market data for alerts
-  const { data: coins, isLoading, error } = useMarketData(metricsMap)
+  // Pass WebSocket metrics and ticker data to market data
+  const { data: coins, isLoading, error } = useMarketData(metricsMap, getTickerData)
   
   const currentList = useStore((state) => state.currentList)
   // setCurrentList unused after removing ListSelector

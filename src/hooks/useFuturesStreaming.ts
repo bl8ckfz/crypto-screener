@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { FuturesMetricsService } from '@/services/futuresMetricsService'
 import type { WarmupStatus, PartialChangeMetrics } from '@/types/metrics'
 import type { FuturesMetrics } from '@/types/api'
@@ -217,13 +217,19 @@ export function useFuturesStreaming() {
   }, [metricsMap])
 
   // Convert PartialChangeMetrics to FuturesMetrics for alert engine compatibility
-  const futuresMetricsMap = useCallback(() => {
+  const futuresMetricsMap = useMemo(() => {
     const converted = new Map<string, FuturesMetrics>()
     metricsMap.forEach((partial, symbol) => {
       converted.set(symbol, convertToFuturesMetrics(partial))
     })
+    console.log(`🔄 Converted ${converted.size} WebSocket metrics to FuturesMetrics format`)
     return converted
   }, [metricsMap])
+  
+  // Get live ticker data from WebSocket
+  const getTickerData = useCallback(() => {
+    return futuresMetricsService.getAllTickerData()
+  }, [])
   
   return {
     // State
@@ -232,8 +238,11 @@ export function useFuturesStreaming() {
     lastUpdate,
     
     // Data (converted to FuturesMetrics format for alerts)
-    metricsMap: futuresMetricsMap(),
+    metricsMap: futuresMetricsMap,
     warmupStatus,
+    
+    // Ticker data from WebSocket (for market data list)
+    getTickerData,
     
     // Helpers
     getMetrics,
