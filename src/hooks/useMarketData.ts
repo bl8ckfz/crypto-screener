@@ -559,6 +559,121 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
     }
   }, [wsMetricsMap, query.data, alertSettings, alertRules, addAlert])
 
+  // Periodic alert evaluation to catch metrics that arrive during throttle period
+  useEffect(() => {
+    if (!wsMetricsMap || wsMetricsMap.size === 0) {
+      return
+    }
+    
+    if (!alertSettings.enabled || alertRules.length === 0) {
+      return
+    }
+
+    // Run evaluation every 5 seconds
+    const intervalId = setInterval(() => {
+      if (isEvaluatingAlerts || !query.data) {
+        return
+      }
+
+      const now = Date.now()
+      
+      // Don't run if we just evaluated
+      if (now - lastAlertEvaluationTimestamp < 5000) {
+        return
+      }
+
+      console.log('⏰ Periodic alert evaluation (timer-based)')
+      
+      // Re-attach WebSocket metrics to existing coins
+      const coins = query.data.map(coin => {
+        const metrics = wsMetricsMap.get(coin.fullSymbol)
+        return metrics ? { ...coin, futuresMetrics: metrics } : coin
+      })
+      
+      isEvaluatingAlerts = true
+      lastAlertEvaluationTimestamp = now
+      
+      try {
+        // Update market mode
+        const sortedByVolume = [...coins].sort((a, b) => b.quoteVolume - a.quoteVolume)
+        const sample = sortedByVolume.slice(0, Math.min(10, sortedByVolume.length))
+        const avgMomentum = sample.reduce((sum, c) => sum + c.priceChangePercent, 0) / (sample.length || 1)
+        const marketMode: 'bull' | 'bear' = avgMomentum >= 0 ? 'bull' : 'bear'
+        
+        const coinsWithMetrics = coins.filter(c => c.futuresMetrics)
+        console.log(`📊 Periodic alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (market: ${marketMode})`)
+        
+        if (coinsWithMetrics.length === 0) {
+          return
+        }
+        
+        // Evaluate alerts
+        const triggeredAlerts = evaluateAlertRules(coins, alertRules.filter(r => r.enabled), marketMode)
+        
+        console.log(`✅ Periodic evaluation complete: ${triggeredAlerts.length} alert(s) triggered`)
+        
+        if (triggeredAlerts.length > 0) {
+          console.log(`🔔 Triggered alerts:`, triggeredAlerts.map(a => `${a.symbol} (${a.type})`))
+          
+          // Process each alert
+          for (const alert of triggeredAlerts) {
+            // Add to history
+            addAlert(alert)
+            
+            // Play sound notification
+            if (alertSettings.soundEnabled) {
+              const notificationSeverity = alert.type.includes('critical') ? 'critical' : alert.type.includes('warning') ? 'warning' : 'info'
+              audioNotificationService.playAlert(notificationSeverity)
+            }
+            
+            // Show browser notification
+            if (alertSettings.browserNotificationEnabled) {
+              const permission = getNotificationPermission()
+              if (permission === 'granted') {
+                const notificationSeverity = alert.type.includes('critical') ? 'critical' : alert.type.includes('warning') ? 'warning' : 'info'
+                showCryptoAlertNotification({
+                  symbol: alert.symbol,
+                  title: alert.title,
+                  message: alert.message,
+                  severity: notificationSeverity,
+                  onClick: () => {
+                    window.focus()
+                  },
+                })
+              }
+            }
+            
+            // Discord webhook
+            if (alertSettings.discordWebhookUrl) {
+              sendDiscordWebhook(alertSettings.discordWebhookUrl, alert).catch((error) => {
+                console.error('Discord webhook delivery failed:', error)
+              })
+            }
+            
+            // Custom webhooks
+            if (alertSettings.webhookEnabled && alertSettings.webhooks && alertSettings.webhooks.length > 0) {
+              sendToWebhooks(alertSettings.webhooks, alert).then((results) => {
+                results.forEach((result, webhookId) => {
+                  if (result.success) {
+                    console.log(`✅ Webhook ${webhookId} delivered (${result.attempts} attempts)`)
+                  } else {
+                    console.error(`❌ Webhook ${webhookId} failed: ${result.error}`)
+                  }
+                })
+              }).catch(console.error)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to evaluate periodic alerts:', error)
+      } finally {
+        isEvaluatingAlerts = false
+      }
+    }, 5000) // Every 5 seconds
+
+    return () => clearInterval(intervalId)
+  }, [wsMetricsMap, query.data, alertSettings, alertRules, addAlert])
+
   return query
 }
 
