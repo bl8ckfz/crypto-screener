@@ -29,6 +29,7 @@ export function useFuturesStreaming() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [metricsMap, setMetricsMap] = useState<Map<string, PartialChangeMetrics>>(new Map())
   const [warmupStatus, setWarmupStatus] = useState<WarmupStatus | null>(null)
+  const [lastUpdate, setLastUpdate] = useState(Date.now())
   const [error, setError] = useState<Error | null>(null)
 
   // Initialize WebSocket streaming on mount
@@ -60,6 +61,9 @@ export function useFuturesStreaming() {
             next.set(symbol, metrics)
             return next
           })
+          
+          // Update last update timestamp
+          setLastUpdate(Date.now())
         })
         
         // Track warm-up progress every 5 seconds
@@ -131,6 +135,7 @@ export function useFuturesStreaming() {
     // State
     isInitialized,
     error,
+    lastUpdate,
     
     // Data
     metricsMap,

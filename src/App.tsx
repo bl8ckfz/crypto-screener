@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, lazy, Suspense, useEffect } from 'react'
 import { useMarketData } from '@/hooks/useMarketData'
+import { useFuturesStreaming } from '@/hooks/useFuturesStreaming'
 import { useStore } from '@/hooks/useStore'
 import { useKeyboardShortcuts, useAlertStats } from '@/hooks'
 import { supabase } from '@/config'
@@ -26,6 +27,15 @@ const CoinModal = lazy(() => import('@/components/coin/CoinModal').then(m => ({ 
 
 function App() {
   const { data: coins, isLoading, error } = useMarketData()
+  
+  // WebSocket streaming for futures data (real-time)
+  const {
+    isInitialized,
+    error: wsError,
+    warmupStatus,
+    lastUpdate,
+  } = useFuturesStreaming()
+  
   const currentList = useStore((state) => state.currentList)
   // setCurrentList unused after removing ListSelector
   const leftSidebarCollapsed = useStore((state) => state.leftSidebarCollapsed)
@@ -278,10 +288,16 @@ function App() {
             <MarketSummary />
             {/* ListSelector removed per new plan (dropdown under Market Summary) */}
             <LiveStatusBadge
-              connected={true}
-              lastUpdate={Date.now()}
+              connected={isInitialized}
+              lastUpdate={lastUpdate}
+              warmupStatus={warmupStatus}
               className="mb-4"
             />
+            {wsError && (
+              <div className="text-xs text-error-text bg-error-bg border border-error-border rounded px-2 py-1 mb-4">
+                WebSocket Error: {wsError.message}
+              </div>
+            )}
             {/* TimeframeSelector removed per new plan */}
           </Sidebar>
         </div>

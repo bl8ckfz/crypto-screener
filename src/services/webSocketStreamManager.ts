@@ -9,13 +9,52 @@
  * - Emits events for UI updates
  */
 
-import { EventEmitter } from 'events'
 import { BinanceFuturesWebSocket } from './binanceFuturesWebSocket'
 import { RingBufferManager } from './ringBufferManager'
 import { ChangeCalculator } from './changeCalculator'
 import { BinanceFuturesApiClient } from './binanceFuturesApi'
 import type { PartialChangeMetrics, WarmupStatus } from '@/types/metrics'
 import type { FuturesTickerData } from '@/types/api'
+
+/**
+ * Simple browser-compatible EventEmitter
+ * Replaces Node.js 'events' module for browser builds
+ */
+class SimpleEventEmitter {
+  private handlers = new Map<string, Function[]>()
+
+  on(event: string, handler: Function): void {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, [])
+    }
+    this.handlers.get(event)!.push(handler)
+  }
+
+  off(event: string, handler: Function): void {
+    const handlers = this.handlers.get(event)
+    if (handlers) {
+      const index = handlers.indexOf(handler)
+      if (index > -1) {
+        handlers.splice(index, 1)
+      }
+    }
+  }
+
+  emit(event: string, ...args: any[]): void {
+    const handlers = this.handlers.get(event)
+    if (handlers) {
+      handlers.forEach(handler => handler(...args))
+    }
+  }
+
+  removeAllListeners(event?: string): void {
+    if (event) {
+      this.handlers.delete(event)
+    } else {
+      this.handlers.clear()
+    }
+  }
+}
 
 interface WebSocketStreamManagerOptions {
   autoReconnect?: boolean
@@ -31,7 +70,7 @@ interface StreamStatus {
   lastTickerUpdate: number
 }
 
-export class WebSocketStreamManager extends EventEmitter {
+export class WebSocketStreamManager extends SimpleEventEmitter {
   private wsClient: BinanceFuturesWebSocket
   private bufferManager: RingBufferManager
   private changeCalculator: ChangeCalculator
