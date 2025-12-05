@@ -3,6 +3,56 @@ import { FuturesMetricsService } from '@/services/futuresMetricsService'
 import type { WarmupStatus, PartialChangeMetrics } from '@/types/metrics'
 import type { FuturesMetrics } from '@/types/api'
 
+/**
+ * Convert WebSocket PartialChangeMetrics to FuturesMetrics format
+ * Alert engine expects FuturesMetrics interface
+ */
+function convertToFuturesMetrics(partial: PartialChangeMetrics): FuturesMetrics {
+  return {
+    symbol: partial.symbol,
+    timestamp: partial.timestamp,
+    
+    // Price changes (convert null to 0 for alerts)
+    change_5m: partial.change_5m ?? 0,
+    change_15m: partial.change_15m ?? 0,
+    change_1h: partial.change_1h ?? 0,
+    change_8h: partial.change_8h ?? 0,
+    change_1d: partial.change_1d ?? 0,
+    
+    // Volumes (use quote volume, convert null to 0)
+    volume_5m: partial.quoteVolume_5m ?? 0,
+    volume_15m: partial.quoteVolume_15m ?? 0,
+    volume_1h: partial.quoteVolume_1h ?? 0,
+    volume_8h: partial.quoteVolume_8h ?? 0,
+    volume_1d: partial.quoteVolume_1d ?? 0,
+    
+    // Market cap (not available from WebSocket)
+    marketCap: null,
+    coinGeckoId: null,
+    
+    // Filter results (not used by alerts)
+    passes_filters: false,
+    filter_details: {
+      price_checks: {
+        change_15m_gt_1: false,
+        change_1d_lt_15: false,
+        change_1h_gt_change_15m: false,
+        change_8h_gt_change_1h: false,
+      },
+      volume_checks: {
+        volume_15m_gt_400k: false,
+        volume_1h_gt_1m: false,
+        three_vol15m_gt_vol1h: false,
+        twentysix_vol15m_gt_vol8h: false,
+      },
+      marketcap_checks: {
+        marketcap_gt_23m: false,
+        marketcap_lt_2500m: false,
+      },
+    },
+  }
+}
+
 // Create singleton instance
 const futuresMetricsService = new FuturesMetricsService()
 
@@ -166,14 +216,23 @@ export function useFuturesStreaming() {
     }))
   }, [metricsMap])
 
+  // Convert PartialChangeMetrics to FuturesMetrics for alert engine compatibility
+  const futuresMetricsMap = useCallback(() => {
+    const converted = new Map<string, FuturesMetrics>()
+    metricsMap.forEach((partial, symbol) => {
+      converted.set(symbol, convertToFuturesMetrics(partial))
+    })
+    return converted
+  }, [metricsMap])
+  
   return {
     // State
     isInitialized,
     error,
     lastUpdate,
     
-    // Data
-    metricsMap,
+    // Data (converted to FuturesMetrics format for alerts)
+    metricsMap: futuresMetricsMap(),
     warmupStatus,
     
     // Helpers
