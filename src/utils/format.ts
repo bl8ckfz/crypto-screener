@@ -10,6 +10,11 @@ export function formatNumber(
   decimals: number = 2,
   showSign: boolean = false
 ): string {
+  // Handle undefined/null values
+  if (value === undefined || value === null || isNaN(value)) {
+    return '0'
+  }
+  
   // Check if value is a whole number (integer)
   const isWholeNumber = Number.isInteger(value)
   
@@ -35,6 +40,11 @@ export function formatNumber(
  * Always shows decimal places for prices
  */
 export function formatPrice(price: number, decimals?: number): string {
+  // Handle undefined/null values
+  if (price === undefined || price === null || isNaN(price)) {
+    return '0.00'
+  }
+  
   if (price === 0) return '0.00'
   
   // If custom decimals specified, use them
@@ -64,6 +74,11 @@ export function formatPrice(price: number, decimals?: number): string {
  * Format percentage with sign (always shows decimals)
  */
 export function formatPercent(value: number, decimals: number = 2): string {
+  // Handle undefined/null values
+  if (value === undefined || value === null || isNaN(value)) {
+    return '0.00%'
+  }
+  
   // Always show decimals for percentages
   const formatted = value.toFixed(decimals)
   const sign = value > 0 ? '+' : ''
@@ -74,6 +89,11 @@ export function formatPercent(value: number, decimals: number = 2): string {
  * Format large numbers with K/M/B suffixes (no comma separators in suffix format)
  */
 export function formatLargeNumber(value: number, decimals: number = 2): string {
+  // Handle undefined/null values
+  if (value === undefined || value === null || isNaN(value)) {
+    return '0'
+  }
+  
   if (Math.abs(value) >= 1_000_000_000) {
     return (value / 1_000_000_000).toFixed(decimals) + 'B'
   }
@@ -90,6 +110,11 @@ export function formatLargeNumber(value: number, decimals: number = 2): string {
  * Format volume (quote volume)
  */
 export function formatVolume(volume: number): string {
+  // Handle undefined/null values
+  if (volume === undefined || volume === null || isNaN(volume)) {
+    return '0'
+  }
+  
   const absVolume = Math.abs(volume)
   
   // For small volumes, return without suffix and without decimals
