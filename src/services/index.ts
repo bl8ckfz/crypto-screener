@@ -2,7 +2,7 @@
 export { BinanceApiClient, binanceApi } from './binanceApi'
 export { BinanceFuturesApiClient, binanceFuturesApi } from './binanceFuturesApi'
 export { CoinGeckoApiClient, coinGeckoApi } from './coinGeckoApi'
-export { FuturesMetricsService, futuresMetricsService } from './futuresMetricsService'
+export { FuturesMetricsService } from './futuresMetricsService'
 
 // Data Processing
 export {

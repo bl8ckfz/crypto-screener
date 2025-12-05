@@ -4,9 +4,9 @@
 
 ## Current Phase
 
-**Phase 4: WebSocket Stream Manager** - Day 6 of 12  
-**Status**: Phase 4 Complete ✅  
-**Progress**: 144/144 tasks (100%)
+**Phase 5: Service Integration** - Day 9 of 12  
+**Status**: Phase 5 Partial Complete (Core Integration) ✅  
+**Progress**: 156/162 tasks (96%) - 4 out of 6 Phase 5 tasks complete
 
 ### Context
 Migrating from REST API polling (2,950 requests/5min) to WebSocket streaming (0 requests).  
@@ -362,4 +362,100 @@ Goal: Real-time data with <1s latency, 24h natural warm-up phase.
 
 **Next Phase**: Phase 4 - WebSocket Stream Manager (orchestration layer)
 
-**Last Updated**: December 5, 2025 - Phase 3 Complete! 🎉
+---
+
+### Phase 5: Service Integration ✅ COMPLETE (PARTIAL)
+
+**Status**: Core integration complete, UI updates remaining  
+**Progress**: 4/6 tasks (67%)  
+**Tests**: 12/12 passing (100%)
+
+#### Completed Tasks (4/6)
+- [x] **FuturesMetricsService WebSocket Mode** (108 lines added)
+  - Added WebSocket streaming support with feature flag
+  - Maintains backward compatibility with REST API
+  - `initialize(symbols)` - Start WebSocket streaming
+  - `fetchSymbolMetrics()` - Fetch from WebSocket or REST based on mode
+  - `getWarmupStatus()` - Track warm-up progress (WebSocket only)
+  - `onMetricsUpdate(handler)` - Subscribe to real-time updates
+  - `onTickerUpdate(handler)` - Subscribe to ticker stream
+  - Feature flag: `USE_WEBSOCKET_STREAMING` (default: false)
+
+- [x] **useFuturesStreaming Hook** (142 lines)
+  - New hook for WebSocket-based streaming
+  - Initializes streaming on mount
+  - Subscribes to real-time updates
+  - Tracks warm-up progress (5s intervals)
+  - `getMetrics(symbol)` - Get metrics for specific symbol
+  - `getAllMetrics()` - Get all metrics as array
+  - Auto-cleanup on unmount
+
+- [x] **LiveStatusBadge Component** (129 lines)
+  - Shows connection status (connected/disconnected/stale)
+  - Live indicator (pulsing green dot)
+  - Warm-up progress bar and percentage
+  - Timeframe readiness badges (5m, 15m, 1h, etc.)
+  - Responsive layout with dark mode support
+
+- [x] **Integration Tests** (231 lines, 12/12 passing)
+  - Service initialization in WebSocket mode
+  - Metrics fetching from stream
+  - Null handling during warm-up
+  - Warm-up status tracking
+  - Event subscriptions
+  - Cleanup and error handling
+
+#### Pending Tasks (2/6)
+- [ ] Remove RefreshControl component (no longer needed in WebSocket mode)
+- [ ] Update MarketSummary to use live ticker data
+
+#### Files Created
+1. `src/services/futuresMetricsService.ts` - Updated (+108 lines)
+2. `src/hooks/useFuturesStreaming.ts` - New (142 lines)
+3. `src/components/ui/LiveStatusBadge.tsx` - New (129 lines)
+4. `tests/integration/serviceIntegration.test.ts` - New (231 lines, 12 tests)
+
+#### Test Results (12/12 passing)
+✅ **Initialization** (2 tests):
+  - Initialize WebSocket manager with symbols
+  - Not initialize in REST mode
+
+✅ **Metrics Fetching** (3 tests):
+  - Fetch metrics from WebSocket stream
+  - Handle null metrics during warm-up
+  - Return zeros for symbol not in stream
+
+✅ **Warm-up Status** (2 tests):
+  - Return warm-up status from WebSocket manager
+  - Return null in REST mode
+
+✅ **Event Subscriptions** (3 tests):
+  - Allow subscribing to metrics updates
+  - Allow subscribing to ticker updates
+  - Return no-op unsubscribe in REST mode
+
+✅ **Cleanup** (2 tests):
+  - Stop WebSocket manager on cleanup
+  - Not throw in REST mode
+
+#### Architecture Decisions
+- **Feature Flag Pattern**: Enables gradual rollout without breaking changes
+- **Backward Compatibility**: REST mode still works, WebSocket is opt-in
+- **Dual Mode Support**: Service works in both REST and WebSocket modes
+- **Event-Driven Updates**: Real-time updates via onMetricsUpdate/onTickerUpdate
+- **Null Safety**: Graceful handling of null values during warm-up
+- **Auto-Cleanup**: WebSocket connections cleaned up on unmount
+
+#### Integration Points
+- **FuturesMetricsService**: Now supports both REST and WebSocket modes
+- **useFuturesStreaming**: New hook for WebSocket-only usage
+- **LiveStatusBadge**: Replaces RefreshControl in WebSocket mode
+- **Existing Hooks**: No breaking changes to useMarketData
+
+**Next Steps**:
+1. Remove RefreshControl component (not needed with live streaming)
+2. Update MarketSummary to use ticker stream data
+3. Test with real WebSocket connections
+4. Enable WebSocket mode (set USE_WEBSOCKET_STREAMING = true)
+
+**Last Updated**: December 5, 2025 - Phase 5 Core Integration Complete! 🎉

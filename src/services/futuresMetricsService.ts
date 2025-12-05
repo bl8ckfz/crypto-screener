@@ -1,36 +1,113 @@
-import type { FuturesMetrics, ProcessedKlineData } from '@/types/api'
-import { BinanceFuturesApiClient } from './binanceFuturesApi'
+import type { FuturesMetrics } from '@/types/api'
 import { CoinGeckoApiClient } from './coinGeckoApi'
 import { getCoinGeckoId as mapSymbolToCoinGeckoId } from '@/config/coinGeckoMapping'
-import type { KlineInterval } from './binanceFuturesApi'
+import { WebSocketStreamManager } from './webSocketStreamManager'
+import type { PartialChangeMetrics, WarmupStatus } from '@/types/metrics'
+import { BinanceFuturesApiClient } from './binanceFuturesApi'
 
 /**
  * Service for fetching and calculating comprehensive futures metrics
  * 
- * This service combines data from:
- * - Binance Futures API (price changes and volumes)
- * - CoinGecko API (market cap data)
+ * Uses WebSocket streaming for real-time data with zero API requests.
  * 
- * And applies filtering logic based on:
+ * Data sources:
+ * - Binance Futures WebSocket (real-time price changes and volumes)
+ * - CoinGecko API (market cap data - cached)
+ * 
+ * Warm-up phase: Gradual data accumulation over 24 hours
+ * - 5 min   → 5m metrics ready
+ * - 15 min  → 15m metrics ready
+ * - 1 hour  → 1h metrics ready
+ * - 4 hours → 4h metrics ready
+ * - 8 hours → 8h metrics ready
+ * - 12 hours → 12h metrics ready
+ * - 24 hours → All metrics ready (fully warmed up)
+ * 
+ * Filtering logic based on:
  * - Price change thresholds
  * - Volume thresholds
  * - Market cap ranges
  */
 export class FuturesMetricsService {
-  private futuresClient: BinanceFuturesApiClient
   private coinGeckoClient: CoinGeckoApiClient
-  private readonly intervals: KlineInterval[] = ['5m', '15m', '1h', '8h', '1d']
+  private wsStreamManager: WebSocketStreamManager
+  private futuresClient: BinanceFuturesApiClient
 
   constructor(
-    futuresClient?: BinanceFuturesApiClient,
     coinGeckoClient?: CoinGeckoApiClient
   ) {
-    this.futuresClient = futuresClient || new BinanceFuturesApiClient()
     this.coinGeckoClient = coinGeckoClient || new CoinGeckoApiClient()
+    this.futuresClient = new BinanceFuturesApiClient()
+    this.wsStreamManager = new WebSocketStreamManager({
+      autoReconnect: true,
+      batchSize: 200,
+      enableBackfill: false, // Start with empty buffers for gradual warm-up
+    })
   }
 
   /**
-   * Fetch comprehensive metrics for a single symbol
+   * Initialize WebSocket streaming
+   * Call this once on app startup to begin streaming data
+   * 
+   * @param symbols - Array of symbols to stream (optional, fetches all if not provided)
+   */
+  async initialize(symbols?: string[]): Promise<void> {
+    console.log('🚀 Initializing WebSocket streaming...')
+    
+    const symbolsToStream = symbols || await this.futuresClient.fetchAllFuturesSymbols()
+    
+    await this.wsStreamManager.start(symbolsToStream)
+    console.log('✅ WebSocket streaming initialized')
+  }
+
+  /**
+   * Get warm-up status for UI indicators
+   * 
+   * @returns Current warm-up progress
+   */
+  getWarmupStatus(): WarmupStatus {
+    return this.wsStreamManager.getWarmupStatus()
+  }
+
+  /**
+   * Subscribe to real-time metrics updates
+   * 
+   * @param handler - Callback for metrics updates
+   * @returns Unsubscribe function
+   */
+  onMetricsUpdate(handler: (data: { symbol: string; metrics: PartialChangeMetrics }) => void): () => void {
+    this.wsStreamManager.on('metricsUpdate', handler)
+    return () => {
+      // EventEmitter removeListener would go here
+      // For now, this is a placeholder
+    }
+  }
+
+  /**
+   * Subscribe to real-time ticker updates
+   * 
+   * @param handler - Callback for ticker batch updates
+   * @returns Unsubscribe function
+   */
+  onTickerUpdate(handler: (data: { tickers: any[]; timestamp: number }) => void): () => void {
+    this.wsStreamManager.on('tickerUpdate', handler)
+    return () => {
+      // EventEmitter removeListener would go here
+    }
+  }
+
+  /**
+   * Stop WebSocket streaming and cleanup
+   */
+  stop(): void {
+    this.wsStreamManager.stop()
+  }
+
+  /**
+   * Fetch comprehensive metrics for a single symbol from WebSocket stream
+   * 
+   * Returns real-time metrics from ring buffers (may have null values during warm-up).
+   * Null values are defaulted to 0 for compatibility with filter logic.
    * 
    * @param symbol - Binance futures symbol (e.g., 'BTCUSDT')
    * @param options - Optional configuration
@@ -45,17 +122,45 @@ export class FuturesMetricsService {
     symbol: string,
     options: { skipMarketCap?: boolean } = {}
   ): Promise<FuturesMetrics> {
-    const startTime = Date.now()
-
     try {
-      // Fetch kline data for all intervals in parallel
-      const klineData = await this.fetchKlineData(symbol)
-
-      // Calculate price changes for each interval
-      const priceChanges = this.calculatePriceChanges(klineData)
-
-      // Extract volumes for each interval
-      const volumes = this.extractVolumes(klineData)
+      // Get from WebSocket stream (may have null values during warm-up)
+      const partialMetrics = this.wsStreamManager.getMetrics(symbol)
+      
+      let priceChanges, volumes
+      
+      if (partialMetrics) {
+        // Map WebSocket metrics to service format, defaulting nulls to 0
+        priceChanges = {
+          change_5m: partialMetrics.change_5m ?? 0,
+          change_15m: partialMetrics.change_15m ?? 0,
+          change_1h: partialMetrics.change_1h ?? 0,
+          change_8h: partialMetrics.change_8h ?? 0,
+          change_1d: partialMetrics.change_1d ?? 0,
+        }
+        volumes = {
+          volume_5m: partialMetrics.quoteVolume_5m ?? 0,
+          volume_15m: partialMetrics.quoteVolume_15m ?? 0,
+          volume_1h: partialMetrics.quoteVolume_1h ?? 0,
+          volume_8h: partialMetrics.quoteVolume_8h ?? 0,
+          volume_1d: partialMetrics.quoteVolume_1d ?? 0,
+        }
+      } else {
+        // Symbol not in stream yet, return zeros
+        priceChanges = {
+          change_5m: 0,
+          change_15m: 0,
+          change_1h: 0,
+          change_8h: 0,
+          change_1d: 0,
+        }
+        volumes = {
+          volume_5m: 0,
+          volume_15m: 0,
+          volume_1h: 0,
+          volume_8h: 0,
+          volume_1d: 0,
+        }
+      }
 
       // Fetch market cap (with caching) - skip if requested to avoid rate limits
       const marketCap = options.skipMarketCap 
@@ -90,9 +195,6 @@ export class FuturesMetricsService {
         ...metrics,
         ...filterResults,
       }
-
-      const duration = Date.now() - startTime
-      console.log(`✅ Fetched metrics for ${symbol} in ${duration}ms`)
 
       return completeMetrics
     } catch (error) {
@@ -163,6 +265,35 @@ export class FuturesMetricsService {
   }
 
   /**
+   * Get all USDT-M futures symbols
+   * 
+   * @returns Array of all available futures symbols
+   */
+  async getAllFuturesSymbols(): Promise<string[]> {
+    return await this.futuresClient.fetchAllFuturesSymbols()
+  }
+
+  /**
+   * Get all ticker data from WebSocket stream
+   * Includes live market data, funding rates, mark prices
+   * 
+   * @returns Array of ticker data for all symbols
+   */
+  getAllTickerData(): any[] {
+    return this.wsStreamManager.getAllTickerData()
+  }
+
+  /**
+   * Get ticker data for specific symbol
+   * 
+   * @param symbol - Symbol to get ticker for
+   * @returns Ticker data or undefined if not available
+   */
+  getTickerData(symbol: string): any {
+    return this.wsStreamManager.getTickerData(symbol)
+  }
+
+  /**
    * Scan all USDT-M futures and return those passing filters
    * 
    * @returns Array of metrics for symbols that pass all filters
@@ -175,7 +306,7 @@ export class FuturesMetricsService {
     console.log('🔍 Scanning all USDT-M futures...')
 
     // Fetch all available futures symbols
-    const symbols = await this.futuresClient.fetchAllFuturesSymbols()
+    const symbols = await this.getAllFuturesSymbols()
     console.log(`📋 Found ${symbols.length} USDT-M perpetual futures`)
 
     // Fetch metrics for all symbols
@@ -192,87 +323,9 @@ export class FuturesMetricsService {
     return passingMetrics
   }
 
-  /**
-   * Fetch kline data for all intervals in parallel
-   * 
-   * @param symbol - Trading pair symbol
-   * @returns Map of interval to processed kline data
-   */
-  private async fetchKlineData(symbol: string): Promise<Map<KlineInterval, ProcessedKlineData>> {
-    const klinesMap = await this.futuresClient.fetchMultipleKlines(symbol, this.intervals)
-    const processedMap = new Map<KlineInterval, ProcessedKlineData>()
-
-    for (const [interval, klines] of klinesMap.entries()) {
-      const processed = this.futuresClient.processKlineData(klines, interval)
-      processedMap.set(interval, processed)
-    }
-
-    return processedMap
-  }
-
-  /**
-   * Calculate price changes for all intervals
-   * 
-   * @param klineData - Map of interval to processed kline data
-   * @returns Object with price changes for each interval
-   */
-  private calculatePriceChanges(
-    klineData: Map<KlineInterval, ProcessedKlineData>
-  ): {
-    change_5m: number
-    change_15m: number
-    change_1h: number
-    change_8h: number
-    change_1d: number
-  } {
-    const calculate = (interval: KlineInterval): number => {
-      const data = klineData.get(interval)
-      if (!data) return 0
-
-      const { previous, current } = data
-      return ((current.close / previous.close) - 1) * 100
-    }
-
-    return {
-      change_5m: calculate('5m'),
-      change_15m: calculate('15m'),
-      change_1h: calculate('1h'),
-      change_8h: calculate('8h'),
-      change_1d: calculate('1d'),
-    }
-  }
-
-  /**
-   * Extract quote volumes (USDT) for all intervals
-   * 
-   * @param klineData - Map of interval to processed kline data
-   * @returns Object with volumes for each interval
-   */
-  private extractVolumes(
-    klineData: Map<KlineInterval, ProcessedKlineData>
-  ): {
-    volume_5m: number
-    volume_15m: number
-    volume_1h: number
-    volume_8h: number
-    volume_1d: number
-  } {
-    const extract = (interval: KlineInterval): number => {
-      const data = klineData.get(interval)
-      if (!data) return 0
-
-      // Use current candle's quote volume (USDT volume)
-      return data.current.quoteVolume
-    }
-
-    return {
-      volume_5m: extract('5m'),
-      volume_15m: extract('15m'),
-      volume_1h: extract('1h'),
-      volume_8h: extract('8h'),
-      volume_1d: extract('1d'),
-    }
-  }
+  // Note: fetchKlineData, calculatePriceChanges, and extractVolumes methods removed
+  // These were part of the old REST API polling approach
+  // WebSocket streaming provides metrics directly from ring buffers
 
   /**
    * Evaluate filter rules and return detailed results
@@ -355,7 +408,5 @@ export class FuturesMetricsService {
   }
 }
 
-/**
- * Singleton instance for convenient access
- */
-export const futuresMetricsService = new FuturesMetricsService()
+// Note: No singleton exported to avoid test mocking issues
+// Create instances as needed: const service = new FuturesMetricsService()

@@ -12,3 +12,4 @@ export {
   type ShortcutConfig,
 } from './useKeyboardShortcuts'
 export { useAlertStats } from './useAlertStats'
+export { useFuturesStreaming } from './useFuturesStreaming'
