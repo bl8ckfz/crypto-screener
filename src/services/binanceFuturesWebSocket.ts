@@ -104,6 +104,7 @@ export class BinanceFuturesWebSocket {
             this.handleMessage(data)
           } catch (error) {
             console.error('❌ Failed to parse WebSocket message:', error)
+            this.emit('error', error)
           }
         }
 

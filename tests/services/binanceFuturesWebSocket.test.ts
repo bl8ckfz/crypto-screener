@@ -372,34 +372,38 @@ describe('BinanceFuturesWebSocket', () => {
       vi.advanceTimersByTime(20)
       await connectPromise
 
-      // Mock repeated failures
+      // Track connection attempts
       let connectAttempts = 0
       const originalConnect = ws.connect.bind(ws)
-      ws.connect = vi.fn(async () => {
+      
+      // Mock connect to track attempts
+      vi.spyOn(ws, 'connect').mockImplementation(async () => {
         connectAttempts++
         if (connectAttempts < 3) {
+          // Simulate failed connection
           throw new Error('Connection failed')
         }
-        return originalConnect()
+        // Success on 3rd attempt
+        return Promise.resolve()
       })
 
-      // Trigger disconnect
+      // Trigger disconnect to start reconnection
       // @ts-ignore
       const mockWs = ws['ws']
       if (mockWs && mockWs.onclose) {
         mockWs.onclose({})
       }
 
-      // First retry: 1000ms delay
-      vi.advanceTimersByTime(1100)
+      // Wait for first retry attempt (1000ms delay)
+      await vi.advanceTimersByTimeAsync(1100)
       expect(connectAttempts).toBe(1)
 
-      // Second retry: 2000ms delay (exponential)
-      vi.advanceTimersByTime(2100)
+      // Wait for second retry (2000ms exponential backoff)
+      await vi.advanceTimersByTimeAsync(2100)
       expect(connectAttempts).toBe(2)
 
-      // Third retry: should succeed
-      vi.advanceTimersByTime(4100)
+      // Wait for third retry (4000ms exponential backoff) - should succeed
+      await vi.advanceTimersByTimeAsync(4100)
       expect(connectAttempts).toBe(3)
     })
 
@@ -469,17 +473,18 @@ describe('BinanceFuturesWebSocket', () => {
       vi.advanceTimersByTime(20)
       await connectPromise
 
-      // @ts-ignore
+      // @ts-ignore - access internal ws object and spy on send()
       const mockWs = ws['ws']
-      const pingSpy = vi.spyOn(mockWs, 'ping')
+      const sendSpy = vi.spyOn(mockWs, 'send')
 
-      // Fast-forward 30 seconds
-      vi.advanceTimersByTime(30000)
-      expect(pingSpy).toHaveBeenCalledTimes(1)
+      // Fast-forward 30 seconds to trigger first ping
+      await vi.advanceTimersByTimeAsync(30100)
+      expect(sendSpy).toHaveBeenCalledWith(JSON.stringify({ method: 'ping' }))
+      expect(sendSpy).toHaveBeenCalledTimes(1)
 
-      // Fast-forward another 30 seconds
-      vi.advanceTimersByTime(30000)
-      expect(pingSpy).toHaveBeenCalledTimes(2)
+      // Fast-forward another 30 seconds to trigger second ping
+      await vi.advanceTimersByTimeAsync(30000)
+      expect(sendSpy).toHaveBeenCalledTimes(2)
     })
 
     it('should stop ping after disconnect', async () => {
@@ -489,15 +494,16 @@ describe('BinanceFuturesWebSocket', () => {
       vi.advanceTimersByTime(20)
       await connectPromise
 
+      // @ts-ignore - access internal ws and spy on send()
+      const mockWs = ws['ws']
+      const sendSpy = vi.spyOn(mockWs, 'send')
+
+      // Disconnect clears the ping timer
       ws.disconnect()
 
-      // @ts-ignore
-      const mockWs = ws['ws']
-      const pingSpy = vi.spyOn(mockWs, 'ping')
-
-      // Ping should not be called after disconnect
-      vi.advanceTimersByTime(30000)
-      expect(pingSpy).not.toHaveBeenCalled()
+      // Advance time - send should not be called with ping after disconnect
+      await vi.advanceTimersByTimeAsync(30000)
+      expect(sendSpy).not.toHaveBeenCalledWith(JSON.stringify({ method: 'ping' }))
     })
   })
 
