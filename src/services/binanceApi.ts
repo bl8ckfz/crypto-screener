@@ -1,6 +1,7 @@
 import type {
   BinanceTicker24hr,
   ProcessedTicker,
+  FuturesTickerData,
   ApiError,
   ApiRequestOptions,
   BinanceExchangeInfo,
@@ -230,10 +231,47 @@ export class BinanceApiClient {
   }
 
   /**
-   * Parse all tickers in a batch
+   * Parse WebSocket FuturesTickerData to ProcessedTicker
+   * Maps WebSocket field names to REST API field names
+   */
+  static parseFuturesTickerData(ticker: FuturesTickerData): ProcessedTicker {
+    return {
+      symbol: ticker.symbol,
+      priceChange: ticker.priceChange,
+      priceChangePercent: ticker.priceChangePercent,
+      weightedAvgPrice: ticker.weightedAvgPrice,
+      prevClosePrice: ticker.open, // Use open as previous close (24h ago)
+      lastPrice: ticker.close, // WebSocket uses 'close' for current price
+      lastQty: ticker.lastQty,
+      bidPrice: 0, // Not available in WebSocket ticker stream
+      bidQty: 0, // Not available in WebSocket ticker stream
+      askPrice: 0, // Not available in WebSocket ticker stream
+      askQty: 0, // Not available in WebSocket ticker stream
+      openPrice: ticker.open,
+      highPrice: ticker.high,
+      lowPrice: ticker.low,
+      volume: ticker.volume,
+      quoteVolume: ticker.quoteVolume,
+      openTime: ticker.eventTime - 86400000, // 24h ago (approximate)
+      closeTime: ticker.eventTime,
+      firstId: 0, // Not available in WebSocket ticker stream
+      lastId: 0, // Not available in WebSocket ticker stream
+      count: 0, // Not available in WebSocket ticker stream
+    }
+  }
+
+  /**
+   * Parse all tickers in a batch (REST API format)
    */
   static parseTickerBatch(tickers: BinanceTicker24hr[]): ProcessedTicker[] {
     return tickers.map((ticker) => BinanceApiClient.parseTickerData(ticker))
+  }
+
+  /**
+   * Parse all WebSocket futures tickers in a batch
+   */
+  static parseFuturesTickerBatch(tickers: FuturesTickerData[]): ProcessedTicker[] {
+    return tickers.map((ticker) => BinanceApiClient.parseFuturesTickerData(ticker))
   }
 }
 

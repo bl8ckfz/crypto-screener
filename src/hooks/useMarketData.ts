@@ -75,8 +75,8 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         tickers = []
       }
 
-      // Parse to numeric values
-      const processedTickers = BinanceApiClient.parseTickerBatch(tickers)
+      // Parse to numeric values - use futures parser for WebSocket data
+      const processedTickers = BinanceApiClient.parseFuturesTickerBatch(tickers)
 
       // Convert to Coin objects (all are USDT pairs now)
       let coins = processTickersForPair(processedTickers)
