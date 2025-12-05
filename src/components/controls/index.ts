@@ -1,5 +1,4 @@
 export { PairSelector } from './PairSelector'
-export { RefreshControl } from './RefreshControl'
 export { SearchBar } from './SearchBar'
 export { ListSelector } from './ListSelector'
 export { ThemeToggle } from './ThemeToggle'

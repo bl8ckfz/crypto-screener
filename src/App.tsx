@@ -9,13 +9,12 @@ import { Layout, Sidebar } from '@/components/layout'
 import { SmartCoinTable } from '@/components/coin'
 import { MarketSummary } from '@/components/market'
 import {
-  RefreshControl,
   SearchBar,
   ExportButton,
   ViewToggle,
 } from '@/components/controls'
 // Watchlists removed from UI per new plan
-import { ErrorStates, EmptyStates, ShortcutHelp } from '@/components/ui'
+import { ErrorStates, EmptyStates, ShortcutHelp, LiveStatusBadge } from '@/components/ui'
 import { StorageMigration } from '@/components/StorageMigration'
 import { AlertNotificationContainer, AlertConfig, AlertHistoryTable } from '@/components/alerts'
 import { sortCoinsByList } from '@/utils'
@@ -278,7 +277,11 @@ function App() {
           >
             <MarketSummary />
             {/* ListSelector removed per new plan (dropdown under Market Summary) */}
-            <RefreshControl />
+            <LiveStatusBadge
+              connected={true}
+              lastUpdate={Date.now()}
+              className="mb-4"
+            />
             {/* TimeframeSelector removed per new plan */}
           </Sidebar>
         </div>
