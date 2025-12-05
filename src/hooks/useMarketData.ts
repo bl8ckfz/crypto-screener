@@ -424,11 +424,30 @@ export function useMarketData(wsMetricsMap?: Map<string, any>) {
   // Also evaluate alerts when WebSocket metrics update
   // This ensures alerts work even when query data isn't refetching
   useEffect(() => {
+    console.log('🔍 WebSocket metrics effect triggered:', {
+      metricsMapSize: wsMetricsMap?.size || 0,
+      hasQueryData: !!query.data,
+      alertsEnabled: alertSettings.enabled,
+      rulesCount: alertRules.length,
+    })
+    
     if (!wsMetricsMap || wsMetricsMap.size === 0) {
+      console.log('⏳ Waiting for WebSocket metrics (map empty)')
       return
     }
     
-    if (!query.data || !alertSettings.enabled || alertRules.length === 0) {
+    if (!query.data) {
+      console.log('⏳ Waiting for query data')
+      return
+    }
+    
+    if (!alertSettings.enabled) {
+      console.log('ℹ️ Alerts disabled in settings')
+      return
+    }
+    
+    if (alertRules.length === 0) {
+      console.log('ℹ️ No alert rules configured')
       return
     }
     
@@ -438,10 +457,11 @@ export function useMarketData(wsMetricsMap?: Map<string, any>) {
     
     // Throttle to max once per second to avoid spam
     if (now - lastAlertEvaluationTimestamp < 1000) {
+      console.log('⏸️ Throttled - last evaluation was <1s ago')
       return
     }
     
-    console.log('🔄 WebSocket metrics updated, re-attaching to coins for alert evaluation')
+    console.log('🔄 WebSocket metrics updated, triggering alert evaluation')
     
     // Force re-evaluation by invalidating query
     query.refetch()
