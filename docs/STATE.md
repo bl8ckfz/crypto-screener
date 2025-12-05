@@ -4,9 +4,9 @@
 
 ## Current Phase
 
-**Phase 5: Service Integration** - Day 9 of 12  
-**Status**: Phase 5 Complete ✅  
-**Progress**: 157/162 tasks (97%) - 5 out of 6 Phase 5 tasks complete (1 deferred)
+**Phase 6: Testing & Optimization** - Day 9 of 12  
+**Status**: In Progress ✅  
+**Progress**: 161/162 tasks (99%) - 4 out of 6 Phase 6 tasks complete
 
 ### Context
 Migrating from REST API polling (2,950 requests/5min) to WebSocket streaming (0 requests).  
@@ -418,6 +418,74 @@ Goal: Real-time data with <1s latency, 24h natural warm-up phase.
 2. `src/hooks/useFuturesStreaming.ts` - New (142 lines)
 3. `src/components/ui/LiveStatusBadge.tsx` - New (129 lines)
 4. `tests/integration/serviceIntegration.test.ts` - New (231 lines, 8 tests)
+
+---
+
+### Phase 6: Testing & Optimization ✅ IN PROGRESS
+
+**Status**: Phase 6 In Progress  
+**Progress**: 4/6 tasks (67%)  
+**Tests**: 318 passing, 1 skipped (100% pass rate)
+
+#### Completed Tasks (4/6)
+- [x] **Fix All Failing Tests** (5 tests fixed)
+  - Fixed malformed JSON error emission (emit error event in WebSocket)
+  - Fixed WebSocket ping tests (spy on send() instead of ping())
+  - Fixed reconnection test (use async timer advances)
+  - Skipped outdated REST API test (no longer applicable with WebSocket-only)
+  - **Result**: 318 passed, 1 skipped (was 314/319 before)
+
+- [x] **Enable WebSocket Streaming in Development**
+  - Integrated `useFuturesStreaming` hook in `App.tsx`
+  - Connected `LiveStatusBadge` to real WebSocket connection status
+  - Added `lastUpdate` tracking to hook (updates on metrics changes)
+  - Display warm-up progress and errors in UI
+  - Fixed build issue: Replaced Node.js `EventEmitter` with browser-compatible version
+
+- [x] **Browser-Compatible EventEmitter**
+  - Created `SimpleEventEmitter` class in `webSocketStreamManager.ts`
+  - Implements `on()`, `off()`, `emit()`, `removeAllListeners()`
+  - Fixes Vite build error: "events" module externalized for browser
+  - All tests still passing after change
+
+- [x] **Type Safety & Build Verification**
+  - Type checking passes: `npm run type-check` ✅
+  - Production build succeeds: 125.58 KB gzipped ✅
+  - All tests pass: 318/318 (1 skipped) ✅
+
+#### Pending Tasks (2/6)
+- [ ] **Add Missing Test Coverage**
+  - Identify uncovered code paths in WebSocket pipeline
+  - Add tests for error scenarios
+  - Increase coverage to 80%+
+
+- [ ] **Performance Monitoring Setup**
+  - Add metrics for memory usage
+  - Track connection stability (reconnects, failures)
+  - Measure data throughput (messages/sec)
+  - Add performance benchmarks
+
+#### Files Modified in Phase 6
+1. `src/services/binanceFuturesWebSocket.ts` - Emit error on JSON parse failure
+2. `tests/services/binanceFuturesWebSocket.test.ts` - Fix ping and reconnection tests
+3. `tests/integration/errorHandling.test.ts` - Skip outdated REST API test
+4. `src/App.tsx` - Integrate useFuturesStreaming, connect to LiveStatusBadge
+5. `src/hooks/useFuturesStreaming.ts` - Add lastUpdate tracking
+6. `src/services/webSocketStreamManager.ts` - Replace EventEmitter with SimpleEventEmitter
+
+#### Current Status
+- ✅ **All Tests Passing**: 318/318 (1 skipped for REST API, 100% pass rate)
+- ✅ **Build Working**: Production build succeeds, 125.58 KB gzipped
+- ✅ **WebSocket Ready**: Streaming enabled in App.tsx, ready for live testing
+- ⏳ **Manual Testing Needed**: Test with real WebSocket connections
+- ⏳ **Performance Validation**: Monitor memory, CPU, connection stability
+
+#### Next Steps
+1. Start development server and test WebSocket streaming manually
+2. Verify warm-up progress tracking works (5s → 15s → 30s → 1m → 3m → 5m → 15m)
+3. Check for memory leaks during 24-hour warm-up simulation
+4. Add performance monitoring and metrics collection
+5. Run load test with all 590 symbols
 5. `src/components/controls/RefreshControl.tsx` - Deleted (71 lines)
 6. `tests/services/futuresMetricsService.test.ts` - Deleted (old REST tests)
 
