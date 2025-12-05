@@ -31,8 +31,9 @@ const KLINES_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
 
 /**
  * Fetch and process market data for current currency pair with smart polling
+ * @param wsMetricsMap - WebSocket streaming metrics from useFuturesStreaming
  */
-export function useMarketData() {
+export function useMarketData(wsMetricsMap?: Map<string, any>) {
   const refreshInterval = useStore((state) => state.refreshInterval)
   const autoRefresh = useStore((state) => state.autoRefresh)
   
@@ -100,10 +101,10 @@ export function useMarketData() {
       // Apply technical indicators (VCP, Fibonacci, etc.)
       coins = applyTechnicalIndicators(coins)
 
-      // Attach cached futures metrics immediately (non-blocking)
-      // This ensures market data list and summary don't wait for klines
+      // Attach WebSocket futures metrics (real-time)
+      // Falls back to cached klines if WebSocket not available
       coins = coins.map(coin => {
-        const metrics = cachedKlinesMetrics.get(coin.fullSymbol)
+        const metrics = wsMetricsMap?.get(coin.fullSymbol) || cachedKlinesMetrics.get(coin.fullSymbol)
         return metrics ? { ...coin, futuresMetrics: metrics } : coin
       })
 

@@ -26,15 +26,17 @@ import type { Coin } from '@/types/coin'
 const CoinModal = lazy(() => import('@/components/coin/CoinModal').then(m => ({ default: m.CoinModal })))
 
 function App() {
-  const { data: coins, isLoading, error } = useMarketData()
-  
   // WebSocket streaming for futures data (real-time)
   const {
     isInitialized,
     error: wsError,
     warmupStatus,
+    metricsMap,
     lastUpdate,
   } = useFuturesStreaming()
+  
+  // Pass WebSocket metrics to market data for alerts
+  const { data: coins, isLoading, error } = useMarketData(metricsMap)
   
   const currentList = useStore((state) => state.currentList)
   // setCurrentList unused after removing ListSelector
