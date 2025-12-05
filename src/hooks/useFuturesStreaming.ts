@@ -41,10 +41,37 @@ export function useFuturesStreaming() {
         console.log('🚀 Initializing futures streaming...')
         
         // Fetch all USDT-M futures symbols
-        const symbols = await futuresMetricsService.getAllFuturesSymbols()
-        console.log(`📋 Found ${symbols.length} futures symbols`)
+        const allSymbols = await futuresMetricsService.getAllFuturesSymbols()
+        console.log(`📋 Found ${allSymbols.length} futures symbols`)
+        
+        // Fetch 24hr tickers to sort by volume (most liquid first)
+        console.log('📊 Fetching 24hr data to sort by liquidity...')
+        const { BinanceFuturesApiClient } = await import('@/services/binanceFuturesApi')
+        const futuresApi = new BinanceFuturesApiClient()
+        const tickers = await futuresApi.fetch24hrTickers()
+        
+        // Create volume map for sorting
+        const volumeMap = new Map<string, number>()
+        tickers.forEach((ticker: any) => {
+          volumeMap.set(ticker.symbol, parseFloat(ticker.quoteVolume || '0'))
+        })
+        
+        // Sort symbols by 24h quote volume (descending)
+        const symbols = [...allSymbols].sort((a, b) => {
+          const volA = volumeMap.get(a) || 0
+          const volB = volumeMap.get(b) || 0
+          return volB - volA // Descending order
+        })
+        
+        // Log top 10 for verification
+        console.log('🔝 Top 10 most liquid pairs:')
+        symbols.slice(0, 10).forEach((symbol, i) => {
+          const volume = volumeMap.get(symbol) || 0
+          console.log(`  ${i + 1}. ${symbol}: $${(volume / 1e9).toFixed(2)}B`)
+        })
         
         // Start streaming (connects, subscribes, starts receiving data)
+        // Will be automatically limited to 200 by webSocketStreamManager
         await futuresMetricsService.initialize(symbols)
         
         if (!isSubscribed) return
