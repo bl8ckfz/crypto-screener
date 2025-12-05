@@ -131,14 +131,18 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
       // Step 2: Backfill historical data (if enabled)
       if (this.options.enableBackfill) {
         console.log('📥 Backfilling historical data...')
+        const startTime = Date.now()
         const result = await this.bufferManager.backfillAll(symbols, {
           batchSize: 10,
-          batchDelay: 3000,
+          batchDelay: 1000, // 1s delay = 10 req/s = 600 req/min (safe under limit)
           onProgress: (completed, total) => {
+            const progress = Math.round((completed / total) * 100)
+            console.log(`📥 Backfill progress: ${completed}/${total} (${progress}%)`)
             this.emit('backfillProgress', { completed, total })
           },
         })
-        console.log(`✅ Backfill complete: ${result.successful.length}/${symbols.length} symbols`)
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+        console.log(`✅ Backfill complete: ${result.successful.length}/${symbols.length} symbols in ${duration}s`)
         
         if (result.failed.length > 0) {
           console.warn(`⚠️  Failed to backfill ${result.failed.length} symbols:`, result.failed)

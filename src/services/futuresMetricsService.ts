@@ -41,7 +41,7 @@ export class FuturesMetricsService {
     this.wsStreamManager = new WebSocketStreamManager({
       autoReconnect: true,
       batchSize: 200,
-      enableBackfill: false, // Start with empty buffers for gradual warm-up
+      enableBackfill: true, // Backfill 288 candles (24h) at startup for instant data
     })
   }
 
