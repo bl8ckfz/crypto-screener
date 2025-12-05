@@ -421,6 +421,32 @@ export function useMarketData(wsMetricsMap?: Map<string, any>) {
     }
   }, [query.data, query.dataUpdatedAt, alertRules, alertSettings, addAlert])
 
+  // Also evaluate alerts when WebSocket metrics update
+  // This ensures alerts work even when query data isn't refetching
+  useEffect(() => {
+    if (!wsMetricsMap || wsMetricsMap.size === 0) {
+      return
+    }
+    
+    if (!query.data || !alertSettings.enabled || alertRules.length === 0) {
+      return
+    }
+    
+    // Trigger a "fake" refetch by updating the query data with new metrics
+    // This will cause the main alert evaluation effect to run
+    const now = Date.now()
+    
+    // Throttle to max once per second to avoid spam
+    if (now - lastAlertEvaluationTimestamp < 1000) {
+      return
+    }
+    
+    console.log('🔄 WebSocket metrics updated, re-attaching to coins for alert evaluation')
+    
+    // Force re-evaluation by invalidating query
+    query.refetch()
+  }, [wsMetricsMap, query, alertSettings.enabled, alertRules.length])
+
   return query
 }
 
