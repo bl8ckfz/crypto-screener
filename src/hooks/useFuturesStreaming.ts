@@ -50,6 +50,7 @@ export function useFuturesStreaming() {
         if (!isSubscribed) return
         
         setIsInitialized(true)
+        setLastUpdate(Date.now()) // Mark connection time to prevent "stale" status
         console.log('✅ Futures streaming initialized')
         
         // Subscribe to real-time metrics updates
@@ -63,6 +64,12 @@ export function useFuturesStreaming() {
           })
           
           // Update last update timestamp
+          setLastUpdate(Date.now())
+        })
+        
+        // Subscribe to ticker updates to keep lastUpdate fresh
+        const unsubTicker = futuresMetricsService.onTickerUpdate(() => {
+          if (!isSubscribed) return
           setLastUpdate(Date.now())
         })
         
@@ -84,6 +91,7 @@ export function useFuturesStreaming() {
         return () => {
           isSubscribed = false
           unsubMetrics()
+          unsubTicker()
           clearInterval(warmupInterval)
           futuresMetricsService.stop()
         }
