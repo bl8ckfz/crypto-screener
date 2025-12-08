@@ -136,9 +136,17 @@ export class FuturesMetricsService {
    * @returns Unsubscribe function
    */
   onMetricsUpdate(handler: (data: { symbol: string; metrics: PartialChangeMetrics }) => void): () => void {
+    let metricsReceived = 0
     const listener = (data: { symbol: string; metrics: AllTimeframeMetrics; timestamp: number }) => {
       // Convert WindowMetrics to PartialChangeMetrics
       const converted = this.convertToPartialMetrics(data.metrics)
+      
+      // Debug: Log first few metrics to verify data flow
+      metricsReceived++
+      if (metricsReceived <= 3 || (import.meta.env.DEV && metricsReceived % 100 === 0)) {
+        console.log(`📈 FuturesMetricsService received metric #${metricsReceived} for ${data.symbol}`)
+      }
+      
       handler({ symbol: data.symbol, metrics: converted })
     }
     
