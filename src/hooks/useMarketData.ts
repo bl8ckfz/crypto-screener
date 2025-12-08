@@ -137,6 +137,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       
       // Track last seen count to detect new symbols
       let lastSeenCount = tickers.length
+      console.log(`🔍 Starting progressive polling with ${lastSeenCount} initial tickers...`)
       
       // If we don't have all symbols yet, refetch every 2 seconds until we do
       // This handles the case where ticker stream is still populating
@@ -146,6 +147,8 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
           console.log(`🔄 New symbols available (${currentTickers.length}), refreshing...`)
           lastSeenCount = currentTickers.length
           query.refetch()
+        } else if (import.meta.env.DEV) {
+          console.log(`🔍 Poll: Still ${currentTickers?.length || 0} tickers (no change)`)
         }
       }, 2000) // Check every 2 seconds
       
