@@ -157,12 +157,16 @@ export async function sendDiscordWebhook(
     const emoji = getAlertEmoji(alert)
     const value = formatAlertValue(alert)
     const timestamp = new Date(alert.timestamp).toISOString()
+    const color = getAlertColor(alert)
+    
+    // Debug: Log alert type and color
+    console.log(`🎨 Discord webhook color for ${alert.symbol} (${alert.type}): ${color.toString(16)} ${color === 0x10b981 ? '(GREEN)' : color === 0xef4444 ? '(RED)' : color === 0xa855f7 ? '(PURPLE)' : '(OTHER)'}`)
 
     // Build Discord embed
     const embed = {
       title: `${emoji} ${alert.title}`,
       description: alert.message,
-      color: getAlertColor(alert),
+      color: color,
       fields: [
         {
           name: 'Symbol',
