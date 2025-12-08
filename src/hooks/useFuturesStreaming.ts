@@ -144,6 +144,12 @@ export function useFuturesStreaming() {
           setLastUpdate(Date.now())
         })
         
+        // Subscribe to ticker updates to keep lastUpdate fresh
+        const unsubTicker = futuresMetricsService.onTickerUpdate(() => {
+          if (!isSubscribed) return
+          setLastUpdate(Date.now())
+        })
+        
         // Track warm-up progress every 5 seconds
         const warmupInterval = setInterval(() => {
           if (!isSubscribed) return
@@ -163,6 +169,7 @@ export function useFuturesStreaming() {
           isSubscribed = false
           unsubBackfillProgress()
           unsubMetrics()
+          unsubTicker()
           clearInterval(warmupInterval)
           futuresMetricsService.stop()
         }

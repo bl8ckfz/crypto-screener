@@ -159,6 +159,12 @@ export class Stream1mManager extends SimpleEventEmitter {
         })
       }
     })
+
+    // Handle ticker updates (for lastUpdate timestamp)
+    this.wsClient.on('ticker', () => {
+      // Emit ticker update event to keep UI fresh
+      this.emit('tickerUpdate', { timestamp: Date.now() })
+    })
   }
 
   /**
@@ -390,11 +396,15 @@ export class Stream1mManager extends SimpleEventEmitter {
 
   /**
    * Get all ticker data from WebSocket stream
+   * Filtered to only tracked symbols
    * 
-   * @returns Array of ticker data for all symbols
+   * @returns Array of ticker data for tracked symbols only
    */
   getAllTickerData() {
-    return this.wsClient.getAllTickerData()
+    const allTickers = this.wsClient.getAllTickerData()
+    // Filter to only tracked symbols to avoid showing coins we don't have metrics for
+    const trackedSymbols = new Set(this.symbols)
+    return allTickers.filter(ticker => trackedSymbols.has(ticker.symbol))
   }
 
   /**

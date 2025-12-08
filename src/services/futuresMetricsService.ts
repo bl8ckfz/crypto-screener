@@ -133,6 +133,19 @@ export class FuturesMetricsService {
   }
 
   /**
+   * Subscribe to real-time ticker updates
+   * 
+   * @param handler - Callback for ticker batch updates
+   * @returns Unsubscribe function
+   */
+  onTickerUpdate(handler: (data: { timestamp: number }) => void): () => void {
+    this.stream1mManager.on('tickerUpdate', handler)
+    return () => {
+      this.stream1mManager.removeAllListeners('tickerUpdate')
+    }
+  }
+
+  /**
    * Subscribe to backfill progress updates
    * 
    * @param handler - Callback for progress updates
@@ -387,8 +400,9 @@ export class FuturesMetricsService {
   /**
    * Get all ticker data from WebSocket stream
    * Includes live market data, funding rates, mark prices
+   * Filtered to only tracked symbols (those with 1m metrics)
    * 
-   * @returns Array of ticker data for all symbols
+   * @returns Array of ticker data for tracked symbols only
    */
   getAllTickerData() {
     return this.stream1mManager.getAllTickerData()
