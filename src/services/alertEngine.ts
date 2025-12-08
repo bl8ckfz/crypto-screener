@@ -129,37 +129,37 @@ function evaluateCondition(
   let result = false
   
   switch (type) {
-    // Futures alert types
+    // Futures alert types - no market mode filtering
     case 'futures_big_bull_60':
-      result = marketMode === 'bull' && evaluateFuturesBigBull60(metrics)
+      result = evaluateFuturesBigBull60(metrics)
       break
     
     case 'futures_big_bear_60':
-      result = marketMode === 'bear' && evaluateFuturesBigBear60(metrics)
+      result = evaluateFuturesBigBear60(metrics)
       break
     
     case 'futures_pioneer_bull':
-      result = marketMode === 'bull' && evaluateFuturesPioneerBull(metrics)
+      result = evaluateFuturesPioneerBull(metrics)
       break
     
     case 'futures_pioneer_bear':
-      result = marketMode === 'bear' && evaluateFuturesPioneerBear(metrics)
+      result = evaluateFuturesPioneerBear(metrics)
       break
     
     case 'futures_5_big_bull':
-      result = marketMode === 'bull' && evaluateFutures5BigBull(metrics)
+      result = evaluateFutures5BigBull(metrics)
       break
     
     case 'futures_5_big_bear':
-      result = marketMode === 'bear' && evaluateFutures5BigBear(metrics)
+      result = evaluateFutures5BigBear(metrics)
       break
     
     case 'futures_15_big_bull':
-      result = marketMode === 'bull' && evaluateFutures15BigBull(metrics)
+      result = evaluateFutures15BigBull(metrics)
       break
     
     case 'futures_15_big_bear':
-      result = marketMode === 'bear' && evaluateFutures15BigBear(metrics)
+      result = evaluateFutures15BigBear(metrics)
       break
     
     case 'futures_bottom_hunter':
