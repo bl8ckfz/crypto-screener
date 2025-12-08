@@ -152,35 +152,35 @@ export class Stream1mManager extends SimpleEventEmitter {
     
     this.wsClient.on('kline', (data: any) => {
       try {
-        // Validate data structure
-        if (!data || !data.k) {
+        // Validate data structure (KlineData format from WebSocket)
+        if (!data || !data.kline) {
+          console.warn('⚠️ Invalid kline data structure:', data)
           return
         }
 
-        const kline = data.k
+        const { symbol, kline } = data
         klinesReceived++
         
         // Debug: Log first few klines to verify data flow
         if (klinesReceived <= 3) {
-          console.log(`📊 Kline #${klinesReceived} received for ${kline.s}: closed=${kline.x}`)
+          console.log(`📊 Kline #${klinesReceived} received for ${symbol}: closed=${kline.isFinal}`)
         }
 
         // Only process closed candles
-        if (!kline.x) {
+        if (!kline.isFinal) {
           return
         }
 
         closedCandles++
         if (closedCandles <= 3) {
-          console.log(`✅ Closed candle #${closedCandles} for ${kline.s} - processing metrics`)
+          console.log(`✅ Closed candle #${closedCandles} for ${symbol} - processing metrics`)
         }
 
-        const symbol = kline.s
         const candle: Candle1m = {
-          openTime: kline.t,
-          close: parseFloat(kline.c),
-          volume: parseFloat(kline.v),
-          quoteVolume: parseFloat(kline.q),
+          openTime: kline.openTime,
+          close: kline.close,
+          volume: kline.volume,
+          quoteVolume: kline.quoteVolume,
         }
 
         this.handle1mKline(symbol, candle)
