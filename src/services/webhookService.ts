@@ -156,8 +156,10 @@ export async function sendDiscordWebhook(
   webhookUrl: string,
   alert: Alert
 ): Promise<boolean> {
+  console.log(`📤 sendDiscordWebhook called for ${alert.symbol} (${alert.type})`)
+  
   if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
-    console.error('Invalid Discord webhook URL')
+    console.error('Invalid Discord webhook URL:', webhookUrl)
     return false
   }
 
