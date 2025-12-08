@@ -247,7 +247,11 @@ export class Stream1mManager extends SimpleEventEmitter {
       console.log('📡 Connecting to Binance Futures WebSocket...')
       await this.wsClient.connect()
 
-      // Step 4: Subscribe to 1m kline streams
+      // Step 4: Subscribe to ticker stream (for live prices/volumes)
+      console.log('📡 Subscribing to ticker stream...')
+      await this.wsClient.subscribeTicker()
+
+      // Step 5: Subscribe to 1m kline streams
       console.log(`📡 Subscribing to ${backfillResult.successful.length} 1m kline streams...`)
       await this.wsClient.subscribe1mKlines(backfillResult.successful)
 
@@ -372,6 +376,25 @@ export class Stream1mManager extends SimpleEventEmitter {
    */
   getSymbols(): string[] {
     return [...this.symbols]
+  }
+
+  /**
+   * Get ticker data for a specific symbol
+   * 
+   * @param symbol - Binance futures symbol
+   * @returns Ticker data or undefined if not available
+   */
+  getTickerData(symbol: string) {
+    return this.wsClient.getTickerData(symbol)
+  }
+
+  /**
+   * Get all ticker data from WebSocket stream
+   * 
+   * @returns Array of ticker data for all symbols
+   */
+  getAllTickerData() {
+    return this.wsClient.getAllTickerData()
   }
 
   /**

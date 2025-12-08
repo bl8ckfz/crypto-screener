@@ -375,6 +375,26 @@ export class FuturesMetricsService {
   }
 
   /**
+   * Get ticker data for specific symbol
+   * 
+   * @param symbol - Symbol to get ticker for
+   * @returns Ticker data or undefined if not available
+   */
+  getTickerData(symbol: string) {
+    return this.stream1mManager.getTickerData(symbol)
+  }
+
+  /**
+   * Get all ticker data from WebSocket stream
+   * Includes live market data, funding rates, mark prices
+   * 
+   * @returns Array of ticker data for all symbols
+   */
+  getAllTickerData() {
+    return this.stream1mManager.getAllTickerData()
+  }
+
+  /**
    * Scan all USDT-M futures and return those passing filters
    * 
    * @returns Array of metrics for symbols that pass all filters

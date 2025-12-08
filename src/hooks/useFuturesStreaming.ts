@@ -222,9 +222,7 @@ export function useFuturesStreaming() {
   
   // Get live ticker data from WebSocket
   const getTickerData = useCallback(() => {
-    // Return empty array - ticker data not available in 1m system
-    // This method is used for UI display only and will be removed
-    return []
+    return futuresMetricsService.getAllTickerData()
   }, [])
   
   return {
