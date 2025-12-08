@@ -18,8 +18,8 @@ vi.mock('@/services/binanceFuturesApi', () => {
         // Return mock data for the requested symbols
         const data = new Map()
         symbols.forEach((symbol, index) => {
-          // Create 10 candles (enough for 5m window)
-          const candles = Array.from({ length: 10 }, (_, i) => ({
+          // Create 1440 candles (full 24h) to support all timeframes
+          const candles = Array.from({ length: 1440 }, (_, i) => ({
             openTime: 1702000000000 + i * 60000,
             close: 50500 + i * 10,
             volume: 100 + i,

@@ -15,10 +15,10 @@
  */
 
 import { Candle1mRingBuffer } from '@/utils/candle1mRingBuffer'
-import { SlidingWindowCalculator, WindowMetrics } from '@/utils/slidingWindowCalculator'
+import { SlidingWindowCalculator } from '@/utils/slidingWindowCalculator'
 import { BinanceFuturesApiClient } from './binanceFuturesApi'
 import { BinanceFuturesWebSocket } from './binanceFuturesWebSocket'
-import type { Candle1m } from '@/types/api'
+import type { Candle1m, WindowMetrics } from '@/types/api'
 
 /**
  * Browser-compatible EventEmitter
@@ -210,7 +210,7 @@ export class Stream1mManager extends SimpleEventEmitter {
       if (backfillResult.failed.length > 0) {
         console.warn(`⚠️  Failed to backfill ${backfillResult.failed.length} symbols:`)
         backfillResult.failed.forEach(f => {
-          console.warn(`  - ${f.symbol}: ${f.error.message}`)
+          console.warn(`  - ${f.symbol}: ${f.error}`)
         })
       }
 
@@ -335,14 +335,26 @@ export class Stream1mManager extends SimpleEventEmitter {
       return null
     }
 
-    const metrics = this.calculator.getAllMetrics(symbol, buffer)
-    return metrics ? {
-      m5: metrics.m5,
-      m15: metrics.m15,
-      h1: metrics.h1,
-      h8: metrics.h8,
-      h24: metrics.h24,
-    } : null
+    const metricsMap = this.calculator.getAllMetrics(symbol, buffer)
+    
+    // Check if all required metrics are available
+    const m5 = metricsMap.get('5m')
+    const m15 = metricsMap.get('15m')
+    const h1 = metricsMap.get('1h')
+    const h8 = metricsMap.get('8h')
+    const h24 = metricsMap.get('1d')
+    
+    if (!m5 || !m15 || !h1 || !h8 || !h24) {
+      return null
+    }
+
+    return {
+      m5,
+      m15,
+      h1,
+      h8,
+      h24,
+    }
   }
 
   /**

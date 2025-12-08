@@ -112,26 +112,18 @@ export function useFuturesStreaming() {
         
         if (!isSubscribed) return
         
-        // Subscribe to tickers ready event (fires in <1s)
-        const unsubTickersReady = futuresMetricsService.onTickersReady(() => {
-          if (!isSubscribed) return
-          console.log('✅ Tickers ready - market data available!')
-          setTickersReady(true)
-          setLastUpdate(Date.now())
-        })
-        
         // Subscribe to backfill progress updates
         const unsubBackfillProgress = futuresMetricsService.onBackfillProgress(({ progress }: { progress: number }) => {
           if (!isSubscribed) return
           setBackfillProgress(progress)
-        })
-        
-        // Subscribe to backfill complete event
-        const unsubBackfillComplete = futuresMetricsService.onBackfillComplete(() => {
-          if (!isSubscribed) return
-          console.log('✅ Backfill complete - all historical data loaded!')
-          setBackfillComplete(true)
-          setBackfillProgress(100)
+          
+          // Mark tickers ready and backfill complete when done
+          if (progress >= 100) {
+            console.log('✅ Backfill complete - all historical data loaded!')
+            setTickersReady(true)
+            setBackfillComplete(true)
+            setBackfillProgress(100)
+          }
         })
         
         setIsInitialized(true)
@@ -152,12 +144,6 @@ export function useFuturesStreaming() {
           setLastUpdate(Date.now())
         })
         
-        // Subscribe to ticker updates to keep lastUpdate fresh
-        const unsubTicker = futuresMetricsService.onTickerUpdate(() => {
-          if (!isSubscribed) return
-          setLastUpdate(Date.now())
-        })
-        
         // Track warm-up progress every 5 seconds
         const warmupInterval = setInterval(() => {
           if (!isSubscribed) return
@@ -175,11 +161,8 @@ export function useFuturesStreaming() {
         // Cleanup on unmount
         return () => {
           isSubscribed = false
-          unsubTickersReady()
           unsubBackfillProgress()
-          unsubBackfillComplete()
           unsubMetrics()
-          unsubTicker()
           clearInterval(warmupInterval)
           futuresMetricsService.stop()
         }
@@ -239,7 +222,9 @@ export function useFuturesStreaming() {
   
   // Get live ticker data from WebSocket
   const getTickerData = useCallback(() => {
-    return futuresMetricsService.getAllTickerData()
+    // Return empty array - ticker data not available in 1m system
+    // This method is used for UI display only and will be removed
+    return []
   }, [])
   
   return {

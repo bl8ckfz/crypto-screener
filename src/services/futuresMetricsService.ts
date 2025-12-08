@@ -1,27 +1,28 @@
 import type { FuturesMetrics } from '@/types/api'
 import { CoinGeckoApiClient } from './coinGeckoApi'
 import { getCoinGeckoId as mapSymbolToCoinGeckoId } from '@/config/coinGeckoMapping'
-import { WebSocketStreamManager } from './webSocketStreamManager'
+import { Stream1mManager, type AllTimeframeMetrics } from './stream1mManager'
 import type { PartialChangeMetrics, WarmupStatus } from '@/types/metrics'
 import { BinanceFuturesApiClient } from './binanceFuturesApi'
 
 /**
  * Service for fetching and calculating comprehensive futures metrics
  * 
- * Uses WebSocket streaming for real-time data with zero API requests.
+ * **MIGRATED TO 1M SLIDING WINDOWS** (replacing 5m system)
+ * 
+ * Uses 1m kline streaming with efficient sliding window calculations for real-time data.
  * 
  * Data sources:
- * - Binance Futures WebSocket (real-time price changes and volumes)
+ * - Binance Futures WebSocket (1m candles)
  * - CoinGecko API (market cap data - cached)
  * 
- * Warm-up phase: Gradual data accumulation over 24 hours
- * - 5 min   → 5m metrics ready
- * - 15 min  → 15m metrics ready
- * - 1 hour  → 1h metrics ready
- * - 4 hours → 4h metrics ready
- * - 8 hours → 8h metrics ready
- * - 12 hours → 12h metrics ready
- * - 24 hours → All metrics ready (fully warmed up)
+ * Architecture:
+ * - Ring buffers: 1440 1m candles per symbol (24h history)
+ * - Running sums: O(1) metric updates
+ * - Supported timeframes: 5m, 15m, 1h, 8h, 24h
+ * 
+ * Warm-up phase: Instant backfill at startup (1440 candles via REST API)
+ * - All metrics available immediately after backfill (60-90 seconds)
  * 
  * Filtering logic based on:
  * - Price change thresholds
@@ -30,7 +31,7 @@ import { BinanceFuturesApiClient } from './binanceFuturesApi'
  */
 export class FuturesMetricsService {
   private coinGeckoClient: CoinGeckoApiClient
-  private wsStreamManager: WebSocketStreamManager
+  private stream1mManager: Stream1mManager
   private futuresClient: BinanceFuturesApiClient
 
   constructor(
@@ -38,90 +39,91 @@ export class FuturesMetricsService {
   ) {
     this.coinGeckoClient = coinGeckoClient || new CoinGeckoApiClient()
     this.futuresClient = new BinanceFuturesApiClient()
-    this.wsStreamManager = new WebSocketStreamManager({
-      autoReconnect: true,
-      batchSize: 200,
-      enableBackfill: true, // Backfill 288 candles (24h) at startup for instant data
-    })
+    this.stream1mManager = new Stream1mManager()
+    console.log('🎯 Using 1m streaming (replaced 5m system)')
   }
 
   /**
-   * Initialize WebSocket streaming
+   * Initialize 1m streaming with backfill
    * Call this once on app startup to begin streaming data
    * 
    * Strategy:
-   * 1. Connect WebSocket and get all tickers (~500 symbols)
-   * 2. Sort by 24h quote volume (most liquid first)
-   * 3. Take top 200 symbols (Binance WebSocket limit)
-   * 4. Subscribe to kline streams for those symbols
+   * 1. Backfill 1440 1m candles via REST API (instant metrics)
+   * 2. Initialize ring buffers and running sums
+   * 3. Subscribe to 1m kline WebSocket streams
    * 
-   * @param symbols - Array of symbols to stream (optional, uses top 200 by volume if not provided)
+   * @param symbols - Array of symbols to stream (required - 200 symbols recommended)
    */
   async initialize(symbols?: string[]): Promise<void> {
-    console.log('🚀 Initializing WebSocket streaming...')
+    console.log('🚀 Initializing 1m streaming...')
     
     let symbolsToStream: string[]
     
-    if (symbols) {
-      // Use provided symbols
+    if (symbols && symbols.length > 0) {
       symbolsToStream = symbols
     } else {
-      // Get top 200 most liquid symbols from ticker stream
-      symbolsToStream = await this.wsStreamManager.getTopLiquidSymbols(200)
-      console.log(`📈 Selected top 200 symbols by 24h volume`)
-      console.log(`🔝 Top 10: ${symbolsToStream.slice(0, 10).join(', ')}`)
+      // Get all futures symbols and take top 200 by volume
+      const allSymbols = await this.futuresClient.fetchAllFuturesSymbols()
+      console.log(`📋 Found ${allSymbols.length} USDT-M perpetual futures`)
+      
+      // TODO: Sort by volume and take top 200
+      // For now, just take first 200
+      symbolsToStream = allSymbols.slice(0, 200)
     }
     
-    await this.wsStreamManager.start(symbolsToStream)
-    console.log('✅ WebSocket streaming initialized')
+    console.log(`📈 Starting 1m stream for ${symbolsToStream.length} symbols`)
+    console.log(`🔝 Top 10: ${symbolsToStream.slice(0, 10).join(', ')}`)
+    
+    await this.stream1mManager.start(symbolsToStream)
+    console.log('✅ 1m streaming initialized')
   }
 
   /**
    * Get warm-up status for UI indicators
    * 
-   * @returns Current warm-up progress
+   * Note: With 1m backfill, metrics are available immediately (< 90s backfill time)
+   * This returns a synthetic warm-up status for UI compatibility
+   * 
+   * @returns Current warm-up progress (always fully warmed after backfill)
    */
   getWarmupStatus(): WarmupStatus {
-    return this.wsStreamManager.getWarmupStatus()
+    const trackedSymbols = this.stream1mManager.getSymbols()
+    const totalSymbols = trackedSymbols.length
+    
+    // All metrics available immediately after backfill
+    // Return fully warmed status (100%)
+    return {
+      totalSymbols,
+      timeframes: {
+        '5m': { ready: totalSymbols, total: totalSymbols },
+        '15m': { ready: totalSymbols, total: totalSymbols },
+        '1h': { ready: totalSymbols, total: totalSymbols },
+        '4h': { ready: 0, total: totalSymbols }, // Not supported in 1m system
+        '8h': { ready: totalSymbols, total: totalSymbols },
+        '12h': { ready: 0, total: totalSymbols }, // Not supported in 1m system
+        '1d': { ready: totalSymbols, total: totalSymbols },
+      },
+      overallProgress: 100, // Always 100% after backfill
+    }
   }
 
   /**
-   * Subscribe to real-time metrics updates
+   * Subscribe to real-time metrics updates (1m frequency)
    * 
    * @param handler - Callback for metrics updates
    * @returns Unsubscribe function
    */
   onMetricsUpdate(handler: (data: { symbol: string; metrics: PartialChangeMetrics }) => void): () => void {
-    this.wsStreamManager.on('metricsUpdate', handler)
-    return () => {
-      // EventEmitter removeListener would go here
-      // For now, this is a placeholder
+    const listener = (data: { symbol: string; metrics: AllTimeframeMetrics; timestamp: number }) => {
+      // Convert WindowMetrics to PartialChangeMetrics
+      const converted = this.convertToPartialMetrics(data.metrics)
+      handler({ symbol: data.symbol, metrics: converted })
     }
-  }
-
-  /**
-   * Subscribe to real-time ticker updates
-   * 
-   * @param handler - Callback for ticker batch updates
-   * @returns Unsubscribe function
-   */
-  onTickerUpdate(handler: (data: { tickers: any[]; timestamp: number }) => void): () => void {
-    this.wsStreamManager.on('tickerUpdate', handler)
+    
+    this.stream1mManager.on('metrics', listener)
+    
     return () => {
-      // EventEmitter removeListener would go here
-    }
-  }
-
-  /**
-   * Subscribe to tickers ready event (fires when initial market data is available)
-   * 
-   * @param handler - Callback when tickers are ready
-   * @returns Unsubscribe function
-   */
-  onTickersReady(handler: () => void): () => void {
-    this.wsStreamManager.on('tickersReady', handler)
-    return () => {
-      this.wsStreamManager.off('tickersReady', handler)
+      this.stream1mManager.removeAllListeners('metrics')
     }
   }
 
@@ -132,37 +134,57 @@ export class FuturesMetricsService {
    * @returns Unsubscribe function
    */
   onBackfillProgress(handler: (data: { completed: number; total: number; progress: number }) => void): () => void {
-    this.wsStreamManager.on('backfillProgress', handler)
+    this.stream1mManager.on('backfillProgress', handler)
     return () => {
-      this.wsStreamManager.off('backfillProgress', handler)
+      this.stream1mManager.removeAllListeners('backfillProgress')
     }
   }
 
   /**
-   * Subscribe to backfill complete event
-   * 
-   * @param handler - Callback when backfill is complete
-   * @returns Unsubscribe function
-   */
-  onBackfillComplete(handler: () => void): () => void {
-    this.wsStreamManager.on('backfillComplete', handler)
-    return () => {
-      this.wsStreamManager.off('backfillComplete', handler)
-    }
-  }
-
-  /**
-   * Stop WebSocket streaming and cleanup
+   * Stop 1m streaming and cleanup
    */
   stop(): void {
-    this.wsStreamManager.stop()
+    this.stream1mManager.stop()
   }
 
   /**
-   * Fetch comprehensive metrics for a single symbol from WebSocket stream
+   * Convert AllTimeframeMetrics to PartialChangeMetrics format
    * 
-   * Returns real-time metrics from ring buffers (may have null values during warm-up).
-   * Null values are defaulted to 0 for compatibility with filter logic.
+   * @param metrics - 1m window metrics
+   * @returns Legacy format for UI compatibility
+   */
+  private convertToPartialMetrics(metrics: AllTimeframeMetrics): PartialChangeMetrics {
+    return {
+      symbol: metrics.m5.symbol,
+      timestamp: metrics.m5.windowEndTime,
+      change_5m: metrics.m5.priceChangePercent,
+      change_15m: metrics.m15.priceChangePercent,
+      change_1h: metrics.h1.priceChangePercent,
+      change_4h: null, // Not supported in 1m system
+      change_8h: metrics.h8.priceChangePercent,
+      change_12h: null, // Not supported in 1m system
+      change_1d: metrics.h24.priceChangePercent,
+      baseVolume_5m: metrics.m5.baseVolume,
+      baseVolume_15m: metrics.m15.baseVolume,
+      baseVolume_1h: metrics.h1.baseVolume,
+      baseVolume_4h: null, // Not supported in 1m system
+      baseVolume_8h: metrics.h8.baseVolume,
+      baseVolume_12h: null, // Not supported in 1m system
+      baseVolume_1d: metrics.h24.baseVolume,
+      quoteVolume_5m: metrics.m5.quoteVolume,
+      quoteVolume_15m: metrics.m15.quoteVolume,
+      quoteVolume_1h: metrics.h1.quoteVolume,
+      quoteVolume_4h: null, // Not supported in 1m system
+      quoteVolume_8h: metrics.h8.quoteVolume,
+      quoteVolume_12h: null, // Not supported in 1m system
+      quoteVolume_1d: metrics.h24.quoteVolume,
+    }
+  }
+
+  /**
+   * Fetch comprehensive metrics for a single symbol from 1m stream
+   * 
+   * Returns real-time metrics from ring buffers (available immediately after backfill).
    * 
    * @param symbol - Binance futures symbol (e.g., 'BTCUSDT')
    * @param options - Optional configuration
@@ -178,26 +200,26 @@ export class FuturesMetricsService {
     options: { skipMarketCap?: boolean } = {}
   ): Promise<FuturesMetrics> {
     try {
-      // Get from WebSocket stream (may have null values during warm-up)
-      const partialMetrics = this.wsStreamManager.getMetrics(symbol)
+      // Get from 1m stream manager
+      const allMetrics = this.stream1mManager.getAllMetrics(symbol)
       
       let priceChanges, volumes
       
-      if (partialMetrics) {
-        // Map WebSocket metrics to service format, defaulting nulls to 0
+      if (allMetrics) {
+        // Extract metrics for each timeframe
         priceChanges = {
-          change_5m: partialMetrics.change_5m ?? 0,
-          change_15m: partialMetrics.change_15m ?? 0,
-          change_1h: partialMetrics.change_1h ?? 0,
-          change_8h: partialMetrics.change_8h ?? 0,
-          change_1d: partialMetrics.change_1d ?? 0,
+          change_5m: allMetrics.m5.priceChangePercent,
+          change_15m: allMetrics.m15.priceChangePercent,
+          change_1h: allMetrics.h1.priceChangePercent,
+          change_8h: allMetrics.h8.priceChangePercent,
+          change_1d: allMetrics.h24.priceChangePercent,
         }
         volumes = {
-          volume_5m: partialMetrics.quoteVolume_5m ?? 0,
-          volume_15m: partialMetrics.quoteVolume_15m ?? 0,
-          volume_1h: partialMetrics.quoteVolume_1h ?? 0,
-          volume_8h: partialMetrics.quoteVolume_8h ?? 0,
-          volume_1d: partialMetrics.quoteVolume_1d ?? 0,
+          volume_5m: allMetrics.m5.quoteVolume,
+          volume_15m: allMetrics.m15.quoteVolume,
+          volume_1h: allMetrics.h1.quoteVolume,
+          volume_8h: allMetrics.h8.quoteVolume,
+          volume_1d: allMetrics.h24.quoteVolume,
         }
       } else {
         // Symbol not in stream yet, return zeros
@@ -329,23 +351,22 @@ export class FuturesMetricsService {
   }
 
   /**
-   * Get all ticker data from WebSocket stream
-   * Includes live market data, funding rates, mark prices
+   * Get all symbols currently being tracked in 1m stream
    * 
-   * @returns Array of ticker data for all symbols
+   * @returns Array of symbol names
    */
-  getAllTickerData(): any[] {
-    return this.wsStreamManager.getAllTickerData()
+  getTrackedSymbols(): string[] {
+    return this.stream1mManager.getSymbols()
   }
 
   /**
-   * Get ticker data for specific symbol
+   * Get ring buffer for specific symbol (for debugging/advanced use)
    * 
-   * @param symbol - Symbol to get ticker for
-   * @returns Ticker data or undefined if not available
+   * @param symbol - Symbol to get buffer for
+   * @returns Ring buffer or undefined if not tracked
    */
-  getTickerData(symbol: string): any {
-    return this.wsStreamManager.getTickerData(symbol)
+  getBuffer(symbol: string) {
+    return this.stream1mManager.getBuffer(symbol)
   }
 
   /**
