@@ -125,43 +125,46 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
   // Refetch when WebSocket ticker data becomes available, and keep refetching
   // until we have data for all symbols (ticker stream populates gradually)
   useEffect(() => {
-    if (!wsGetTickerData) return
+    if (!wsGetTickerData) {
+      console.log('⏳ Waiting for wsGetTickerData...')
+      return
+    }
 
     const tickers = wsGetTickerData()
-    if (tickers && tickers.length > 0) {
-      if (!hasRefetchedForWebSocket.current) {
-        console.log('🔄 WebSocket ticker data ready, loading market data...')
-        hasRefetchedForWebSocket.current = true
-        query.refetch()
-        
-        // Track last seen count to detect new symbols
-        let lastSeenCount = tickers.length
-        console.log(`🔍 Starting progressive polling with ${lastSeenCount} initial tickers...`)
-        
-        // If we don't have all symbols yet, refetch every 2 seconds until we do
-        // This handles the case where ticker stream is still populating
-        const intervalId = setInterval(() => {
-          const currentTickers = wsGetTickerData()
-          if (currentTickers && currentTickers.length > lastSeenCount) {
-            console.log(`🔄 New symbols available (${currentTickers.length}), refreshing...`)
-            lastSeenCount = currentTickers.length
-            query.refetch()
-          } else if (import.meta.env.DEV) {
-            console.log(`🔍 Poll: Still ${currentTickers?.length || 0} tickers (no change)`)
-          }
-        }, 2000) // Check every 2 seconds
-        
-        // Cleanup after 30 seconds (by then, all tickers should be loaded)
-        const cleanupTimeout = setTimeout(() => {
-          clearInterval(intervalId)
-          console.log('⏹️  Stopped polling for new symbols (30s timeout)')
-        }, 30000)
-        
-        // Store cleanup functions for unmount
-        return () => {
-          clearInterval(intervalId)
-          clearTimeout(cleanupTimeout)
+    console.log(`📊 Effect running: ${tickers?.length || 0} tickers available`)
+    
+    if (tickers && tickers.length > 0 && !hasRefetchedForWebSocket.current) {
+      console.log('🔄 WebSocket ticker data ready, loading market data...')
+      hasRefetchedForWebSocket.current = true
+      query.refetch()
+      
+      // Track last seen count to detect new symbols
+      let lastSeenCount = tickers.length
+      console.log(`🔍 Starting progressive polling with ${lastSeenCount} initial tickers...`)
+      
+      // If we don't have all symbols yet, refetch every 2 seconds until we do
+      // This handles the case where ticker stream is still populating
+      const intervalId = setInterval(() => {
+        const currentTickers = wsGetTickerData()
+        if (currentTickers && currentTickers.length > lastSeenCount) {
+          console.log(`🔄 New symbols available (${currentTickers.length}), refreshing...`)
+          lastSeenCount = currentTickers.length
+          query.refetch()
+        } else if (import.meta.env.DEV) {
+          console.log(`🔍 Poll: Still ${currentTickers?.length || 0} tickers (no change)`)
         }
+      }, 2000) // Check every 2 seconds
+      
+      // Cleanup after 30 seconds (by then, all tickers should be loaded)
+      const cleanupTimeout = setTimeout(() => {
+        clearInterval(intervalId)
+        console.log('⏹️  Stopped polling for new symbols (30s timeout)')
+      }, 30000)
+      
+      // Store cleanup functions for unmount
+      return () => {
+        clearInterval(intervalId)
+        clearTimeout(cleanupTimeout)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
