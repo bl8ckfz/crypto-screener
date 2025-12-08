@@ -67,13 +67,13 @@ export class FuturesMetricsService {
     if (symbols && symbols.length > 0) {
       symbolsToStream = symbols
     } else {
-      // Get all futures symbols and take top N by volume
+      // Get all futures symbols (already sorted by 24hr volume)
       const allSymbols = await this.futuresClient.fetchAllFuturesSymbols()
-      console.log(`📋 Found ${allSymbols.length} USDT-M perpetual futures`)
+      console.log(`📋 Found ${allSymbols.length} USDT-M perpetual futures (sorted by volume)`)
       
-      // TODO: Sort by volume and take top N
-      // For now, just take first N symbols
+      // Take top N most liquid pairs
       symbolsToStream = allSymbols.slice(0, FuturesMetricsService.MAX_SYMBOLS)
+      console.log(`🎯 Selected top ${symbolsToStream.length} by 24hr volume`)
     }
     
     console.log(`📈 Starting 1m stream for ${symbolsToStream.length} symbols`)

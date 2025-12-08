@@ -264,11 +264,14 @@ export class BinanceFuturesApiClient {
    * Fetch all USDT-M futures symbols from exchange info
    * Returns cached result if available and fresh
    * 
-   * @returns Array of USDT-M futures symbols
+   * **Now returns symbols sorted by 24hr quote volume (descending)**
+   * This ensures the most liquid/active pairs are first in the list
+   * 
+   * @returns Array of USDT-M futures symbols sorted by volume
    * 
    * @example
    * const symbols = await client.fetchAllFuturesSymbols()
-   * // ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', ...]
+   * // ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', ...] (sorted by 24hr volume)
    */
   async fetchAllFuturesSymbols(): Promise<string[]> {
     const now = Date.now()
@@ -280,16 +283,17 @@ export class BinanceFuturesApiClient {
     }
 
     try {
-      const endpoint = '/fapi/v1/exchangeInfo'
-      const url = API_CONFIG.corsProxy
-        ? `${API_CONFIG.corsProxy}${encodeURIComponent(`https://fapi.binance.com${endpoint}`)}`
-        : `${this.baseUrl}${endpoint}`
+      // Step 1: Fetch exchange info for all USDT perpetual futures
+      const exchangeInfoEndpoint = '/fapi/v1/exchangeInfo'
+      const exchangeInfoUrl = API_CONFIG.corsProxy
+        ? `${API_CONFIG.corsProxy}${encodeURIComponent(`https://fapi.binance.com${exchangeInfoEndpoint}`)}`
+        : `${this.baseUrl}${exchangeInfoEndpoint}`
 
       console.log('Fetching USDT-M futures symbols from exchange info...')
-      const data = await this.fetchWithRetry<BinanceFuturesExchangeInfo>(url)
+      const exchangeInfo = await this.fetchWithRetry<BinanceFuturesExchangeInfo>(exchangeInfoUrl)
 
       // Filter to USDT-M perpetual futures with TRADING status
-      const futuresSymbols = data.symbols
+      const tradingSymbols = exchangeInfo.symbols
         .filter((symbol: BinanceFuturesSymbol) =>
           symbol.quoteAsset === 'USDT' &&
           symbol.status === 'TRADING' &&
@@ -297,13 +301,41 @@ export class BinanceFuturesApiClient {
         )
         .map((symbol: BinanceFuturesSymbol) => symbol.symbol)
 
-      console.log(`✅ Loaded ${futuresSymbols.length} USDT-M futures symbols`)
+      console.log(`✅ Found ${tradingSymbols.length} USDT-M perpetual futures`)
+
+      // Step 2: Fetch 24hr ticker data to get volumes
+      const tickerEndpoint = '/fapi/v1/ticker/24hr'
+      const tickerUrl = API_CONFIG.corsProxy
+        ? `${API_CONFIG.corsProxy}${encodeURIComponent(`https://fapi.binance.com${tickerEndpoint}`)}`
+        : `${this.baseUrl}${tickerEndpoint}`
+
+      console.log('Fetching 24hr ticker data to sort by volume...')
+      await rateLimitedDelay()
+      const tickers = await this.fetchWithRetry<any[]>(tickerUrl)
+
+      // Create a map of symbol -> quoteVolume
+      const volumeMap = new Map<string, number>()
+      for (const ticker of tickers) {
+        if (tradingSymbols.includes(ticker.symbol)) {
+          volumeMap.set(ticker.symbol, parseFloat(ticker.quoteVolume) || 0)
+        }
+      }
+
+      // Sort symbols by 24hr quote volume (descending)
+      const sortedSymbols = tradingSymbols.sort((a, b) => {
+        const volumeA = volumeMap.get(a) || 0
+        const volumeB = volumeMap.get(b) || 0
+        return volumeB - volumeA // Descending order
+      })
+
+      console.log(`✅ Sorted ${sortedSymbols.length} symbols by 24hr volume`)
+      console.log(`🔝 Top 10 by volume: ${sortedSymbols.slice(0, 10).join(', ')}`)
 
       // Update cache
-      cachedFuturesSymbols = futuresSymbols
+      cachedFuturesSymbols = sortedSymbols
       cacheTimestamp = now
 
-      return futuresSymbols
+      return sortedSymbols
     } catch (error) {
       console.error('Failed to fetch Futures symbols from exchange info:', error)
 
