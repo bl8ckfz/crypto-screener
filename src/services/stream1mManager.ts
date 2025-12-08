@@ -258,12 +258,16 @@ export class Stream1mManager extends SimpleEventEmitter {
       console.log('📡 Subscribing to ticker stream...')
       await this.wsClient.subscribeTicker()
 
+      // Update tracked symbols to only successful ones
+      this.symbols = backfillResult.successful
+      
       // Step 5: Subscribe to 1m kline streams
       console.log(`📡 Subscribing to ${backfillResult.successful.length} 1m kline streams...`)
       await this.wsClient.subscribe1mKlines(backfillResult.successful)
 
       this.isRunning = true
       console.log('✅ 1m streaming started!')
+      console.log(`📊 Tracking ${this.symbols.length} symbols, ${this.buffers.size} buffers initialized`)
 
       this.emit('started', { symbols: backfillResult.successful.length })
     } catch (error) {
@@ -405,7 +409,18 @@ export class Stream1mManager extends SimpleEventEmitter {
     const allTickers = this.wsClient.getAllTickerData()
     // Filter to only tracked symbols to avoid showing coins we don't have metrics for
     const trackedSymbols = new Set(this.symbols)
-    return allTickers.filter(ticker => trackedSymbols.has(ticker.symbol))
+    const filtered = allTickers.filter(ticker => trackedSymbols.has(ticker.symbol))
+    
+    // Debug: Log if mismatch
+    if (filtered.length !== this.symbols.length && import.meta.env.DEV) {
+      console.warn(`⚠️  Ticker data mismatch: ${filtered.length} tickers vs ${this.symbols.length} tracked symbols`)
+      const missingSymbols = this.symbols.filter(s => !filtered.some(t => t.symbol === s))
+      if (missingSymbols.length > 0) {
+        console.warn(`Missing ticker data for: ${missingSymbols.join(', ')}`)
+      }
+    }
+    
+    return filtered
   }
 
   /**
