@@ -94,6 +94,7 @@ export class Stream1mManager extends SimpleEventEmitter {
   private apiClient: BinanceFuturesApiClient
   private symbols: string[] = []
   private isRunning: boolean = false
+  private initialTickers: any[] = [] // Store initial ticker data for immediate display
 
   constructor() {
     super()
@@ -102,6 +103,14 @@ export class Stream1mManager extends SimpleEventEmitter {
     this.apiClient = new BinanceFuturesApiClient()
 
     this.setupWebSocketHandlers()
+  }
+
+  /**
+   * Set initial ticker data for immediate display (before WebSocket connection)
+   */
+  setInitialTickers(tickers: any[]): void {
+    this.initialTickers = tickers
+    console.log(`📊 Stored ${tickers.length} initial tickers for immediate display`)
   }
 
   /**
@@ -403,13 +412,28 @@ export class Stream1mManager extends SimpleEventEmitter {
    * Get all ticker data from WebSocket stream
    * Filtered to only tracked symbols
    * 
+   * Returns initial REST API data if WebSocket hasn't populated yet
+   * 
    * @returns Array of ticker data for tracked symbols only
    */
   getAllTickerData() {
     const allTickers = this.wsClient.getAllTickerData()
+    
+    // If WebSocket hasn't received ticker data yet, use initial REST data
+    if (allTickers.length === 0 && this.initialTickers.length > 0) {
+      console.log(`📊 Using ${this.initialTickers.length} initial tickers (WebSocket not ready)`)
+      return this.initialTickers
+    }
+    
     // Filter to only tracked symbols to avoid showing coins we don't have metrics for
     const trackedSymbols = new Set(this.symbols)
     const filtered = allTickers.filter(ticker => trackedSymbols.has(ticker.symbol))
+    
+    // Once WebSocket has data, clear initial tickers to save memory
+    if (filtered.length > 0 && this.initialTickers.length > 0) {
+      console.log(`✅ WebSocket ticker data available, clearing initial REST data`)
+      this.initialTickers = []
+    }
     
     // Debug: Log if mismatch
     if (filtered.length !== this.symbols.length && import.meta.env.DEV) {

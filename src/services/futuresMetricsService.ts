@@ -79,8 +79,25 @@ export class FuturesMetricsService {
     console.log(`📈 Starting 1m stream for ${symbolsToStream.length} symbols`)
     console.log(`🔝 Top 10: ${symbolsToStream.slice(0, 10).join(', ')}`)
     
-    await this.stream1mManager.start(symbolsToStream)
-    console.log('✅ 1m streaming initialized')
+    // Fetch initial ticker data for immediate display
+    try {
+      const tickers = await this.futuresClient.fetch24hrTickers()
+      const trackedTickers = tickers.filter(t => symbolsToStream.includes(t.symbol))
+      console.log(`📊 Fetched ${trackedTickers.length} initial tickers for display`)
+      
+      // Store in stream manager for immediate access
+      this.stream1mManager.setInitialTickers(trackedTickers)
+    } catch (err) {
+      console.warn('⚠️  Failed to fetch initial tickers:', err)
+    }
+    
+    // Start streaming in background (non-blocking)
+    // This allows UI to show ticker data immediately while backfill runs
+    this.stream1mManager.start(symbolsToStream).catch(err => {
+      console.error('❌ Failed to start 1m streaming:', err)
+    })
+    
+    console.log('✅ 1m streaming initialized (backfill in progress)')
   }
 
   /**
