@@ -450,7 +450,7 @@ export class Stream1mManager extends SimpleEventEmitter {
     
     // If WebSocket hasn't received ticker data yet, use initial REST data
     if (allTickers.length === 0 && this.initialTickers.length > 0) {
-      console.log(`📊 Using ${this.initialTickers.length} initial tickers (WebSocket not ready)`)
+      // Using REST fallback silently (logged once on first call)
       return this.initialTickers
     }
     

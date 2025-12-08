@@ -31,7 +31,7 @@ const KLINES_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
  * @param tickersReady - True when initial REST ticker data is available
  */
 export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?: () => any[], tickersReady?: boolean) {
-  console.log('🔧 useMarketData hook called, wsGetTickerData:', !!wsGetTickerData, 'tickersReady:', tickersReady)
+  // Debug logging removed - hook called frequently during normal operation
   
   // Watchlist filtering
   const currentWatchlistId = useStore((state) => state.currentWatchlistId)
@@ -133,7 +133,6 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
     }
 
     const tickers = wsGetTickerData()
-    console.log(`📊 Effect running: ${tickers?.length || 0} tickers available, tickersReady: ${tickersReady}`)
     
     // Trigger refetch when:
     // 1. tickersReady becomes true (initial REST data loaded)
@@ -155,9 +154,8 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
           console.log(`🔄 New symbols available (${currentTickers.length}), refreshing...`)
           lastSeenCount = currentTickers.length
           query.refetch()
-        } else if (import.meta.env.DEV) {
-          console.log(`🔍 Poll: Still ${currentTickers?.length || 0} tickers (no change)`)
         }
+        // Polling continues silently until all symbols loaded
       }, 2000) // Check every 2 seconds
       
       // Cleanup after 30 seconds (by then, all tickers should be loaded)
