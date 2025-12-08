@@ -82,8 +82,12 @@ function AuthModalComponent({ isOpen, onClose }: AuthModalProps) {
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 Auth state change:', event, 'Session:', session?.user?.email || 'none')
+      
+      // Only close on successful sign in with valid session
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('✅ User signed in, closing modal')
         onClose()
       }
     })
@@ -91,7 +95,7 @@ function AuthModalComponent({ isOpen, onClose }: AuthModalProps) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [onClose])
+  }, []) // onClose is stable, no need to re-subscribe
 
   if (!isOpen) return null
 

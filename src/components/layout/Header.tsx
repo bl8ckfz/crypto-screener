@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { ThemeToggle } from '@/components/controls'
 import { AuthModal, UserMenu } from '@/components/auth'
 import { useStore } from '@/hooks/useStore'
@@ -10,6 +11,10 @@ interface HeaderProps {
 export function Header({ title = 'Crypto Screener', subtitle }: HeaderProps) {
   const isAuthModalOpen = useStore((state) => state.isAuthModalOpen)
   const setAuthModalOpen = useStore((state) => state.setAuthModalOpen)
+
+  // Memoize callbacks to prevent AuthModal from re-rendering
+  const handleOpenAuth = useCallback(() => setAuthModalOpen(true), [setAuthModalOpen])
+  const handleCloseAuth = useCallback(() => setAuthModalOpen(false), [setAuthModalOpen])
 
   return (
     <>
@@ -26,7 +31,7 @@ export function Header({ title = 'Crypto Screener', subtitle }: HeaderProps) {
               <div className="text-sm text-gray-400">
                 <span className="text-bullish">●</span> Live
               </div>
-              <UserMenu onSignIn={() => setAuthModalOpen(true)} />
+              <UserMenu onSignIn={handleOpenAuth} />
               <ThemeToggle />
             </div>
           </div>
@@ -35,7 +40,7 @@ export function Header({ title = 'Crypto Screener', subtitle }: HeaderProps) {
 
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={handleCloseAuth}
       />
     </>
   )
