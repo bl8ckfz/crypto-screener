@@ -30,6 +30,7 @@ const KLINES_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
  * @param wsGetTickerData - Function to get live ticker data from WebSocket
  */
 export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?: () => any[]) {
+  console.log('🔧 useMarketData hook called, wsGetTickerData:', !!wsGetTickerData)
   
   // Watchlist filtering
   const currentWatchlistId = useStore((state) => state.currentWatchlistId)
