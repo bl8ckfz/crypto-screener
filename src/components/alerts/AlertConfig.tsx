@@ -4,7 +4,6 @@ import {
   AlertType,
   FuturesAlertType,
   CombinedAlertType,
-  LEGACY_ALERT_PRESETS,
   FUTURES_ALERT_PRESETS,
   FUTURES_ALERT_LABELS,
 } from '@/types/alert'
@@ -69,36 +68,24 @@ export function AlertConfig({
     // If denied, do nothing (user needs to enable in browser settings)
   }
 
-  const handlePresetSelect = (presetName: string, presetType: 'legacy' | 'futures') => {
-    let alertType: CombinedAlertType
-    let severity: 'low' | 'medium' | 'high' | 'critical'
-    
-    if (presetType === 'legacy') {
-      const preset = LEGACY_ALERT_PRESETS.find(p => p.name === presetName)
-      if (!preset) return
-      alertType = preset.type
-      severity = preset.severity
-    } else {
-      const preset = FUTURES_ALERT_PRESETS.find(p => p.name === presetName)
-      if (!preset) return
-      alertType = preset.type
-      severity = preset.severity
-    }
+  const handlePresetSelect = (presetName: string) => {
+    const preset = FUTURES_ALERT_PRESETS.find(p => p.name === presetName)
+    if (!preset) return
 
     const newRule: AlertRule = {
       id: `rule_${Date.now()}`,
       name: presetName,
-      enabled: true,
+      enabled: true, // All rules enabled by default
       conditions: [
         {
-          type: alertType,
+          type: preset.type,
           threshold: 0, // Preset alerts use hardcoded logic
           comparison: 'greater_than',
           timeframe: undefined,
         },
       ],
       symbols: [], // Empty = all symbols
-      severity,
+      severity: preset.severity,
       notificationEnabled: true,
       soundEnabled: true,
       createdAt: Date.now(),
@@ -324,7 +311,7 @@ export function AlertConfig({
             {FUTURES_ALERT_PRESETS.map((preset) => (
               <button
                 key={preset.name}
-                onClick={() => handlePresetSelect(preset.name, 'futures')}
+                onClick={() => handlePresetSelect(preset.name)}
                 className="flex items-center justify-between rounded-lg border border-green-700/50 bg-green-900/10 p-3 text-left transition-colors hover:border-green-500 hover:bg-green-900/20 mb-2"
               >
                 <div className="flex-1">
@@ -341,33 +328,7 @@ export function AlertConfig({
               </button>
             ))}
 
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-3">
-              <div className="flex-1 border-t border-gray-700"></div>
-              <span className="text-xs text-gray-500">LEGACY ALERTS</span>
-              <div className="flex-1 border-t border-gray-700"></div>
-            </div>
 
-            {/* Legacy Presets */}
-            {LEGACY_ALERT_PRESETS.map((preset) => (
-              <button
-                key={preset.name}
-                onClick={() => handlePresetSelect(preset.name, 'legacy')}
-                className="flex items-center justify-between rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-blue-500 hover:bg-gray-700"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">
-                      {getAlertTypeLabel(preset.type)}
-                    </span>
-                    <Badge className={getAlertTypeBadgeColor(preset.type)}>
-                      Legacy
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-400">{preset.description}</p>
-                </div>
-              </button>
-            ))}
           </div>
         </div>
       )}
