@@ -82,15 +82,15 @@ export async function fetchKlines(
 ): Promise<ChartData> {
   const fullSymbol = `${symbol}${pair}`
   
-  // Build API URL - use Vercel proxy in production, CORS proxy in dev
+  // Build API URL - use direct connection like backfill does
   const params = new URLSearchParams({
     symbol: fullSymbol,
     interval,
     limit: limit.toString(),
   })
   
-  // Use Vercel API proxy for both dev and production
-  const url = `/api/binance-futures?endpoint=/fapi/v1/klines&${params}`
+  // Direct connection to Binance Futures API (same as 1m backfill)
+  const url = `https://fapi.binance.com/fapi/v1/klines?${params}`
   
   try {
     const response = await fetch(url, {
@@ -128,8 +128,9 @@ export async function fetchKlines(
   } catch (error) {
     console.error('Failed to fetch klines:', error)
     
-    // Return mock data for development
+    // Return mock data for development fallback
     if (import.meta.env.DEV) {
+      console.warn('⚠️ Using mock chart data (development fallback)')
       return generateMockChartData(fullSymbol, interval, limit)
     }
     
