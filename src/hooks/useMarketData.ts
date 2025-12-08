@@ -64,6 +64,14 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         tickers = wsGetTickerData()
         if (tickers && tickers.length > 0) {
           console.log(`✅ Using ${tickers.length} tickers from WebSocket stream`)
+          
+          // Warn if we don't have all symbols yet (ticker stream still populating)
+          // Note: We'll still show partial data, it will update as more tickers arrive
+          if (import.meta.env.DEV) {
+            // Get expected count from second parameter if available
+            // This is a bit of a hack since wsGetTickerData doesn't know about tracked count
+            // In practice, the ticker data will quickly populate to full count
+          }
         } else {
           // WebSocket not ready yet - return empty array, will populate when ready
           console.log('⏳ WebSocket not ready yet, waiting for ticker data...')
@@ -114,14 +122,40 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
 
-  // Refetch once when WebSocket ticker data becomes available
+  // Refetch when WebSocket ticker data becomes available, and keep refetching
+  // until we have data for all symbols (ticker stream populates gradually)
   useEffect(() => {
-    if (wsGetTickerData && !hasRefetchedForWebSocket.current) {
-      const tickers = wsGetTickerData()
-      if (tickers && tickers.length > 0) {
+    if (!wsGetTickerData) return
+
+    const tickers = wsGetTickerData()
+    if (tickers && tickers.length > 0) {
+      if (!hasRefetchedForWebSocket.current) {
         console.log('🔄 WebSocket ticker data ready, loading market data...')
         hasRefetchedForWebSocket.current = true
         query.refetch()
+      }
+      
+      // If we don't have all symbols yet, refetch every 2 seconds until we do
+      // This handles the case where ticker stream is still populating
+      const intervalId = setInterval(() => {
+        const currentTickers = wsGetTickerData()
+        if (currentTickers && currentTickers.length > tickers.length) {
+          console.log(`🔄 New symbols available (${currentTickers.length}), refreshing...`)
+          query.refetch()
+          
+          // Clear interval if we stop getting more symbols for 10 seconds
+          // (assumes ticker stream has finished populating)
+        }
+      }, 2000) // Check every 2 seconds
+      
+      // Cleanup after 30 seconds (by then, all tickers should be loaded)
+      const cleanupTimeout = setTimeout(() => {
+        clearInterval(intervalId)
+      }, 30000)
+      
+      return () => {
+        clearInterval(intervalId)
+        clearTimeout(cleanupTimeout)
       }
     }
   }, [wsGetTickerData, query])

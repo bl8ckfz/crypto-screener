@@ -231,6 +231,11 @@ export function useFuturesStreaming() {
   const getTickerData = useCallback(() => {
     return futuresMetricsService.getAllTickerData()
   }, [])
+
+  // Get expected symbol count
+  const getTrackedSymbolCount = useCallback(() => {
+    return futuresMetricsService.getTrackedSymbols().length
+  }, [])
   
   return {
     // State
@@ -247,6 +252,7 @@ export function useFuturesStreaming() {
     
     // Ticker data from WebSocket (for market data list)
     getTickerData,
+    getTrackedSymbolCount,
     
     // Helpers
     getMetrics,
