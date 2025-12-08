@@ -231,8 +231,8 @@ export class BinanceApiClient {
   }
 
   /**
-   * Parse WebSocket FuturesTickerData to ProcessedTicker
-   * Maps WebSocket field names to REST API field names
+   * Parse futures ticker data (REST or WebSocket) to ProcessedTicker format
+   * Handles both 24hr ticker API and WebSocket ticker stream formats
    */
   static parseFuturesTickerData(ticker: FuturesTickerData): ProcessedTicker {
     return {
@@ -240,23 +240,23 @@ export class BinanceApiClient {
       priceChange: ticker.priceChange,
       priceChangePercent: ticker.priceChangePercent,
       weightedAvgPrice: ticker.weightedAvgPrice,
-      prevClosePrice: ticker.open, // Use open as previous close (24h ago)
-      lastPrice: ticker.close, // WebSocket uses 'close' for current price
-      lastQty: ticker.lastQty,
-      bidPrice: 0, // Not available in WebSocket ticker stream
-      bidQty: 0, // Not available in WebSocket ticker stream
-      askPrice: 0, // Not available in WebSocket ticker stream
-      askQty: 0, // Not available in WebSocket ticker stream
-      openPrice: ticker.open,
-      highPrice: ticker.high,
-      lowPrice: ticker.low,
-      volume: ticker.volume,
-      quoteVolume: ticker.quoteVolume,
-      openTime: ticker.eventTime - 86400000, // 24h ago (approximate)
-      closeTime: ticker.eventTime,
-      firstId: 0, // Not available in WebSocket ticker stream
-      lastId: 0, // Not available in WebSocket ticker stream
-      count: 0, // Not available in WebSocket ticker stream
+      prevClosePrice: ticker.openPrice || ticker.open || 0, // openPrice (REST) or open (WebSocket)
+      lastPrice: ticker.lastPrice || ticker.close || 0, // lastPrice (REST/WebSocket) or close (WebSocket kline)
+      lastQty: ticker.lastQty || 0,
+      bidPrice: 0, // Not available in ticker stream
+      bidQty: 0, // Not available in ticker stream
+      askPrice: 0, // Not available in ticker stream
+      askQty: 0, // Not available in ticker stream
+      openPrice: ticker.openPrice || ticker.open || 0,
+      highPrice: ticker.highPrice || ticker.high || 0,
+      lowPrice: ticker.lowPrice || ticker.low || 0,
+      volume: ticker.volume || 0,
+      quoteVolume: ticker.quoteVolume || 0,
+      openTime: ticker.openTime || (ticker.eventTime ? ticker.eventTime - 86400000 : 0),
+      closeTime: ticker.closeTime || ticker.eventTime || 0,
+      firstId: ticker.firstId || 0,
+      lastId: ticker.lastId || 0,
+      count: ticker.count || 0,
     }
   }
 

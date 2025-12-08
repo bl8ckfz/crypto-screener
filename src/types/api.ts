@@ -185,23 +185,40 @@ export interface CoinGeckoMarketData {
  */
 export interface FuturesTickerData {
   symbol: string               // Symbol (e.g., "BTCUSDT")
-  eventTime: number            // Event time
-  close: number                // Last price
-  open: number                 // Open price (24h ago)
-  high: number                 // High price (24h)
-  low: number                  // Low price (24h)
+  
+  // Price fields (REST API uses lastPrice/openPrice, WebSocket uses close/open)
+  lastPrice?: number           // Current price (REST API format)
+  close?: number               // Current price (WebSocket format)
+  openPrice?: number           // Open price 24h ago (REST API format)
+  open?: number                // Open price 24h ago (WebSocket format)
+  highPrice?: number           // High price 24h (REST API format)
+  high?: number                // High price 24h (WebSocket format)
+  lowPrice?: number            // Low price 24h (REST API format)
+  low?: number                 // Low price 24h (WebSocket format)
+  
+  // Volume and change fields (same in both formats)
   volume: number               // Base asset volume (24h)
   quoteVolume: number          // Quote asset volume (24h)
   priceChange: number          // Price change (24h)
   priceChangePercent: number   // Price change % (24h)
-  lastQty: number              // Last traded quantity
+  lastQty?: number             // Last traded quantity
   
-  // Futures-specific fields
+  // Time fields
+  eventTime?: number           // Event time (WebSocket)
+  openTime?: number            // Open time (REST API)
+  closeTime?: number           // Close time (REST API)
+  
+  // ID fields (REST API only)
+  firstId?: number             // First trade ID
+  lastId?: number              // Last trade ID
+  count?: number               // Trade count
+  
+  // Futures-specific fields (optional)
   weightedAvgPrice: number     // Weighted average price
-  fundingRate: number          // Current funding rate
-  indexPrice: number           // Index price
-  markPrice: number            // Mark price
-  openInterest: number         // Open interest
+  fundingRate?: number         // Current funding rate
+  indexPrice?: number          // Index price
+  markPrice?: number           // Mark price
+  openInterest?: number        // Open interest
 }
 
 /**
