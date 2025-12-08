@@ -82,19 +82,15 @@ export async function fetchKlines(
 ): Promise<ChartData> {
   const fullSymbol = `${symbol}${pair}`
   
-  // Build API URL
+  // Build API URL - use Vercel proxy in production, CORS proxy in dev
   const params = new URLSearchParams({
     symbol: fullSymbol,
     interval,
     limit: limit.toString(),
   })
   
-  const baseUrl = import.meta.env.DEV
-    ? 'https://api.allorigins.win/raw?url='
-    : ''
-  
-  const apiUrl = `https://api.binance.com/api/v3/klines?${params}`
-  const url = import.meta.env.DEV ? `${baseUrl}${encodeURIComponent(apiUrl)}` : apiUrl
+  // Use Vercel API proxy for both dev and production
+  const url = `/api/binance-futures?endpoint=/fapi/v1/klines&${params}`
   
   try {
     const response = await fetch(url, {

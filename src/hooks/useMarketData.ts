@@ -682,6 +682,18 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
           
           // Process each alert
           for (const alert of triggeredAlerts) {
+            // Check cooldown to prevent spam
+            const lastAlertTime = recentAlerts.current.get(alert.symbol) || 0
+            const cooldownMs = alertSettings.alertCooldown * 1000
+            
+            if (now - lastAlertTime < cooldownMs) {
+              console.log(`⏭️  Skipping ${alert.symbol} - in cooldown (${Math.round((now - lastAlertTime) / 1000)}s / ${alertSettings.alertCooldown}s)`)
+              continue // Skip if in cooldown period
+            }
+            
+            // Update cooldown tracker
+            recentAlerts.current.set(alert.symbol, now)
+            
             // Debug: Log alert being added
             console.log(`➕ Adding alert to store:`, alert.symbol, alert.type, alert.id)
             
