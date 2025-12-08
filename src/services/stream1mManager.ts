@@ -350,9 +350,9 @@ export class Stream1mManager extends SimpleEventEmitter {
       // Debug: Log first few metric emissions to verify data flow
       if (import.meta.env.DEV && Math.random() < 0.01) { // 1% sample rate
         console.log(`📊 Emitting metrics for ${symbol}:`, {
-          change_5m: metrics.change_5m.toFixed(2) + '%',
-          change_15m: metrics.change_15m.toFixed(2) + '%',
-          volume_5m: '$' + (metrics.quoteVolume_5m / 1000).toFixed(0) + 'K',
+          change_5m: metrics.m5.priceChangePercent.toFixed(2) + '%',
+          change_15m: metrics.m15.priceChangePercent.toFixed(2) + '%',
+          volume_5m: '$' + (metrics.m5.quoteVolume / 1000).toFixed(0) + 'K',
         })
       }
       this.emit('metrics', { symbol, metrics, timestamp: Date.now() })
