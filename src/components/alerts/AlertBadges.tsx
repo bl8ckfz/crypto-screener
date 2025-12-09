@@ -1,4 +1,4 @@
-import type { CombinedAlertType, AlertType } from '@/types/alert'
+import type { CombinedAlertType } from '@/types/alert'
 import { FUTURES_ALERT_LABELS } from '@/types/alert'
 
 interface AlertBadgesProps {
@@ -16,46 +16,40 @@ export function AlertBadges({ alertTypes, maxVisible = 3 }: AlertBadgesProps) {
   const remainingCount = Math.max(0, types.length - maxVisible)
 
   const getAlertBadgeColor = (type: CombinedAlertType): string => {
-    // Bullish alerts - green
-    if (['price_pump', 'pioneer_bull', '5m_big_bull', '15m_big_bull', 'bottom_hunter'].includes(type)) {
+    // Bullish futures alerts - green gamma
+    if ([
+      'futures_big_bull_60',
+      'futures_pioneer_bull',
+      'futures_5_big_bull',
+      'futures_15_big_bull',
+      'futures_bottom_hunter'
+    ].includes(type)) {
       return 'bg-green-500/20 text-green-400 border-green-500/50'
     }
     
-    // Bearish alerts - red/orange
-    if (['price_dump', 'pioneer_bear', '5m_big_bear', '15m_big_bear', 'top_hunter'].includes(type)) {
+    // Bearish futures alerts - red gamma
+    if ([
+      'futures_big_bear_60',
+      'futures_pioneer_bear',
+      'futures_5_big_bear',
+      'futures_15_big_bear',
+      'futures_top_hunter'
+    ].includes(type)) {
       return 'bg-red-500/20 text-red-400 border-red-500/50'
     }
     
-    // Neutral alerts - blue/purple
-    return 'bg-blue-500/20 text-blue-400 border-blue-500/50'
+    // Fallback - gray
+    return 'bg-gray-500/20 text-gray-400 border-gray-500/50'
   }
 
   const getAlertLabel = (type: CombinedAlertType): string => {
-    // Check futures alerts first
+    // Futures alerts only - remove prefix for display
     if (type.startsWith('futures_')) {
       const futuresLabels = FUTURES_ALERT_LABELS as Record<string, string>
       return futuresLabels[type] || type
     }
-    // Spot alerts
-    const labels: Record<AlertType, string> = {
-      price_pump: 'Pump',
-      price_dump: 'Dump',
-      volume_spike: 'Vol↑',
-      volume_drop: 'Vol↓',
-      vcp_signal: 'VCP',
-      fibonacci_break: 'Fib',
-      trend_reversal: 'Trend',
-      pioneer_bull: 'Pioneer🐂',
-      pioneer_bear: 'Pioneer🐻',
-      '5m_big_bull': '5m🐂',
-      '5m_big_bear': '5m🐻',
-      '15m_big_bull': '15m🐂',
-      '15m_big_bear': '15m🐻',
-      bottom_hunter: 'Bottom',
-      top_hunter: 'Top',
-      custom: 'Custom',
-    }
-    return labels[type as AlertType] || type
+    // Fallback for any non-futures types
+    return type
   }
 
   if (types.length === 0) {

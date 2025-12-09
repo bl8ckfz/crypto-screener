@@ -7,36 +7,44 @@ interface AlertTimelineChartProps {
   height?: number
 }
 
-// Color scheme for different alert types
+// Color scheme for futures alerts - bullish in green gamma, bearish in red gamma
 const ALERT_TYPE_COLORS: Record<string, string> = {
-  pioneer_bull: '#10b981', // green-500
-  pioneer_bear: '#ef4444', // red-500
-  '5m_big_bull': '#34d399', // green-400
-  '5m_big_bear': '#f87171', // red-400
-  '15m_big_bull': '#059669', // green-600
-  '15m_big_bear': '#dc2626', // red-600
-  bottom_hunter: '#3b82f6', // blue-500
-  top_hunter: '#f59e0b', // amber-500
-  price_pump: '#22c55e', // green-500
-  price_dump: '#ef4444', // red-500
-  volume_spike: '#8b5cf6', // violet-500
-  custom: '#6b7280', // gray-500
+  // Bullish alerts - green gamma
+  futures_big_bull_60: '#22c55e', // green-500
+  futures_pioneer_bull: '#10b981', // green-500 (emerald)
+  futures_5_big_bull: '#84cc16', // lime-500
+  futures_15_big_bull: '#4ade80', // green-400
+  futures_bottom_hunter: '#34d399', // green-400 (emerald)
+  
+  // Bearish alerts - red gamma
+  futures_big_bear_60: '#ef4444', // red-500
+  futures_pioneer_bear: '#dc2626', // red-600
+  futures_5_big_bear: '#f87171', // red-400
+  futures_15_big_bear: '#fb923c', // orange-400 (red-orange)
+  futures_top_hunter: '#f97316', // orange-500 (red-orange)
 }
 
-// Display names for alert types
-const ALERT_TYPE_NAMES: Record<string, string> = {
-  pioneer_bull: 'Pioneer Bull',
-  pioneer_bear: 'Pioneer Bear',
-  '5m_big_bull': '5m Big Bull',
-  '5m_big_bear': '5m Big Bear',
-  '15m_big_bull': '15m Big Bull',
-  '15m_big_bear': '15m Big Bear',
-  bottom_hunter: 'Bottom Hunter',
-  top_hunter: 'Top Hunter',
-  price_pump: 'Price Pump',
-  price_dump: 'Price Dump',
-  volume_spike: 'Volume Spike',
-  custom: 'Custom',
+// Display names for futures alert types - without "futures_" prefix
+const getAlertTypeName = (type: string): string => {
+  // Remove futures_ prefix if present
+  const cleanType = type.replace(/^futures_/, '')
+  
+  const names: Record<string, string> = {
+    big_bull_60: '60 Big Bull',
+    big_bear_60: '60 Big Bear',
+    pioneer_bull: 'Pioneer Bull',
+    pioneer_bear: 'Pioneer Bear',
+    '5_big_bull': '5 Big Bull',
+    '5_big_bear': '5 Big Bear',
+    '15_big_bull': '15 Big Bull',
+    '15_big_bear': '15 Big Bear',
+    bottom_hunter: 'Bottom Hunter',
+    top_hunter: 'Top Hunter',
+  }
+  
+  return names[cleanType] || cleanType.split('_').map(w => 
+    w.charAt(0).toUpperCase() + w.slice(1)
+  ).join(' ')
 }
 
 // Format timestamp to readable time
@@ -49,7 +57,7 @@ const formatTime = (timestamp: number): string => {
   })
 }
 
-export function AlertTimelineChart({ symbol, height = 300 }: AlertTimelineChartProps) {
+export function AlertTimelineChart({ symbol, height: _unusedHeight }: AlertTimelineChartProps) {
   // Watch for alert history changes
   const alertHistoryRefresh = useStore((state) => state.alertHistoryRefresh)
 
@@ -67,6 +75,16 @@ export function AlertTimelineChart({ symbol, height = 300 }: AlertTimelineChartP
     const types = new Set(filteredAlerts.map(entry => entry.alertType))
     return Array.from(types).sort()
   }, [filteredAlerts])
+
+  // Calculate dynamic height based on number of alert types
+  // Minimum 40px per row, with reasonable bounds
+  const dynamicHeight = useMemo(() => {
+    const rowCount = alertTypes.length || 1
+    const minRowHeight = 45
+    const calculatedHeight = rowCount * minRowHeight
+    // Min 200px, max 800px for reasonable display
+    return Math.max(200, Math.min(calculatedHeight, 800))
+  }, [alertTypes.length])
 
   // Calculate time range for X-axis
   const timeRange = useMemo(() => {
@@ -87,7 +105,7 @@ export function AlertTimelineChart({ symbol, height = 300 }: AlertTimelineChartP
 
   if (filteredAlerts.length === 0) {
     return (
-      <div className="flex items-center justify-center text-gray-500" style={{ height }}>
+      <div className="flex items-center justify-center text-gray-500" style={{ height: 200 }}>
         <div className="text-center">
           <p className="text-sm font-medium">No alerts in the last 24 hours</p>
           <p className="text-xs text-gray-600 mt-1">
@@ -98,7 +116,7 @@ export function AlertTimelineChart({ symbol, height = 300 }: AlertTimelineChartP
     )
   }
 
-  const rowHeight = Math.max(40, height / alertTypes.length)
+  const rowHeight = dynamicHeight / alertTypes.length
   const chartWidth = timeRange.max - timeRange.min
 
   return (
@@ -112,29 +130,29 @@ export function AlertTimelineChart({ symbol, height = 300 }: AlertTimelineChartP
               style={{ backgroundColor: ALERT_TYPE_COLORS[type] || ALERT_TYPE_COLORS.custom }}
             />
             <span className="text-xs text-gray-400">
-              {ALERT_TYPE_NAMES[type] || type}
+              {getAlertTypeName(type)}
             </span>
           </div>
         ))}
       </div>
 
       {/* Dot Plot Chart */}
-      <div className="relative bg-gray-900/30 rounded border border-gray-700" style={{ height }}>
+      <div className="relative bg-gray-900/30 rounded border border-gray-700" style={{ height: dynamicHeight }}>
         {/* Y-axis labels */}
-        <div className="absolute left-0 top-0 bottom-0 w-32 border-r border-gray-700 bg-gray-900/50">
+        <div className="absolute left-0 top-0 bottom-0 w-36 border-r border-gray-700 bg-gray-900/50 overflow-y-auto">
           {alertTypes.map((type) => (
             <div
               key={type}
               className="flex items-center px-3 text-xs text-gray-400 border-b border-gray-800"
-              style={{ height: rowHeight }}
+              style={{ height: rowHeight, minHeight: '40px' }}
             >
-              {ALERT_TYPE_NAMES[type] || type}
+              <span className="truncate">{getAlertTypeName(type)}</span>
             </div>
           ))}
         </div>
 
         {/* Chart area with dots */}
-        <div className="absolute left-32 right-0 top-0 bottom-0 overflow-hidden">
+        <div className="absolute left-36 right-0 top-0 bottom-0 overflow-hidden">
           {/* Grid lines */}
           {alertTypes.map((_, index) => (
             <div
@@ -162,7 +180,7 @@ export function AlertTimelineChart({ symbol, height = 300 }: AlertTimelineChartP
               >
                 {/* Dot */}
                 <div
-                  className="w-2.5 h-2.5 rounded-full transition-all hover:scale-150 hover:ring-2 hover:ring-white/50 cursor-pointer"
+                  className="w-3 h-3 rounded-full transition-all hover:scale-150 hover:ring-2 hover:ring-white/50 cursor-pointer shadow-lg"
                   style={{
                     backgroundColor: ALERT_TYPE_COLORS[entry.alertType] || ALERT_TYPE_COLORS.custom,
                   }}
@@ -172,7 +190,7 @@ export function AlertTimelineChart({ symbol, height = 300 }: AlertTimelineChartP
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
                   <div className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs whitespace-nowrap shadow-lg">
                     <div className="font-medium text-white">
-                      {ALERT_TYPE_NAMES[entry.alertType] || entry.alertType}
+                      {getAlertTypeName(entry.alertType)}
                     </div>
                     <div className="text-gray-400 mt-0.5">
                       {formatTime(entry.timestamp)}
@@ -191,7 +209,7 @@ export function AlertTimelineChart({ symbol, height = 300 }: AlertTimelineChartP
         </div>
 
         {/* Time axis labels (approximate) */}
-        <div className="absolute left-32 right-0 -bottom-6 flex justify-between text-xs text-gray-500 px-2">
+        <div className="absolute left-36 right-0 -bottom-6 flex justify-between text-xs text-gray-500 px-2">
           <span>{formatTime(timeRange.min)}</span>
           <span>{formatTime((timeRange.min + timeRange.max) / 2)}</span>
           <span>{formatTime(timeRange.max)}</span>
