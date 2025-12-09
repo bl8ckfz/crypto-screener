@@ -167,6 +167,11 @@ export function AlertTimelineChart({ symbol, height: _unusedHeight }: AlertTimel
             const typeIndex = alertTypes.indexOf(entry.alertType)
             const xPos = ((entry.timestamp - timeRange.min) / chartWidth) * 100
             const yPos = typeIndex * rowHeight + rowHeight / 2
+            
+            // Determine tooltip position based on location in chart
+            const isNearTop = typeIndex < alertTypes.length / 2
+            const isNearLeft = xPos < 30
+            const isNearRight = xPos > 70
 
             return (
               <div
@@ -186,8 +191,14 @@ export function AlertTimelineChart({ symbol, height: _unusedHeight }: AlertTimel
                   }}
                 />
                 
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
+                {/* Tooltip - positioned dynamically to stay within bounds */}
+                <div 
+                  className={`absolute hidden group-hover:block z-10 pointer-events-none ${
+                    isNearTop ? 'top-full mt-2' : 'bottom-full mb-2'
+                  } ${
+                    isNearLeft ? 'left-0' : isNearRight ? 'right-0' : 'left-1/2 -translate-x-1/2'
+                  }`}
+                >
                   <div className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs whitespace-nowrap shadow-lg">
                     <div className="font-medium text-white">
                       {getAlertTypeName(entry.alertType)}
