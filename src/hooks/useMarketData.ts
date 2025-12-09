@@ -122,10 +122,10 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
 
       return coins
     },
-    staleTime: Infinity, // Never consider data stale when using WebSocket
-    // Disable automatic refetching when WebSocket is providing live data
-    // Only refetch manually on mount or when explicitly needed
-    refetchInterval: false,
+    staleTime: 5000, // Consider data stale after 5 seconds
+    // Refetch every 5 seconds to keep data fresh
+    // WebSocket provides ticker updates, but we still need to recalculate indicators
+    refetchInterval: 5000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: 3,

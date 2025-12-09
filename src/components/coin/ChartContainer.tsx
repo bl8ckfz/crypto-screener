@@ -55,6 +55,32 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
     }
   }, [coin.symbol, coin.pair, interval])
 
+  // Auto-refresh chart data periodically to update the latest candle
+  useEffect(() => {
+    let isCancelled = false
+    
+    const refreshChartData = async () => {
+      try {
+        const data = await fetchKlines(coin.symbol, coin.pair, interval, 100)
+        
+        if (!isCancelled) {
+          setChartData(data.candlesticks)
+        }
+      } catch (err) {
+        // Silent fail on refresh - don't show error for background updates
+        console.warn('Chart refresh failed:', err)
+      }
+    }
+
+    // Refresh every 5 seconds to update the current candle
+    const refreshInterval = window.setInterval(refreshChartData, 5000)
+
+    return () => {
+      isCancelled = true
+      window.clearInterval(refreshInterval)
+    }
+  }, [coin.symbol, coin.pair, interval])
+
   const handleIntervalChange = (newInterval: KlineInterval) => {
     setInterval(newInterval)
   }
