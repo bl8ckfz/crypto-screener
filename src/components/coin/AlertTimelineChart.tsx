@@ -139,7 +139,7 @@ export function AlertTimelineChart({ symbol, height: _unusedHeight }: AlertTimel
       {/* Dot Plot Chart */}
       <div className="relative bg-gray-900/30 rounded border border-gray-700" style={{ height: dynamicHeight }}>
         {/* Y-axis labels */}
-        <div className="absolute left-0 top-0 bottom-0 w-36 border-r border-gray-700 bg-gray-900/50 overflow-y-auto">
+        <div className="absolute left-0 top-0 bottom-0 w-36 border-r border-gray-700 bg-gray-900/50">
           {alertTypes.map((type) => (
             <div
               key={type}
