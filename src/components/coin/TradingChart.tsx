@@ -289,20 +289,43 @@ export function TradingChart({
 
     // Add alert markers if enabled
     if (showAlerts && alerts.length > 0 && mainSeries) {
+      console.log(`🎯 Processing ${alerts.length} alerts for markers`)
+      
       const markers: SeriesMarker<Time>[] = alerts
-        .filter(alert => {
-          // Find matching candle for alert timestamp
-          const alertTime = Math.floor(alert.timestamp / 1000) as Time
-          return data.some(candle => candle.time === alertTime)
-        })
         .map(alert => {
+          // Convert alert timestamp (ms) to candle time (seconds)
+          const alertTime = Math.floor(alert.timestamp / 1000) as Time
+          
+          // Find closest candle within reasonable range (5 minutes = 300 seconds)
+          const closestCandle = data.reduce((closest, candle) => {
+            const candleTime = typeof candle.time === 'number' ? candle.time : Number(candle.time)
+            const currentDiff = Math.abs(candleTime - alertTime)
+            const closestDiff = closest ? Math.abs((typeof closest.time === 'number' ? closest.time : Number(closest.time)) - alertTime) : Infinity
+            return currentDiff < closestDiff ? candle : closest
+          }, null as any)
+          
+          if (!closestCandle) {
+            console.warn(`⚠️  No candle found for alert at ${new Date(alert.timestamp).toISOString()}`)
+            return null
+          }
+          
+          const candleTime = typeof closestCandle.time === 'number' ? closestCandle.time : Number(closestCandle.time)
+          const timeDiff = Math.abs(candleTime - alertTime)
+          
+          // Skip if alert is more than 5 minutes away from any candle
+          if (timeDiff > 300) {
+            console.warn(`⚠️  Alert too far from candles (${Math.floor(timeDiff / 60)}m away)`)
+            return null
+          }
+          
           const style = getAlertMarkerStyle(alert.alertType)
           const size = getAlertMarkerSize(alert.alertType)
           const displayName = getAlertDisplayName(alert.alertType)
-          const time = Math.floor(alert.timestamp / 1000) as Time
+          
+          console.log(`✅ Creating marker for ${displayName} at ${new Date(alert.timestamp).toISOString()}`)
           
           return {
-            time,
+            time: candleTime as Time,
             position: style.position,
             color: style.color,
             shape: style.shape,
@@ -310,9 +333,14 @@ export function TradingChart({
             text: displayName,
           }
         })
+        .filter((marker): marker is SeriesMarker<Time> => marker !== null)
 
+      console.log(`📍 Setting ${markers.length} markers on chart`)
+      
       if (markers.length > 0) {
         mainSeries.setMarkers(markers)
+      } else {
+        console.warn('⚠️  No valid markers to display')
       }
     }
 
