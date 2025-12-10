@@ -207,7 +207,11 @@ export function AlertHistoryTable({ stats, onCoinClick, onClearHistory }: AlertH
 
                 {/* Alert Type Badges */}
                 <td className="py-3 px-4">
-                  <AlertBadges alertTypes={stat.alertTypes} maxVisible={3} />
+                  <AlertBadges 
+                    alertTypes={stat.alertTypes} 
+                    maxVisible={3}
+                    latestAlertType={stat.alerts[0]?.alertType}
+                  />
                 </td>
 
                 {/* Last Alert Time */}
