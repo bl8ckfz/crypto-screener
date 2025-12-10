@@ -294,7 +294,7 @@ export function TradingChart({
       const markers: SeriesMarker<Time>[] = alerts
         .map(alert => {
           // Convert alert timestamp (ms) to candle time (seconds)
-          const alertTime = Math.floor(alert.timestamp / 1000) as Time
+          const alertTime = Math.floor(alert.timestamp / 1000)
           
           // Find closest candle within reasonable range (5 minutes = 300 seconds)
           const closestCandle = data.reduce((closest, candle) => {
@@ -302,7 +302,7 @@ export function TradingChart({
             const currentDiff = Math.abs(candleTime - alertTime)
             const closestDiff = closest ? Math.abs((typeof closest.time === 'number' ? closest.time : Number(closest.time)) - alertTime) : Infinity
             return currentDiff < closestDiff ? candle : closest
-          }, null as any)
+          }, null as typeof data[0] | null)
           
           if (!closestCandle) {
             console.warn(`⚠️  No candle found for alert at ${new Date(alert.timestamp).toISOString()}`)
@@ -325,13 +325,13 @@ export function TradingChart({
           console.log(`✅ Creating marker for ${displayName} at ${new Date(alert.timestamp).toISOString()}`)
           
           return {
-            time: candleTime as Time,
+            time: closestCandle.time,
             position: style.position,
             color: style.color,
             shape: style.shape,
             size,
             text: displayName,
-          }
+          } as SeriesMarker<Time>
         })
         .filter((marker): marker is SeriesMarker<Time> => marker !== null)
 
