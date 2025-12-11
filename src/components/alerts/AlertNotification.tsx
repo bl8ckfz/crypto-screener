@@ -297,7 +297,8 @@ export function AlertNotificationContainer() {
   // Show only the most recent 5 alerts
   const visibleAlerts = activeAlerts.slice(-5)
 
-  if (visibleAlerts.length === 0) return null
+  // Don't show toasts if notification is disabled
+  if (!alertSettings.notificationEnabled || visibleAlerts.length === 0) return null
 
   return (
     <div

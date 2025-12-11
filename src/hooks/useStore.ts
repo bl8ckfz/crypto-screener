@@ -146,7 +146,7 @@ const initialState = {
   alertSettings: {
     enabled: true,
     soundEnabled: false,
-    notificationEnabled: true,
+    notificationEnabled: false, // Disabled by default (can cover UI on small screens)
     browserNotificationEnabled: false, // Requires user permission
     webhookEnabled: false,
     discordWebhookUrl: '', // Legacy field for backwards compatibility
