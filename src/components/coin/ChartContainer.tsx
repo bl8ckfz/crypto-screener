@@ -27,10 +27,10 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
 
   // Get alerts for current coin from history - refresh every 3 seconds
   useEffect(() => {
-    const timer = setInterval(() => {
+    const timer = window.setInterval(() => {
       setAlertRefresh(prev => prev + 1)
     }, 3000)
-    return () => clearInterval(timer)
+    return () => window.clearInterval(timer)
   }, [])
 
   const coinAlerts = useMemo(() => {

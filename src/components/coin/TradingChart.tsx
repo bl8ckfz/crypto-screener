@@ -111,6 +111,24 @@ export function TradingChart({
 
     setIsLoading(true)
 
+    // Calculate appropriate price precision based on price range
+    const prices = data.map(candle => candle.close)
+    const maxPrice = Math.max(...prices)
+    const minPrice = Math.min(...prices)
+    const avgPrice = (maxPrice + minPrice) / 2
+    
+    // Determine precision: show at least 4 significant digits
+    let precision = 2 // Default for prices >= 100
+    if (avgPrice < 0.001) {
+      precision = 8 // Very small values (< $0.001)
+    } else if (avgPrice < 0.01) {
+      precision = 6 // Small values (< $0.01)
+    } else if (avgPrice < 1) {
+      precision = 4 // Medium values (< $1)
+    } else if (avgPrice < 100) {
+      precision = 3 // Standard values (< $100)
+    }
+
     // Create chart instance
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
@@ -175,6 +193,11 @@ export function TradingChart({
         borderVisible: false,
         wickUpColor: '#10b981',
         wickDownColor: '#ef4444',
+        priceFormat: {
+          type: 'price',
+          precision,
+          minMove: 1 / Math.pow(10, precision),
+        },
       })
 
       const candlestickData: CandlestickData[] = data.map((candle) => ({
@@ -194,6 +217,11 @@ export function TradingChart({
         crosshairMarkerRadius: 4,
         lastValueVisible: true,
         priceLineVisible: true,
+        priceFormat: {
+          type: 'price',
+          precision,
+          minMove: 1 / Math.pow(10, precision),
+        },
       })
 
       const lineData = data.map((candle) => ({
@@ -212,6 +240,11 @@ export function TradingChart({
         crosshairMarkerVisible: true,
         lastValueVisible: true,
         priceLineVisible: true,
+        priceFormat: {
+          type: 'price',
+          precision,
+          minMove: 1 / Math.pow(10, precision),
+        },
       })
 
       const areaData = data.map((candle) => ({
