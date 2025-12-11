@@ -105,46 +105,12 @@ export function TradingChart({
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const weeklyVWAPRef = useRef<ISeriesApi<'Line'> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  
-  // Store time range to preserve zoom/scroll between updates
-  const timeRangeRef = useRef<{ from: number; to: number } | null>(null)
+  const chartInitializedRef = useRef(false)
 
+  // Create chart instance once on mount
   useEffect(() => {
-    if (!chartContainerRef.current || data.length === 0) return
+    if (!chartContainerRef.current || chartInitializedRef.current) return
 
-    setIsLoading(true)
-    
-    // Save current time range before recreating chart
-    if (chartRef.current) {
-      const timeScale = chartRef.current.timeScale()
-      const visibleRange = timeScale.getVisibleRange()
-      if (visibleRange) {
-        timeRangeRef.current = {
-          from: visibleRange.from as number,
-          to: visibleRange.to as number,
-        }
-      }
-    }
-
-    // Calculate appropriate price precision based on price range
-    const prices = data.map(candle => candle.close)
-    const maxPrice = Math.max(...prices)
-    const minPrice = Math.min(...prices)
-    const avgPrice = (maxPrice + minPrice) / 2
-    
-    // Determine precision: show at least 4 significant digits
-    let precision = 2 // Default for prices >= 100
-    if (avgPrice < 0.001) {
-      precision = 8 // Very small values (< $0.001)
-    } else if (avgPrice < 0.01) {
-      precision = 6 // Small values (< $0.01)
-    } else if (avgPrice < 1) {
-      precision = 4 // Medium values (< $1)
-    } else if (avgPrice < 100) {
-      precision = 3 // Standard values (< $100)
-    }
-
-    // Create chart instance
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height,
@@ -197,6 +163,69 @@ export function TradingChart({
     })
 
     chartRef.current = chart
+    chartInitializedRef.current = true
+
+    // Handle window resize
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+        })
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (chartRef.current) {
+        chartRef.current.remove()
+        chartRef.current = null
+        chartInitializedRef.current = false
+      }
+    }
+  }, [height, showVolume])
+
+  // Update data and series when data/settings change
+  useEffect(() => {
+    if (!chartRef.current || data.length === 0) return
+
+    setIsLoading(true)
+
+    const chart = chartRef.current
+
+    // Remove existing series
+    if (mainSeriesRef.current) {
+      chart.removeSeries(mainSeriesRef.current)
+      mainSeriesRef.current = null
+    }
+    if (volumeSeriesRef.current) {
+      chart.removeSeries(volumeSeriesRef.current)
+      volumeSeriesRef.current = null
+    }
+    if (weeklyVWAPRef.current) {
+      chart.removeSeries(weeklyVWAPRef.current)
+      weeklyVWAPRef.current = null
+    }
+
+    // Calculate appropriate price precision based on price range
+    const prices = data.map(candle => candle.close)
+    const maxPrice = Math.max(...prices)
+    const minPrice = Math.min(...prices)
+    const avgPrice = (maxPrice + minPrice) / 2
+    
+    // Determine precision: show at least 4 significant digits
+    let precision = 2 // Default for prices >= 100
+    if (avgPrice < 0.001) {
+      precision = 8 // Very small values (< $0.001)
+    } else if (avgPrice < 0.01) {
+      precision = 6 // Small values (< $0.01)
+    } else if (avgPrice < 1) {
+      precision = 4 // Medium values (< $1)
+    } else if (avgPrice < 100) {
+      precision = 3 // Standard values (< $100)
+    }
 
     // Create main series based on chart type
     let mainSeries: ISeriesApi<'Candlestick' | 'Line' | 'Area'>
@@ -388,45 +417,13 @@ export function TradingChart({
       }
     }
 
-    // Restore previous time range if exists, otherwise fit content
-    if (timeRangeRef.current) {
-      chart.timeScale().setVisibleRange({
-        from: timeRangeRef.current.from as any,
-        to: timeRangeRef.current.to as any,
-      })
-    } else {
+    // Only fit content on first load, otherwise zoom is preserved automatically
+    if (!mainSeriesRef.current) {
       chart.timeScale().fitContent()
     }
 
     setIsLoading(false)
-
-    // Handle window resize
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        })
-      }
-    }
-
-    window.addEventListener('resize', handleResize)
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      if (chartRef.current) {
-        chartRef.current.remove()
-        chartRef.current = null
-      }
-    }
-  }, [data, type, height, showVolume, showWeeklyVWAP, showAlerts, alerts, symbol])
-
-  // Clear time range on unmount (modal close)
-  useEffect(() => {
-    return () => {
-      timeRangeRef.current = null
-    }
-  }, [])
+  }, [data, type, showVolume, showWeeklyVWAP, showAlerts, alerts, symbol])
 
   return (
     <div className={`relative ${className}`}>
