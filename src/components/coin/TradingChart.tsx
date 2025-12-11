@@ -105,11 +105,26 @@ export function TradingChart({
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const weeklyVWAPRef = useRef<ISeriesApi<'Line'> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Store time range to preserve zoom/scroll between updates
+  const timeRangeRef = useRef<{ from: number; to: number } | null>(null)
 
   useEffect(() => {
     if (!chartContainerRef.current || data.length === 0) return
 
     setIsLoading(true)
+    
+    // Save current time range before recreating chart
+    if (chartRef.current) {
+      const timeScale = chartRef.current.timeScale()
+      const visibleRange = timeScale.getVisibleRange()
+      if (visibleRange) {
+        timeRangeRef.current = {
+          from: visibleRange.from as number,
+          to: visibleRange.to as number,
+        }
+      }
+    }
 
     // Calculate appropriate price precision based on price range
     const prices = data.map(candle => candle.close)
@@ -373,8 +388,15 @@ export function TradingChart({
       }
     }
 
-    // Fit content to chart
-    chart.timeScale().fitContent()
+    // Restore previous time range if exists, otherwise fit content
+    if (timeRangeRef.current) {
+      chart.timeScale().setVisibleRange({
+        from: timeRangeRef.current.from as any,
+        to: timeRangeRef.current.to as any,
+      })
+    } else {
+      chart.timeScale().fitContent()
+    }
 
     setIsLoading(false)
 
@@ -398,6 +420,13 @@ export function TradingChart({
       }
     }
   }, [data, type, height, showVolume, showWeeklyVWAP, showAlerts, alerts, symbol])
+
+  // Clear time range on unmount (modal close)
+  useEffect(() => {
+    return () => {
+      timeRangeRef.current = null
+    }
+  }, [])
 
   return (
     <div className={`relative ${className}`}>
