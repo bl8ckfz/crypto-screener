@@ -148,6 +148,7 @@ export function TradingChart({
   const mainSeriesRef = useRef<ISeriesApi<'Candlestick' | 'Line' | 'Area'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const weeklyVWAPRef = useRef<ISeriesApi<'Line'> | null>(null)
+  const markersRef = useRef<SeriesMarker<Time>[]>([]) // Store markers to re-apply on zoom
   const [isLoading, setIsLoading] = useState(true)
   const chartInitializedRef = useRef(false)
 
@@ -209,6 +210,16 @@ export function TradingChart({
     chartRef.current = chart
     chartInitializedRef.current = true
 
+    // Subscribe to time scale changes to re-apply markers
+    const timeScale = chart.timeScale()
+    const handleVisibleRangeChange = () => {
+      // Re-apply markers when visible range changes (zoom/pan)
+      if (mainSeriesRef.current && markersRef.current.length > 0) {
+        mainSeriesRef.current.setMarkers(markersRef.current)
+      }
+    }
+    timeScale.subscribeVisibleLogicalRangeChange(handleVisibleRangeChange)
+
     // Handle window resize
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -223,6 +234,7 @@ export function TradingChart({
     // Cleanup on unmount
     return () => {
       window.removeEventListener('resize', handleResize)
+      timeScale.unsubscribeVisibleLogicalRangeChange(handleVisibleRangeChange)
       if (chartRef.current) {
         chartRef.current.remove()
         chartRef.current = null
@@ -469,6 +481,9 @@ export function TradingChart({
 
       console.log(`📍 Setting ${markers.length} alert markers on chart`)
       
+      // Store markers in ref for re-application on zoom
+      markersRef.current = markers
+      
       if (markers.length > 0) {
         mainSeries.setMarkers(markers)
       } else {
@@ -564,9 +579,11 @@ export function TradingChart({
         
         // Combine both types of markers
         const combinedMarkers = [...alertMarkers, ...bubbleMarkers]
+        markersRef.current = combinedMarkers // Store for re-application
         mainSeries.setMarkers(combinedMarkers)
         console.log(`📍 Set ${combinedMarkers.length} total markers (${alertMarkers.length} alerts + ${bubbleMarkers.length} bubbles)`)
       } else if (bubbleMarkers.length > 0) {
+        markersRef.current = bubbleMarkers // Store for re-application
         mainSeries.setMarkers(bubbleMarkers)
       }
     }
