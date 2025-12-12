@@ -306,6 +306,34 @@ export class Stream1mManager extends SimpleEventEmitter {
         console.log(`✅ ${symbol}: ${buffer.getFillPercentage().toFixed(0)}% filled`)
       }
 
+      // Step 2.5: Seed bubble detection with historical volume data
+      console.log('🫧 Seeding bubble detection with historical volumes...')
+      let seededCount = 0
+      for (const symbol of backfillResult.successful) {
+        const buffer = this.buffers.get(symbol)
+        if (!buffer) continue
+
+        // Sample historical metrics every 5 minutes (for efficiency)
+        const historicalMetrics: Array<{ m5: WindowMetrics; m15: WindowMetrics }> = []
+        const sampleInterval = 5 // Sample every 5 candles
+        
+        for (let i = 0; i < buffer.getCount(); i += sampleInterval) {
+          const metricsMap = this.calculator.getAllMetrics(symbol, buffer)
+          const m5 = metricsMap.get('5m')
+          const m15 = metricsMap.get('15m')
+          
+          if (m5 && m15) {
+            historicalMetrics.push({ m5, m15 })
+          }
+        }
+
+        if (historicalMetrics.length > 0) {
+          this.bubbleService.seedVolumeHistory(symbol, historicalMetrics)
+          seededCount++
+        }
+      }
+      console.log(`✅ Seeded ${seededCount}/${backfillResult.successful.length} symbols for bubble detection`)
+
       // Step 3: Connect WebSocket
       console.log('📡 Connecting to Binance Futures WebSocket...')
       await this.wsClient.connect()

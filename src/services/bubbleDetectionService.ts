@@ -87,6 +87,63 @@ export class BubbleDetectionService {
   }
 
   /**
+   * Seed volume history from backfilled data
+   * 
+   * Extracts volume data from historical windows to pre-populate volume history,
+   * enabling immediate bubble detection after backfill (no 20-minute warm-up)
+   * 
+   * Strategy:
+   * - Sample every 5th 5m window from last 300 minutes (60 samples)
+   * - Sample every 15th 15m window from last 1200 minutes (80 samples)
+   * - Calculate EMA and std dev from seeded data
+   * 
+   * @param symbol - Symbol to seed
+   * @param historicalMetrics - Array of window metrics from backfilled data
+   */
+  seedVolumeHistory(
+    symbol: string,
+    historicalMetrics: Array<{ m5: WindowMetrics; m15: WindowMetrics }>
+  ): void {
+    if (historicalMetrics.length === 0) {
+      console.warn(`⚠️  No historical metrics to seed for ${symbol}`)
+      return
+    }
+
+    // Initialize if not exists
+    if (!this.volumeHistory.has(symbol)) {
+      this.initializeSymbol(symbol)
+    }
+
+    const state = this.volumeHistory.get(symbol)!
+
+    // Seed 5m volume history (last 60 windows)
+    const vol5mSamples: number[] = []
+    const targetSamples5m = Math.min(this.config.historyLength5m, historicalMetrics.length)
+    
+    for (let i = historicalMetrics.length - targetSamples5m; i < historicalMetrics.length; i++) {
+      vol5mSamples.push(historicalMetrics[i].m5.quoteVolume)
+    }
+    
+    state.vol5mHistory = vol5mSamples
+    state.emaVol5m = this.calculateEMA(vol5mSamples, this.config.emaPeriod5m)
+    state.stdVol5m = this.calculateStdDev(vol5mSamples, state.emaVol5m)
+
+    // Seed 15m volume history (last 80 windows)
+    const vol15mSamples: number[] = []
+    const targetSamples15m = Math.min(this.config.historyLength15m, historicalMetrics.length)
+    
+    for (let i = historicalMetrics.length - targetSamples15m; i < historicalMetrics.length; i++) {
+      vol15mSamples.push(historicalMetrics[i].m15.quoteVolume)
+    }
+    
+    state.vol15mHistory = vol15mSamples
+    state.emaVol15m = this.calculateEMA(vol15mSamples, this.config.emaPeriod15m)
+    state.stdVol15m = this.calculateStdDev(vol15mSamples, state.emaVol15m)
+
+    console.log(`🫧 Seeded ${symbol}: ${vol5mSamples.length} 5m samples, ${vol15mSamples.length} 15m samples`)
+  }
+
+  /**
    * Process window metrics and detect bubbles
    * Called on each 1m candle close
    * 
