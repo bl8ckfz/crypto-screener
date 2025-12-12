@@ -29,6 +29,11 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
 
   // Get bubbles for current coin
   const { bubbles } = useBubbleStream({ symbolFilter: coin.symbol })
+  
+  // Debug: Log bubbles when they change
+  useEffect(() => {
+    console.log(`🫧 ChartContainer: ${coin.symbol} has ${bubbles.length} bubbles`, bubbles.slice(0, 3))
+  }, [bubbles.length, coin.symbol])
 
   // Get alerts for current coin from history - refresh every 3 seconds
   useEffect(() => {

@@ -37,6 +37,8 @@ export function useBubbleStream(options: UseBubbleStreamOptions = {}) {
         return
       }
 
+      console.log(`🫧 useBubbleStream: Received bubble for ${bubble.symbol} (filter=${symbolFilter})`, bubble)
+
       setBubbles(prev => {
         const updated = [...prev, bubble]
         // Keep only recent bubbles
