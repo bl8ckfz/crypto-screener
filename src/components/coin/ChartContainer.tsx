@@ -22,18 +22,39 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
   const [showWeeklyVWAP, setShowWeeklyVWAP] = useState(false)
   const [showAlerts, setShowAlerts] = useState(true)
   const [showBubbles, setShowBubbles] = useState(true)
+  const [bubbleTimeframe, setBubbleTimeframe] = useState<'5m' | '15m' | 'both'>('both')
+  const [bubbleSize, setBubbleSize] = useState<'large' | 'medium+' | 'all'>('large')
   const [chartData, setChartData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [alertRefresh, setAlertRefresh] = useState(0)
 
   // Get bubbles for current coin (use fullSymbol to match futures symbol like PIEVERSEUSDT)
-  const { bubbles } = useBubbleStream({ symbolFilter: coin.fullSymbol })
+  const { bubbles: allBubbles } = useBubbleStream({ symbolFilter: coin.fullSymbol })
+  
+  // Filter bubbles by timeframe and size
+  const filteredBubbles = useMemo(() => {
+    let filtered = allBubbles
+    
+    // Filter by timeframe
+    if (bubbleTimeframe !== 'both') {
+      filtered = filtered.filter(b => b.timeframe === bubbleTimeframe)
+    }
+    
+    // Filter by size
+    if (bubbleSize === 'large') {
+      filtered = filtered.filter(b => b.size === 'large')
+    } else if (bubbleSize === 'medium+') {
+      filtered = filtered.filter(b => b.size === 'large' || b.size === 'medium')
+    }
+    
+    return filtered
+  }, [allBubbles, bubbleTimeframe, bubbleSize])
   
   // Debug: Log bubbles when they change
   useEffect(() => {
-    console.log(`🫧 ChartContainer: ${coin.fullSymbol} has ${bubbles.length} bubbles`, bubbles.slice(0, 3))
-  }, [bubbles.length, coin.fullSymbol])
+    console.log(`🫧 ChartContainer: ${coin.fullSymbol} has ${filteredBubbles.length}/${allBubbles.length} bubbles (timeframe=${bubbleTimeframe}, size=${bubbleSize})`, filteredBubbles.slice(0, 3))
+  }, [filteredBubbles.length, allBubbles.length, coin.fullSymbol, bubbleTimeframe, bubbleSize])
 
   // Get alerts for current coin from history - refresh every 3 seconds
   useEffect(() => {
@@ -197,8 +218,34 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
             title="Show volume bubble markers on chart"
           >
             <span className={showBubbles ? 'text-purple-500' : 'text-gray-400'}>🫧</span>
-            Bubbles {bubbles.length > 0 && `(${bubbles.length})`}
+            Bubbles {filteredBubbles.length > 0 && `(${filteredBubbles.length})`}
           </button>
+          
+          {/* Bubble Filters - Only show when bubbles enabled */}
+          {showBubbles && (
+            <>
+              <select
+                value={bubbleTimeframe}
+                onChange={(e) => setBubbleTimeframe(e.target.value as '5m' | '15m' | 'both')}
+                className="px-2 py-1 text-xs rounded bg-surface-light text-text-secondary border border-border hover:bg-surface-lighter cursor-pointer"
+                title="Filter bubbles by timeframe"
+              >
+                <option value="both">5m + 15m</option>
+                <option value="5m">5m only</option>
+                <option value="15m">15m only</option>
+              </select>
+              <select
+                value={bubbleSize}
+                onChange={(e) => setBubbleSize(e.target.value as 'large' | 'medium+' | 'all')}
+                className="px-2 py-1 text-xs rounded bg-surface-light text-text-secondary border border-border hover:bg-surface-lighter cursor-pointer"
+                title="Filter bubbles by size"
+              >
+                <option value="large">Large only</option>
+                <option value="medium+">Large + Medium</option>
+                <option value="all">All sizes</option>
+              </select>
+            </>
+          )}
         </div>
       </div>
 
@@ -227,7 +274,7 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
             showAlerts={showAlerts}
             alerts={coinAlerts}
             showBubbles={showBubbles}
-            bubbles={bubbles}
+            bubbles={filteredBubbles}
           />
         )}
       </div>
