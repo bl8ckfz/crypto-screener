@@ -73,6 +73,16 @@ export {
 export type { AlertHistoryEntry, CoinAlertStats } from './alertHistory'
 export { ALERT_HISTORY_CONFIG } from './alertHistory'
 
+// Bubble Detection types
+export type {
+  Bubble,
+  BubbleSize,
+  BubbleSide,
+  BubbleConfig,
+  BubbleStats,
+  VolumeHistoryState,
+} from './bubble'
+
 // Config types
 export type {
   ViewMode,

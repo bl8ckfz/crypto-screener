@@ -35,5 +35,8 @@ export { audioNotificationService } from './audioNotification'
 export type { AlertSeverity } from './audioNotification'
 export { sendDiscordWebhook, testDiscordWebhook, isValidDiscordWebhookUrl } from './webhookService'
 
+// Bubble Detection
+export { BubbleDetectionService, DEFAULT_BUBBLE_CONFIG } from './bubbleDetectionService'
+
 // Sync Service
 export * from './syncService'
