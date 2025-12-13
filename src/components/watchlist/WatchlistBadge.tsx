@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '@/hooks/useStore'
 
 interface WatchlistBadgeProps {
@@ -29,7 +30,12 @@ export function WatchlistBadge({ symbol }: WatchlistBadgeProps) {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -51,7 +57,7 @@ export function WatchlistBadge({ symbol }: WatchlistBadgeProps) {
   // Always show the badge, even if no watchlists exist yet
   // User can create watchlists later
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
       {/* Badge Button */}
       <button
         ref={buttonRef}
@@ -76,9 +82,10 @@ export function WatchlistBadge({ symbol }: WatchlistBadgeProps) {
         )}
       </button>
 
-      {/* Dropdown Menu - Fixed positioning to escape table stacking context */}
-      {isOpen && (
+      {/* Dropdown Menu - Portal to body to escape table stacking context */}
+      {isOpen && createPortal(
         <div 
+          ref={dropdownRef}
           className="fixed w-56 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl z-[10000] max-h-64 overflow-y-auto"
           style={{
             top: `${dropdownPosition.top}px`,
@@ -157,8 +164,9 @@ export function WatchlistBadge({ symbol }: WatchlistBadgeProps) {
               <div className="text-gray-500">Create one in the sidebar</div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }
