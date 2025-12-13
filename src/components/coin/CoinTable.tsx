@@ -31,6 +31,9 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
       <table className="min-w-full text-sm">
         <thead className="bg-gray-900 sticky top-0">
           <tr className="border-b border-gray-700">
+            <th className="px-3 py-3 text-left text-sm font-semibold text-gray-400 whitespace-nowrap">
+              Watchlist
+            </th>
             <th
               className="px-3 py-3 text-left text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
               onClick={() => handleSort('symbol')}
@@ -41,9 +44,6 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
                   <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
                 )}
               </div>
-            </th>
-            <th className="px-3 py-3 text-left text-sm font-semibold text-gray-400 whitespace-nowrap">
-              Watchlist
             </th>
             <th
               className="px-3 py-3 text-right text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"

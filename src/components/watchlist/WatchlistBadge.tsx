@@ -64,14 +64,14 @@ export function WatchlistBadge({ symbol }: WatchlistBadgeProps) {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 w-56 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-[110] max-h-64 overflow-y-auto">
-          <div className="px-3 py-2 border-b border-gray-700">
+        <div className="absolute top-full left-0 mt-1 w-56 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-[9999] max-h-64 overflow-y-auto">
+          <div className="px-3 py-2 border-b border-gray-700 bg-gray-900">
             <div className="text-xs font-medium text-gray-400">
               Add {symbol} to watchlist
             </div>
           </div>
 
-          <div className="py-1">
+          <div className="py-1 bg-gray-900">
             {watchlists.map((watchlist) => {
               const isInWatchlist = watchlist.symbols.includes(symbol)
               
@@ -82,7 +82,7 @@ export function WatchlistBadge({ symbol }: WatchlistBadgeProps) {
                     e.stopPropagation()
                     handleToggle(watchlist.id, isInWatchlist)
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-800 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                   {/* Checkbox */}
                   <div

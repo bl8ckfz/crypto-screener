@@ -29,10 +29,10 @@ function CoinTableRowComponent({ coin, index, onClick }: CoinTableRowProps) {
       className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:shadow-lg animate-in fade-in slide-in-from-left-2"
       style={{ animationDelay: `${index * 20}ms` }}
     >
-      <td className="px-3 py-2.5 font-medium whitespace-nowrap text-base">{coin.symbol}</td>
       <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
         <WatchlistBadge symbol={coin.symbol} />
       </td>
+      <td className="px-3 py-2.5 font-medium whitespace-nowrap text-base">{coin.symbol}</td>
       <td className="px-3 py-2.5 text-right mono-number whitespace-nowrap text-base">
         {formatPrice(coin.lastPrice)}
       </td>
