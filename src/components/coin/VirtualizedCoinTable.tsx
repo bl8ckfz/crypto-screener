@@ -225,104 +225,10 @@ export function VirtualizedCoinTable({
 }
 
 /**
- * Smart table component that automatically switches between
- * standard and virtualized rendering based on dataset size
+ * Smart table component that always uses virtualized rendering
+ * for consistent layout and optimal performance
  */
 export function SmartCoinTable(props: VirtualizedCoinTableProps) {
-  const { coins } = props
-  const { sort, setSort } = useStore()
-
-  const sortedCoins = useMemo(() => {
-    return sortCoins(coins, sort)
-  }, [coins, sort])
-
-  const handleSort = (field: typeof sort.field) => {
-    setSort({
-      field,
-      direction:
-        sort.field === field && sort.direction === 'desc' ? 'asc' : 'desc',
-    })
-  }
-
-  // Use virtualization for large datasets
-  if (coins.length >= VIRTUALIZATION_THRESHOLD) {
-    return <VirtualizedCoinTable {...props} />
-  }
-
-  // Use standard table for small datasets (better for < 50 items)
-  return (
-    <div className="overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
-      <table className="w-full">
-        <thead className="sticky top-0 z-10 bg-gray-900 border-b border-gray-800">
-          <tr className="text-left text-sm bg-gray-800/50">
-            <th 
-              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none"
-              onClick={() => handleSort('symbol')}
-            >
-              <div className="flex items-center gap-1">
-                Symbol
-                {sort.field === 'symbol' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th 
-              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
-              onClick={() => handleSort('lastPrice')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                Price
-                {sort.field === 'lastPrice' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th 
-              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
-              onClick={() => handleSort('priceChangePercent')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                Change %
-                {sort.field === 'priceChangePercent' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th 
-              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
-              onClick={() => handleSort('priceToWeightedAvg')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                P/WA
-                {sort.field === 'priceToWeightedAvg' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-            <th 
-              className="px-4 py-3 font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none text-right"
-              onClick={() => handleSort('quoteVolume')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                24h Vol
-                {sort.field === 'quoteVolume' && (
-                  <span className="text-accent">{sort.direction === 'asc' ? '↑' : '↓'}</span>
-                )}
-              </div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedCoins.map((coin, index) => (
-            <CoinTableRow
-              key={coin.id}
-              coin={coin}
-              index={index}
-              onClick={props.onCoinClick}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+  // Always use virtualized table for consistent structure
+  return <VirtualizedCoinTable {...props} />
 }
