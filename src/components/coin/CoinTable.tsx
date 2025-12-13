@@ -31,8 +31,8 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
       <table className="min-w-full text-sm">
         <thead className="bg-gray-900 sticky top-0">
           <tr className="border-b border-gray-700">
-            <th className="px-3 py-3 text-left text-sm font-semibold text-gray-400 whitespace-nowrap">
-              Watchlist
+            <th className="px-3 py-3 text-center text-sm font-semibold text-gray-400 whitespace-nowrap w-16">
+              ⭐
             </th>
             <th
               className="px-3 py-3 text-left text-sm font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors select-none whitespace-nowrap"
