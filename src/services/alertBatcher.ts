@@ -22,10 +22,12 @@ interface AlertBatch {
 
 interface SymbolStats {
   symbol: string
-  count: number
-  types: Set<string>
-  severities: Set<string>
-  recentCount: number // Count in last hour
+  count: number // Count in current batch
+  types: Set<string> // Types in current batch
+  severities: Set<string> // Severities in current batch
+  lastHourCount: number // Count in last hour (including batch)
+  lastDayCount: number // Count in last 24 hours
+  recentTypes: string[] // Last 3 alert types (most recent first)
 }
 
 interface AlertSummary {
@@ -44,13 +46,14 @@ interface AlertSummary {
 class AlertBatcherService {
   private currentBatch: AlertBatch | null = null
   private batchTimeoutId: number | null = null
-  private alertHistory: Map<string, number[]> = new Map() // symbol -> timestamps
+  private alertHistory: Map<string, Array<{ timestamp: number; type: string }>> = new Map() // symbol -> alert details
   private readonly batchWindowMs: number
-  private readonly historyWindowMs: number = 60 * 60 * 1000 // 1 hour
+  private readonly hourWindowMs: number = 60 * 60 * 1000 // 1 hour
+  private readonly dayWindowMs: number = 24 * 60 * 60 * 1000 // 24 hours
   private onBatchReadyCallback: ((summary: AlertSummary, alerts: Alert[]) => void) | null = null
 
-  constructor(batchWindowMs: number = 30000) {
-    this.batchWindowMs = batchWindowMs // Default: 30 seconds
+  constructor(batchWindowMs: number = 60000) {
+    this.batchWindowMs = batchWindowMs // Default: 60 seconds
   }
 
   /**
@@ -68,7 +71,7 @@ class AlertBatcherService {
     this.currentBatch!.symbols.add(alert.symbol)
 
     // Track in history for "recent count" calculations
-    this.addToHistory(alert.symbol, alert.timestamp)
+    this.addToHistory(alert.symbol, alert.timestamp, alert.type)
 
     console.log(`📦 Added alert to batch: ${alert.symbol} (${alert.type}) - Batch size: ${this.currentBatch!.alerts.length}`)
   }
@@ -131,7 +134,8 @@ class AlertBatcherService {
   }
 
   /**
-   * Generate summary statistics from batch
+   * Generate summary statistics from batch and history
+   * Shows most active symbols from LAST HOUR, not just current batch
    */
   private generateSummary(batch: AlertBatch): AlertSummary {
     const now = Date.now()
@@ -139,21 +143,50 @@ class AlertBatcherService {
     const severityBreakdown: Record<string, number> = {}
     const timeframeBreakdown: Record<string, number> = {}
 
-    // Process each alert
+    // First, get all symbols with alerts in last hour from history
+    const hourCutoff = now - this.hourWindowMs
+    const dayCutoff = now - this.dayWindowMs
+    
+    for (const [symbol, history] of this.alertHistory.entries()) {
+      const hourAlerts = history.filter(h => h.timestamp > hourCutoff)
+      const dayAlerts = history.filter(h => h.timestamp > dayCutoff)
+      
+      if (hourAlerts.length > 0) {
+        // Get last 3 alert types (most recent first)
+        const recentTypes = hourAlerts
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 3)
+          .map(h => h.type)
+        
+        symbolStatsMap.set(symbol, {
+          symbol,
+          count: 0, // Will fill from batch alerts
+          types: new Set(),
+          severities: new Set(),
+          lastHourCount: hourAlerts.length,
+          lastDayCount: dayAlerts.length,
+          recentTypes,
+        })
+      }
+    }
+
+    // Process current batch alerts
     for (const alert of batch.alerts) {
-      // Symbol statistics
+      // Ensure symbol is in map
       if (!symbolStatsMap.has(alert.symbol)) {
         symbolStatsMap.set(alert.symbol, {
           symbol: alert.symbol,
           count: 0,
           types: new Set(),
           severities: new Set(),
-          recentCount: this.getRecentCount(alert.symbol),
+          lastHourCount: this.getRecentCount(alert.symbol, this.hourWindowMs),
+          lastDayCount: this.getRecentCount(alert.symbol, this.dayWindowMs),
+          recentTypes: this.getRecentTypes(alert.symbol, 3),
         })
       }
       
       const stats = symbolStatsMap.get(alert.symbol)!
-      stats.count++
+      stats.count++ // Count in current batch
       stats.types.add(alert.type)
       stats.severities.add(alert.severity)
 
@@ -166,9 +199,9 @@ class AlertBatcherService {
       }
     }
 
-    // Sort symbols by alert count (most active first)
+    // Sort symbols by LAST HOUR count (most active in last hour first)
     const symbolStats = Array.from(symbolStatsMap.values())
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => b.lastHourCount - a.lastHourCount)
 
     return {
       totalAlerts: batch.alerts.length,
@@ -184,29 +217,44 @@ class AlertBatcherService {
   /**
    * Track alert in history for recent count calculations
    */
-  private addToHistory(symbol: string, timestamp: number): void {
+  private addToHistory(symbol: string, timestamp: number, type: string): void {
     if (!this.alertHistory.has(symbol)) {
       this.alertHistory.set(symbol, [])
     }
     
     const history = this.alertHistory.get(symbol)!
-    history.push(timestamp)
+    history.push({ timestamp, type })
 
-    // Clean old entries (older than 1 hour)
-    const cutoff = timestamp - this.historyWindowMs
-    const filtered = history.filter(ts => ts > cutoff)
+    // Clean old entries (older than 24 hours)
+    const cutoff = timestamp - this.dayWindowMs
+    const filtered = history.filter(h => h.timestamp > cutoff)
     this.alertHistory.set(symbol, filtered)
   }
 
   /**
-   * Get count of alerts for symbol in last hour
+   * Get count of alerts for symbol in specified time window
    */
-  private getRecentCount(symbol: string): number {
+  private getRecentCount(symbol: string, windowMs: number): number {
     const history = this.alertHistory.get(symbol)
     if (!history) return 0
 
-    const cutoff = Date.now() - this.historyWindowMs
-    return history.filter(ts => ts > cutoff).length
+    const cutoff = Date.now() - windowMs
+    return history.filter(h => h.timestamp > cutoff).length
+  }
+
+  /**
+   * Get recent alert types for symbol (most recent first)
+   */
+  private getRecentTypes(symbol: string, limit: number): string[] {
+    const history = this.alertHistory.get(symbol)
+    if (!history) return []
+
+    const cutoff = Date.now() - this.hourWindowMs
+    return history
+      .filter(h => h.timestamp > cutoff)
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, limit)
+      .map(h => h.type)
   }
 
   /**
@@ -246,7 +294,7 @@ class AlertBatcherService {
 }
 
 // Export singleton instance
-export const alertBatcher = new AlertBatcherService(30000) // 30 second batches
+export const alertBatcher = new AlertBatcherService(60000) // 60 second batches (1 minute)
 
 // Export types
 export type { AlertSummary, SymbolStats, AlertBatch }

@@ -170,11 +170,12 @@ export async function sendDiscordBatchSummary(
     const startTime = new Date(summary.batchStartTime).toLocaleTimeString('en-US', { hour12: false })
     const endTime = new Date(summary.batchEndTime).toLocaleTimeString('en-US', { hour12: false })
 
-    // Build top symbols section (limit to top 5)
+    // Build top symbols section (limit to top 5 most active in last hour)
     const topSymbols = summary.symbolStats.slice(0, 5)
     const symbolLines = topSymbols.map(stat => {
-      const typesList = Array.from(stat.types).join(', ')
-      return `• **${stat.symbol}**: ${stat.count} alert${stat.count > 1 ? 's' : ''} (${typesList})\n  └─ ${stat.recentCount} in last hour`
+      // Show last 3 alert types
+      const recentTypes = stat.recentTypes.slice(0, 3).join(', ')
+      return `• **${stat.symbol}**: ${stat.lastHourCount} alerts in last hour\n  └─ Recent: ${recentTypes}\n  └─ 24h total: ${stat.lastDayCount}`
     })
 
     // Build severity breakdown
@@ -210,18 +211,18 @@ export async function sendDiscordBatchSummary(
     }
 
     const description = `
-**📊 Total Alerts**: ${summary.totalAlerts}
+**📊 This Batch**: ${summary.totalAlerts} alerts
 
-**🔥 Most Active**:
+**🔥 Most Active (Last Hour)**:
 ${symbolLines.join('\n')}
 
-**⚡ Severity**: ${severityLines}${timeframeSection}
+**⚡ Severity (This Batch)**: ${severityLines}${timeframeSection}
 
-**🕐 Period**: ${startTime} - ${endTime} (${summary.batchDuration}s)
+**🕐 Batch Period**: ${startTime} - ${endTime} (${summary.batchDuration}s)
     `.trim()
 
     const embed = {
-      title: '🚨 Futures Alert Summary',
+      title: '🚨 Hourly Alert Summary',
       description: description,
       color: embedColor,
       timestamp: new Date(summary.batchEndTime).toISOString(),
