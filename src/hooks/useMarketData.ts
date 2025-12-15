@@ -40,22 +40,52 @@ if (!batchCallbackInitialized) {
       return
     }
 
-    // Send to main webhooks (futures alerts are always "main" source)
-    const webhooks = alertSettings.webhooks
-    if (webhooks && webhooks.length > 0) {
-      sendBatchToWebhooks(webhooks, summary, alerts).then((results) => {
+    // Separate alerts by source
+    const mainAlerts = alerts.filter(a => a.source !== 'watchlist')
+    const watchlistAlerts = alerts.filter(a => a.source === 'watchlist')
+    
+    console.log(`📊 Alert breakdown: ${mainAlerts.length} main, ${watchlistAlerts.length} watchlist`)
+
+    // Send main alerts to main webhooks
+    if (mainAlerts.length > 0 && alertSettings.webhooks && alertSettings.webhooks.length > 0) {
+      // Create summary for main alerts only
+      const mainSummary = { ...summary, totalAlerts: mainAlerts.length }
+      sendBatchToWebhooks(alertSettings.webhooks, mainSummary, mainAlerts).then((results) => {
         results.forEach((result, webhookId) => {
           if (result.success) {
-            console.log(`✅ Batch webhook ${webhookId} delivered`)
+            console.log(`✅ Main batch webhook ${webhookId} delivered`)
           } else {
-            console.error(`❌ Batch webhook ${webhookId} failed: ${result.error}`)
+            console.error(`❌ Main batch webhook ${webhookId} failed: ${result.error}`)
           }
         })
       }).catch((error) => {
-        console.error('Batch webhook delivery error:', error)
+        console.error('Main batch webhook delivery error:', error)
       })
-    } else {
-      console.log('⚠️ No webhooks configured for batch delivery')
+    }
+
+    // Send watchlist alerts to watchlist webhooks
+    if (watchlistAlerts.length > 0 && alertSettings.watchlistWebhooks && alertSettings.watchlistWebhooks.length > 0) {
+      // Create summary for watchlist alerts only
+      const watchlistSummary = { ...summary, totalAlerts: watchlistAlerts.length }
+      sendBatchToWebhooks(alertSettings.watchlistWebhooks, watchlistSummary, watchlistAlerts).then((results) => {
+        results.forEach((result, webhookId) => {
+          if (result.success) {
+            console.log(`✅ Watchlist batch webhook ${webhookId} delivered`)
+          } else {
+            console.error(`❌ Watchlist batch webhook ${webhookId} failed: ${result.error}`)
+          }
+        })
+      }).catch((error) => {
+        console.error('Watchlist batch webhook delivery error:', error)
+      })
+    }
+
+    // Log if no webhooks configured
+    if (mainAlerts.length > 0 && (!alertSettings.webhooks || alertSettings.webhooks.length === 0)) {
+      console.log('⚠️ No main webhooks configured for batch delivery')
+    }
+    if (watchlistAlerts.length > 0 && (!alertSettings.watchlistWebhooks || alertSettings.watchlistWebhooks.length === 0)) {
+      console.log('⚠️ No watchlist webhooks configured for batch delivery')
     }
   })
   batchCallbackInitialized = true
