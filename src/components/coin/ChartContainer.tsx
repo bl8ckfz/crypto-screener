@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { TradingChart } from './TradingChart'
 import { fetchKlines, type KlineInterval, COMMON_INTERVALS, INTERVAL_LABELS } from '@/services/chartData'
 import { alertHistoryService } from '@/services/alertHistoryService'
@@ -23,6 +23,9 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
   const [showBubbles, setShowBubbles] = useState(true)
   const [bubbleTimeframe, setBubbleTimeframe] = useState<'5m' | '15m' | 'both'>('both')
   const [bubbleSize, setBubbleSize] = useState<'large' | 'medium+' | 'all'>('large')
+  
+  // Ref for debouncing interval changes
+  const intervalTimerRef = useRef<number | null>(null)
   const [chartData, setChartData] = useState<any[]>([])
   const [vwapData, setVwapData] = useState<any[]>([]) // Separate data for VWAP (15m interval)
   const [isLoading, setIsLoading] = useState(false)
@@ -167,8 +170,26 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
   }, [coin.symbol, coin.pair, showWeeklyVWAP])
 
   const handleIntervalChange = (newInterval: KlineInterval) => {
-    setInterval(newInterval)
+    // Clear existing timer
+    if (intervalTimerRef.current !== null) {
+      window.clearTimeout(intervalTimerRef.current)
+    }
+    
+    // Debounce interval changes to prevent rapid API calls
+    intervalTimerRef.current = window.setTimeout(() => {
+      setInterval(newInterval)
+      intervalTimerRef.current = null
+    }, 300) // 300ms delay
   }
+  
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalTimerRef.current !== null) {
+        window.clearTimeout(intervalTimerRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div className={`space-y-3 ${className}`}>
