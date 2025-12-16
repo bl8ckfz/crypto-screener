@@ -154,20 +154,17 @@ function formatAlertValue(alert: Alert): string {
  * Get emoji badge for alert type
  */
 function getAlertTypeEmoji(type: string): string {
-  if (type.includes('bull') || type === 'price_pump') return '📈'
-  if (type.includes('bear') || type === 'price_dump') return '📉'
+  if (type.includes('bull')) return '📈'
+  if (type.includes('bear')) return '📉'
   if (type.includes('hunter')) return '🎣'
-  if (type.includes('volume')) return '📊'
-  if (type === 'vcp_signal') return '🎯'
-  if (type === 'fibonacci_break') return '🔢'
   return '🔔'
 }
 
 /**
- * Get human-readable label for alert type (same as UI)
+ * Get human-readable label for alert type
  */
 function getAlertTypeLabel(type: string): string {
-  // Futures alerts (the only ones we use)
+  // The 10 futures alert types we actually use
   if (type === 'futures_big_bull_60') return '60 Big Bull'
   if (type === 'futures_big_bear_60') return '60 Big Bear'
   if (type === 'futures_pioneer_bull') return 'Pioneer Bull'
@@ -179,32 +176,7 @@ function getAlertTypeLabel(type: string): string {
   if (type === 'futures_bottom_hunter') return 'Bottom Hunter'
   if (type === 'futures_top_hunter') return 'Top Hunter'
   
-  // Legacy spot alerts (not used)
-  if (type === 'futures_bull_5m') return 'Bull 5m'
-  if (type === 'futures_bull_15m') return 'Bull 15m'
-  if (type === 'futures_bull_1h') return 'Bull 1h'
-  if (type === 'futures_bear_5m') return 'Bear 5m'
-  if (type === 'futures_bear_15m') return 'Bear 15m'
-  if (type === 'futures_bear_1h') return 'Bear 1h'
-  if (type === 'futures_volume_5m') return 'Volume 5m'
-  if (type === 'futures_volume_15m') return 'Volume 15m'
-  if (type === 'futures_volume_1h') return 'Volume 1h'
-  if (type === 'futures_hunter_bull') return 'Hunter Bull'
-  if (type === 'futures_hunter_bear') return 'Hunter Bear'
-  
-  if (type === 'price_pump') return 'Price Pump'
-  if (type === 'price_dump') return 'Price Dump'
-  if (type === 'volume_spike') return 'Volume Spike'
-  if (type === 'volume_drop') return 'Volume Drop'
-  if (type === 'vcp_signal') return 'VCP Signal'
-  if (type === 'fibonacci_break') return 'Fibonacci Break'
-  if (type === 'trend_reversal') return 'Trend Reversal'
-  if (type === 'pioneer_bull') return 'Pioneer Bull'
-  if (type === 'pioneer_bear') return 'Pioneer Bear'
-  if (type === '5m_big_bull') return '5m Big Bull'
-  if (type === '5m_big_bear') return '5m Big Bear'
-  
-  // Default: capitalize and replace underscores
+  // Fallback: capitalize and replace underscores
   return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 

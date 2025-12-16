@@ -1,30 +1,8 @@
 import { Timeframe } from './coin'
 
 /**
- * Alert type categories
- */
-export type AlertType =
-  | 'price_pump' // Significant price increase
-  | 'price_dump' // Significant price decrease
-  | 'volume_spike' // Volume significantly increased
-  | 'volume_drop' // Volume significantly decreased
-  | 'vcp_signal' // VCP pattern detected
-  | 'fibonacci_break' // Price broke Fibonacci level
-  | 'trend_reversal' // Trend direction changed
-  | 'pioneer_bull' // Legacy: PIONEER BULL ALARM (strong bull signal)
-  | 'pioneer_bear' // Legacy: PIONEER BEAR ALARM (strong bear signal)
-  | '5m_big_bull' // Legacy: 5m BIG BULL ALARM (5-minute volume spike)
-  | '5m_big_bear' // Legacy: 5m BIG BEAR ALARM (5-minute volume drop)
-  | '15m_big_bull' // Legacy: 15m BIG BULL ALARM (15-minute volume spike)
-  | '15m_big_bear' // Legacy: 15m BIG BEAR ALARM (15-minute volume drop)
-  | 'bottom_hunter' // Legacy: BOTTOM HUNTER ALARM (potential bottom reversal)
-  | 'top_hunter' // Legacy: TOP HUNTER ALARM (potential top reversal)
-  | 'custom' // User-defined custom alert
-
-/**
- * Futures alert types (based on Binance Futures API data)
- * These alerts use kline data from 5m, 15m, 1h, 8h, 1d intervals
- * and market cap data from CoinGecko
+ * Futures alert types (the ONLY alert types we use)
+ * Based on Binance Futures API data with kline intervals
  */
 export type FuturesAlertType =
   | 'futures_big_bull_60' // 60-minute Big Bull (strong upward momentum)
@@ -39,7 +17,29 @@ export type FuturesAlertType =
   | 'futures_top_hunter' // Top Hunter (potential top reversal)
 
 /**
- * Combined alert type (Spot + Futures)
+ * Legacy alert types (DEPRECATED - kept for backwards compatibility only)
+ * DO NOT USE - these are not implemented and will be removed
+ */
+export type AlertType =
+  | 'price_pump'
+  | 'price_dump'
+  | 'volume_spike'
+  | 'volume_drop'
+  | 'vcp_signal'
+  | 'fibonacci_break'
+  | 'trend_reversal'
+  | 'pioneer_bull'
+  | 'pioneer_bear'
+  | '5m_big_bull'
+  | '5m_big_bear'
+  | '15m_big_bull'
+  | '15m_big_bear'
+  | 'bottom_hunter'
+  | 'top_hunter'
+  | 'custom'
+
+/**
+ * Combined alert type (use FuturesAlertType for new code)
  */
 export type CombinedAlertType = AlertType | FuturesAlertType
 
