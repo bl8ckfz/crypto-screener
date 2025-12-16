@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Alert Batching Service for Futures Alerts
  * 
@@ -73,7 +74,7 @@ class AlertBatcherService {
     // Track in history for "recent count" calculations
     this.addToHistory(alert.symbol, alert.timestamp, alert.type)
 
-    console.log(`📦 Added alert to batch: ${alert.symbol} (${alert.type}) - Batch size: ${this.currentBatch!.alerts.length}`)
+    debug.log(`📦 Added alert to batch: ${alert.symbol} (${alert.type}) - Batch size: ${this.currentBatch!.alerts.length}`)
   }
 
   /**
@@ -95,7 +96,7 @@ class AlertBatcherService {
       symbols: new Set(),
     }
 
-    console.log(`🆕 Started new alert batch (window: ${this.batchWindowMs}ms)`)
+    debug.log(`🆕 Started new alert batch (window: ${this.batchWindowMs}ms)`)
 
     // Schedule batch completion
     if (this.batchTimeoutId !== null) {
@@ -112,7 +113,7 @@ class AlertBatcherService {
    */
   private completeBatch(): void {
     if (!this.currentBatch || this.currentBatch.alerts.length === 0) {
-      console.log('📦 Batch timer expired but no alerts to send')
+      debug.log('📦 Batch timer expired but no alerts to send')
       this.currentBatch = null
       this.batchTimeoutId = null
       return
@@ -121,7 +122,7 @@ class AlertBatcherService {
     const summary = this.generateSummary(this.currentBatch)
     const alerts = [...this.currentBatch.alerts]
 
-    console.log(`✅ Batch complete: ${alerts.length} alerts from ${summary.symbolStats.length} symbols`)
+    debug.log(`✅ Batch complete: ${alerts.length} alerts from ${summary.symbolStats.length} symbols`)
 
     // Send to callback
     if (this.onBatchReadyCallback) {
@@ -279,17 +280,17 @@ class AlertBatcherService {
    */
   setBatchWindow(ms: number): void {
     if (ms < 10000) {
-      console.warn('⚠️ Batch window too short, minimum 10 seconds')
+      debug.warn('⚠️ Batch window too short, minimum 10 seconds')
       return
     }
     if (ms > 300000) {
-      console.warn('⚠️ Batch window too long, maximum 5 minutes')
+      debug.warn('⚠️ Batch window too long, maximum 5 minutes')
       return
     }
     
     // @ts-expect-error - readonly property can be set in constructor
     this.batchWindowMs = ms
-    console.log(`⚙️ Alert batch window set to ${ms}ms`)
+    debug.log(`⚙️ Alert batch window set to ${ms}ms`)
   }
 }
 

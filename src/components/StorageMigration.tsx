@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react'
 import { migrateFromLocalStorage, getStorageStats } from '@/services/storage'
+import { debug } from '@/utils/debug'
 import { STORAGE_KEYS } from '@/types/config'
 
 /**
@@ -51,12 +52,12 @@ export function useStorageMigration() {
         const hasData = keysToMigrate.some((key) => localStorage.getItem(key) !== null)
 
         if (hasData) {
-          console.log('🔄 Migrating localStorage data to IndexedDB...')
+          debug.log('🔄 Migrating localStorage data to IndexedDB...')
           await migrateFromLocalStorage(keysToMigrate)
           
           // Get storage stats after migration
           const stats = await getStorageStats()
-          console.log('📊 Storage stats:', {
+          debug.log('📊 Storage stats:', {
             type: stats.type,
             keys: stats.keys.length,
             size: `${(stats.estimatedSize / 1024).toFixed(2)} KB`,
@@ -73,9 +74,9 @@ export function useStorageMigration() {
         })
 
         if (hasData) {
-          console.log('✅ Migration complete - using IndexedDB')
+          debug.log('✅ Migration complete - using IndexedDB')
         } else {
-          console.log('ℹ️ No data to migrate - using IndexedDB for new data')
+          debug.log('ℹ️ No data to migrate - using IndexedDB for new data')
         }
       } catch (error) {
         console.error('❌ Migration failed:', error)

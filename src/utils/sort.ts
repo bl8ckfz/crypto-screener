@@ -1,4 +1,5 @@
 import type { Coin, CoinSort, CoinSortField, SortDirection } from '@/types/coin'
+import { debug } from './debug'
 import { memoize } from './performance'
 
 /**
@@ -123,7 +124,7 @@ function sortCoinsByListInternal(
 ): Coin[] {
   // Fallback to default if list data not provided
   if (!listSortField) {
-    console.warn(`No sort field provided for list ${listId}, using VCP`)
+    debug.warn(`No sort field provided for list ${listId}, using VCP`)
     return sortCoins(coins, { field: 'vcp', direction: 'desc' })
   }
 

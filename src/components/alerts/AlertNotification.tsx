@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 import { useEffect, useState } from 'react'
 import { Alert, AlertSeverity, CombinedAlertType } from '@/types/alert'
 import { useStore } from '@/hooks/useStore'
@@ -240,7 +241,7 @@ export function AlertNotificationContainer() {
 
   // Debug: Log active alerts changes
   useEffect(() => {
-    console.log(`🔔 AlertNotificationContainer: ${activeAlerts.length} active alerts`, activeAlerts.map(a => a.symbol))
+    debug.log(`🔔 AlertNotificationContainer: ${activeAlerts.length} active alerts`, activeAlerts.map(a => a.symbol))
   }, [activeAlerts])
 
   // Play sound for new alerts
@@ -290,7 +291,7 @@ export function AlertNotificationContainer() {
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.5)
     } catch (error) {
-      console.warn('Failed to play alert sound:', error)
+      debug.warn('Failed to play alert sound:', error)
     }
   }
 

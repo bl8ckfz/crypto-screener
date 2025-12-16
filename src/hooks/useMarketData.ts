@@ -10,6 +10,7 @@ import { showCryptoAlertNotification, getNotificationPermission } from '@/servic
 import { audioNotificationService } from '@/services/audioNotification'
 import { sendBatchToWebhooks } from '@/services/webhookService'
 import { alertBatcher } from '@/services/alertBatcher'
+import { debug } from '@/utils/debug'
 import type { Coin } from '@/types/coin'
 import type { Alert } from '@/types/alert'
 import type { FuturesMetrics } from '@/types/api'
@@ -29,14 +30,14 @@ const KLINES_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
 let batchCallbackInitialized = false
 if (!batchCallbackInitialized) {
   alertBatcher.onBatchReady((summary, alerts) => {
-    console.log(`📦 Batch ready: ${summary.totalAlerts} alerts from ${summary.symbolStats.length} symbols`)
+    debug.log(`📦 Batch ready: ${summary.totalAlerts} alerts from ${summary.symbolStats.length} symbols`)
     
     // Get webhooks from store
     const state = useStore.getState()
     const { alertSettings } = state
     
     if (!alertSettings.webhookEnabled) {
-      console.log('⏭️ Webhooks disabled, skipping batch send')
+      debug.log('⏭️ Webhooks disabled, skipping batch send')
       return
     }
 
@@ -44,7 +45,7 @@ if (!batchCallbackInitialized) {
     const mainAlerts = alerts.filter(a => a.source !== 'watchlist')
     const watchlistAlerts = alerts.filter(a => a.source === 'watchlist')
     
-    console.log(`📊 Alert breakdown: ${mainAlerts.length} main, ${watchlistAlerts.length} watchlist`)
+    debug.log(`📊 Alert breakdown: ${mainAlerts.length} main, ${watchlistAlerts.length} watchlist`)
 
     // Send main alerts to main webhooks
     if (mainAlerts.length > 0 && alertSettings.webhooks && alertSettings.webhooks.length > 0) {
@@ -61,7 +62,7 @@ if (!batchCallbackInitialized) {
       sendBatchToWebhooks(alertSettings.webhooks, mainSummary, mainAlerts).then((results) => {
         results.forEach((result, webhookId) => {
           if (result.success) {
-            console.log(`✅ Main batch webhook ${webhookId} delivered`)
+            debug.log(`✅ Main batch webhook ${webhookId} delivered`)
           } else {
             console.error(`❌ Main batch webhook ${webhookId} failed: ${result.error}`)
           }
@@ -86,7 +87,7 @@ if (!batchCallbackInitialized) {
       sendBatchToWebhooks(alertSettings.watchlistWebhooks, watchlistSummary, watchlistAlerts).then((results) => {
         results.forEach((result, webhookId) => {
           if (result.success) {
-            console.log(`✅ Watchlist batch webhook ${webhookId} delivered`)
+            debug.log(`✅ Watchlist batch webhook ${webhookId} delivered`)
           } else {
             console.error(`❌ Watchlist batch webhook ${webhookId} failed: ${result.error}`)
           }
@@ -98,14 +99,14 @@ if (!batchCallbackInitialized) {
 
     // Log if no webhooks configured
     if (mainAlerts.length > 0 && (!alertSettings.webhooks || alertSettings.webhooks.length === 0)) {
-      console.log('⚠️ No main webhooks configured for batch delivery')
+      debug.log('⚠️ No main webhooks configured for batch delivery')
     }
     if (watchlistAlerts.length > 0 && (!alertSettings.watchlistWebhooks || alertSettings.watchlistWebhooks.length === 0)) {
-      console.log('⚠️ No watchlist webhooks configured for batch delivery')
+      debug.log('⚠️ No watchlist webhooks configured for batch delivery')
     }
   })
   batchCallbackInitialized = true
-  console.log('✅ Alert batcher callback initialized')
+  debug.log('✅ Alert batcher callback initialized')
 }
 
 /**
@@ -144,13 +145,13 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       let tickers
       
       if (USE_MOCK_DATA) {
-        console.log('Using mock data with variations for alert testing')
+        debug.log('Using mock data with variations for alert testing')
         tickers = getMockDataWithVariations()
       } else if (wsGetTickerData) {
         // Use WebSocket ticker data (no API call!)
         tickers = wsGetTickerData()
         if (tickers && tickers.length > 0) {
-          console.log(`✅ Using ${tickers.length} tickers from WebSocket stream`)
+          debug.log(`✅ Using ${tickers.length} tickers from WebSocket stream`)
           
           // Warn if we don't have all symbols yet (ticker stream still populating)
           // Note: We'll still show partial data, it will update as more tickers arrive
@@ -161,12 +162,12 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
           }
         } else {
           // WebSocket not ready yet - return empty array, will populate when ready
-          console.log('⏳ WebSocket not ready yet, waiting for ticker data...')
+          debug.log('⏳ WebSocket not ready yet, waiting for ticker data...')
           tickers = []
         }
       } else {
         // No WebSocket available - return empty, WebSocket will be initialized soon
-        console.log('⏳ Waiting for WebSocket initialization...')
+        debug.log('⏳ Waiting for WebSocket initialization...')
         tickers = []
       }
 
@@ -191,7 +192,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       
       const coinsWithMetrics = coins.filter(c => c.futuresMetrics).length
       if (import.meta.env.DEV && coins.length > 0) {
-        console.log(`📊 Metrics status: ${coinsWithMetrics}/${coins.length} coins have metrics (WS: ${wsMetricsCount}, cached: ${cachedMetricsCount})`)
+        debug.log(`📊 Metrics status: ${coinsWithMetrics}/${coins.length} coins have metrics (WS: ${wsMetricsCount}, cached: ${cachedMetricsCount})`)
       }
 
       // Filter by watchlist if one is selected
@@ -222,7 +223,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
   // Keep refetching until we have data for all symbols (ticker stream populates gradually)
   useEffect(() => {
     if (!wsGetTickerData) {
-      console.log('⏳ Waiting for wsGetTickerData...')
+      debug.log('⏳ Waiting for wsGetTickerData...')
       return
     }
 
@@ -232,20 +233,20 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
     // 1. tickersReady becomes true (initial REST data loaded)
     // 2. tickers.length > 0 (WebSocket data available)
     if ((tickersReady || (tickers && tickers.length > 0)) && !hasRefetchedForWebSocket.current) {
-      console.log('🔄 Ticker data ready (tickersReady:', tickersReady, ', tickers:', tickers?.length, '), loading market data...')
+      debug.log('🔄 Ticker data ready (tickersReady:', tickersReady, ', tickers:', tickers?.length, '), loading market data...')
       hasRefetchedForWebSocket.current = true
       query.refetch()
       
       // Track last seen count to detect new symbols
       let lastSeenCount = tickers?.length || 0
-      console.log(`🔍 Starting progressive polling with ${lastSeenCount} initial tickers...`)
+      debug.log(`🔍 Starting progressive polling with ${lastSeenCount} initial tickers...`)
       
       // If we don't have all symbols yet, refetch every 2 seconds until we do
       // This handles the case where ticker stream is still populating
       const intervalId = setInterval(() => {
         const currentTickers = wsGetTickerData()
         if (currentTickers && currentTickers.length > lastSeenCount) {
-          console.log(`🔄 New symbols available (${currentTickers.length}), refreshing...`)
+          debug.log(`🔄 New symbols available (${currentTickers.length}), refreshing...`)
           lastSeenCount = currentTickers.length
           query.refetch()
         }
@@ -255,7 +256,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       // Cleanup after 30 seconds (by then, all tickers should be loaded)
       const cleanupTimeout = setTimeout(() => {
         clearInterval(intervalId)
-        console.log('⏹️  Stopped polling for new symbols (30s timeout)')
+        debug.log('⏹️  Stopped polling for new symbols (30s timeout)')
       }, 30000)
       
       // Store cleanup functions for unmount
@@ -289,7 +290,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
           .filter(symbol => futuresSymbols.includes(symbol))
         
         if (symbols.length === 0) {
-          console.log('No matching futures symbols found for current coins')
+          debug.log('No matching futures symbols found for current coins')
           return
         }
 
@@ -310,7 +311,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         if (import.meta.env.DEV || window.location.search.includes('debug')) {
           const currentTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           const boundaryTime = lastBoundary.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-          console.log(`⏱️  Boundary check at ${currentTime}: current=${currentMinute}min, boundary=${lastBoundaryMinute}min (${boundaryTime}), already fetched=${alreadyFetchedForBoundary}`)
+          debug.log(`⏱️  Boundary check at ${currentTime}: current=${currentMinute}min, boundary=${lastBoundaryMinute}min (${boundaryTime}), already fetched=${alreadyFetchedForBoundary}`)
         }
         
         if (alreadyFetchedForBoundary) {
@@ -322,15 +323,15 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         const lastFetchedTime = lastKlinesUpdate > 0 
           ? new Date(lastKlinesUpdate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           : 'never'
-        console.log(`🔄 Fetching fresh klines data for ${boundaryTime} boundary (last fetch: ${lastFetchedTime})`)
-        console.log(`📊 Filtering to ${symbols.length} futures symbols (from ${query.data.length} total coins)`)
+        debug.log(`🔄 Fetching fresh klines data for ${boundaryTime} boundary (last fetch: ${lastFetchedTime})`)
+        debug.log(`📊 Filtering to ${symbols.length} futures symbols (from ${query.data.length} total coins)`)
         const { futuresMetricsService } = await import('@/services/futuresMetricsService')
         
         const metricsArray = await futuresMetricsService.fetchMultipleSymbolMetrics(
           symbols,
           (progress) => {
             if (progress.completed % 10 === 0) {
-              console.log(`📊 Fetched metrics: ${progress.completed}/${progress.total}`)
+              debug.log(`📊 Fetched metrics: ${progress.completed}/${progress.total}`)
             }
           },
           { skipMarketCap: true } // Skip CoinGecko calls - market cap not needed for alerts
@@ -343,14 +344,14 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
           cachedKlinesMetrics.set(metrics.symbol, metrics)
         })
 
-        console.log(`✅ Cached ${metricsArray.length} futures metrics for ${boundaryTime} boundary`)
+        debug.log(`✅ Cached ${metricsArray.length} futures metrics for ${boundaryTime} boundary`)
         
         // Trigger query refetch to:
         // 1. Attach new metrics to coins
         // 2. Trigger alert evaluation effect (dataUpdatedAt changes)
         query.refetch()
       } catch (error) {
-        console.warn('Failed to fetch/cache futures metrics in background:', error)
+        debug.warn('Failed to fetch/cache futures metrics in background:', error)
       }
     })()
   }, [query.data, query.dataUpdatedAt, query.refetch])
@@ -395,11 +396,11 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       const currentMode = useStore.getState().marketMode
       if (currentMode !== mode) {
         useStore.getState().setMarketMode(mode)
-        console.log(`ℹ️ Market mode updated: ${mode} (avgMomentum=${avgMomentum.toFixed(2)}%)`)
+        debug.log(`ℹ️ Market mode updated: ${mode} (avgMomentum=${avgMomentum.toFixed(2)}%)`)
       }
     } catch (e) {
       // Non-fatal
-      console.warn('Market mode derivation failed', e)
+      debug.warn('Market mode derivation failed', e)
     }
 
     // Check if we have futures metrics for alerts
@@ -407,38 +408,38 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
     const coinsWithMarketCap = coins.filter(c => c.futuresMetrics?.marketCap)
     
     if (coinsWithMetrics.length === 0) {
-      console.log('⏳ Waiting for futures metrics to be fetched for alert evaluation')
+      debug.log('⏳ Waiting for futures metrics to be fetched for alert evaluation')
       return
     }
 
-    console.log(`📊 Alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (${coinsWithMarketCap.length} with market cap)`)
+    debug.log(`📊 Alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (${coinsWithMarketCap.length} with market cap)`)
 
     // Filter to enabled rules only
     const enabledRules = alertRules.filter((rule) => rule.enabled)
 
-    console.log(`🎯 Alert rules status: ${alertRules.length} total, ${enabledRules.length} enabled`)
+    debug.log(`🎯 Alert rules status: ${alertRules.length} total, ${enabledRules.length} enabled`)
     
     if (alertRules.length > 0) {
-      console.log('📋 Alert rules:', alertRules.map(r => `${r.name} (${r.enabled ? 'ON' : 'OFF'})`).join(', '))
+      debug.log('📋 Alert rules:', alertRules.map(r => `${r.name} (${r.enabled ? 'ON' : 'OFF'})`).join(', '))
     }
 
     if (enabledRules.length === 0) {
       if (alertRules.length === 0) {
-        console.log('⚠️ No alert rules configured! Please add rules in Alert Config.')
+        debug.log('⚠️ No alert rules configured! Please add rules in Alert Config.')
       } else {
-        console.log('ℹ️ No enabled alert rules (all rules are disabled)')
+        debug.log('ℹ️ No enabled alert rules (all rules are disabled)')
       }
       return
     }
 
     const marketMode = useStore.getState().marketMode
     const activeWatchlistId = useStore.getState().currentWatchlistId
-    console.log(`📋 Evaluating ${enabledRules.length} enabled alert rules (market mode: ${marketMode}, UI watchlist: ${activeWatchlistId || 'none'})...`)
+    debug.log(`📋 Evaluating ${enabledRules.length} enabled alert rules (market mode: ${marketMode}, UI watchlist: ${activeWatchlistId || 'none'})...`)
     
     // Debug: Log sample of metrics
     const sampleCoin = coinsWithMetrics[0]
     if (sampleCoin?.futuresMetrics) {
-      console.log(`🔍 Sample metrics for ${sampleCoin.symbol}:`, {
+      debug.log(`🔍 Sample metrics for ${sampleCoin.symbol}:`, {
         change_5m: sampleCoin.futuresMetrics.change_5m?.toFixed(2) + '%',
         change_15m: sampleCoin.futuresMetrics.change_15m?.toFixed(2) + '%',
         change_1h: sampleCoin.futuresMetrics.change_1h?.toFixed(2) + '%',
@@ -452,10 +453,10 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       // Alerts are always 'main' alerts unless specifically configured for watchlists
       const triggeredAlerts = evaluateAlertRules(coins, enabledRules, marketMode)
       
-      console.log(`✅ Alert evaluation complete: ${triggeredAlerts.length} alert(s) triggered`)
+      debug.log(`✅ Alert evaluation complete: ${triggeredAlerts.length} alert(s) triggered`)
       
       if (triggeredAlerts.length > 0) {
-        console.log(`🔔 Triggered alerts:`, triggeredAlerts.map(a => `${a.symbol} (${a.type})`))
+        debug.log(`🔔 Triggered alerts:`, triggeredAlerts.map(a => `${a.symbol} (${a.type})`))
       }
 
       // Process each triggered alert
@@ -549,7 +550,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         // Batcher will send summary when batch window completes (30s)
         if (alertSettings.webhookEnabled) {
           alertBatcher.addAlert(alert)
-          console.log(`📦 Alert added to batch: ${alert.symbol} (${alert.type})`)
+          debug.log(`📦 Alert added to batch: ${alert.symbol} (${alert.type})`)
         }
 
         // Cooldown already updated above after initial check
@@ -589,7 +590,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       return
     }
     
-    console.log('🔄 WebSocket metrics updated, evaluating alerts with fresh data')
+    debug.log('🔄 WebSocket metrics updated, evaluating alerts with fresh data')
     
     // Re-attach WebSocket metrics to existing coins
     const coins = query.data.map(coin => {
@@ -609,7 +610,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       const marketMode: 'bull' | 'bear' = avgMomentum >= 0 ? 'bull' : 'bear'
       
       const coinsWithMetrics = coins.filter(c => c.futuresMetrics)
-      console.log(`📊 WebSocket alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (market: ${marketMode})`)
+      debug.log(`📊 WebSocket alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (market: ${marketMode})`)
       
       if (coinsWithMetrics.length === 0) {
         return
@@ -618,10 +619,10 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
       // Evaluate alerts
       const triggeredAlerts = evaluateAlertRules(coins, alertRules.filter(r => r.enabled), marketMode)
       
-      console.log(`✅ WebSocket alert evaluation complete: ${triggeredAlerts.length} alert(s) triggered`)
+      debug.log(`✅ WebSocket alert evaluation complete: ${triggeredAlerts.length} alert(s) triggered`)
       
       if (triggeredAlerts.length > 0) {
-        console.log(`🔔 Triggered alerts:`, triggeredAlerts.map(a => `${a.symbol} (${a.type})`))
+        debug.log(`🔔 Triggered alerts:`, triggeredAlerts.map(a => `${a.symbol} (${a.type})`))
       }
       
       // Process triggered alerts (same logic as main effect)
@@ -695,7 +696,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         // Add alert to batch for webhook delivery
         if (alertSettings.webhookEnabled) {
           alertBatcher.addAlert(alert)
-          console.log(`📦 Alert added to batch (WebSocket): ${alert.symbol} (${alert.type})`)
+          debug.log(`📦 Alert added to batch (WebSocket): ${alert.symbol} (${alert.type})`)
         }
       }
     } catch (error) {
@@ -728,7 +729,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         return
       }
 
-      console.log('⏰ Periodic alert evaluation (timer-based)')
+      debug.log('⏰ Periodic alert evaluation (timer-based)')
       
       // Re-attach WebSocket metrics to existing coins
       const coins = query.data.map(coin => {
@@ -747,7 +748,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         const marketMode: 'bull' | 'bear' = avgMomentum >= 0 ? 'bull' : 'bear'
         
         const coinsWithMetrics = coins.filter(c => c.futuresMetrics)
-        console.log(`📊 Periodic alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (market: ${marketMode})`)
+        debug.log(`📊 Periodic alert evaluation: ${coinsWithMetrics.length}/${coins.length} coins with metrics (market: ${marketMode})`)
         
         if (coinsWithMetrics.length === 0) {
           return
@@ -756,10 +757,10 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
         // Evaluate alerts
         const triggeredAlerts = evaluateAlertRules(coins, alertRules.filter(r => r.enabled), marketMode)
         
-        console.log(`✅ Periodic evaluation complete: ${triggeredAlerts.length} alert(s) triggered`)
+        debug.log(`✅ Periodic evaluation complete: ${triggeredAlerts.length} alert(s) triggered`)
         
         if (triggeredAlerts.length > 0) {
-          console.log(`🔔 Triggered alerts:`, triggeredAlerts.map(a => `${a.symbol} (${a.type})`))
+          debug.log(`🔔 Triggered alerts:`, triggeredAlerts.map(a => `${a.symbol} (${a.type})`))
           
           // Process each alert
           for (const alert of triggeredAlerts) {
@@ -768,7 +769,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
             const cooldownMs = alertSettings.alertCooldown * 1000
             
             if (now - lastAlertTime < cooldownMs) {
-              console.log(`⏭️  Skipping ${alert.symbol} - in cooldown (${Math.round((now - lastAlertTime) / 1000)}s / ${alertSettings.alertCooldown}s)`)
+              debug.log(`⏭️  Skipping ${alert.symbol} - in cooldown (${Math.round((now - lastAlertTime) / 1000)}s / ${alertSettings.alertCooldown}s)`)
               continue // Skip if in cooldown period
             }
             
@@ -776,7 +777,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
             recentAlerts.current.set(alert.symbol, now)
             
             // Debug: Log alert being added
-            console.log(`➕ Adding alert to store:`, alert.symbol, alert.type, alert.id)
+            debug.log(`➕ Adding alert to store:`, alert.symbol, alert.type, alert.id)
             
             // Add to active alerts (for notifications)
             addAlert(alert)
@@ -814,7 +815,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
             // Add alert to batch for webhook delivery
             if (alertSettings.webhookEnabled) {
               alertBatcher.addAlert(alert)
-              console.log(`📦 Alert added to batch (periodic): ${alert.symbol} (${alert.type})`)
+              debug.log(`📦 Alert added to batch (periodic): ${alert.symbol} (${alert.type})`)
             }
           }
         }
@@ -838,7 +839,7 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
 export function invalidateKlinesCache(): void {
   lastKlinesUpdate = 0
   cachedKlinesMetrics.clear()
-  console.log('🗑️ Klines cache invalidated')
+  debug.log('🗑️ Klines cache invalidated')
 }
 
 /**

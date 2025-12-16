@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Bubble Detection Service
  * 
@@ -105,7 +106,7 @@ export class BubbleDetectionService {
     historicalMetrics: Array<{ m5: WindowMetrics; m15: WindowMetrics }>
   ): void {
     if (historicalMetrics.length === 0) {
-      console.warn(`⚠️  No historical metrics to seed for ${symbol}`)
+      debug.warn(`⚠️  No historical metrics to seed for ${symbol}`)
       return
     }
 
@@ -140,7 +141,7 @@ export class BubbleDetectionService {
     state.emaVol15m = this.calculateEMA(vol15mSamples, this.config.emaPeriod15m)
     state.stdVol15m = this.calculateStdDev(vol15mSamples, state.emaVol15m)
 
-    console.log(`🫧 Seeded ${symbol}: ${vol5mSamples.length} 5m samples, ${vol15mSamples.length} 15m samples`)
+    debug.log(`🫧 Seeded ${symbol}: ${vol5mSamples.length} 5m samples, ${vol15mSamples.length} 15m samples`)
   }
 
   /**
@@ -166,13 +167,13 @@ export class BubbleDetectionService {
       
       // Log initialization (10% sample)
       if (import.meta.env.DEV && Math.random() < 0.1) {
-        console.log(`🫧 Initialized bubble tracking for ${metrics.symbol}`)
+        debug.log(`🫧 Initialized bubble tracking for ${metrics.symbol}`)
       }
     }
 
     // Debug: Log detection calls more frequently
     if (import.meta.env.DEV && Math.random() < 0.02) { // 2% sample
-      console.log(`🫧 Checking ${metrics.symbol}: 5m=${(metrics.m5.quoteVolume/1e6).toFixed(1)}M 15m=${(metrics.m15.quoteVolume/1e6).toFixed(1)}M history=[${state.vol5mHistory.length},${state.vol15mHistory.length}]`)
+      debug.log(`🫧 Checking ${metrics.symbol}: 5m=${(metrics.m5.quoteVolume/1e6).toFixed(1)}M 15m=${(metrics.m15.quoteVolume/1e6).toFixed(1)}M history=[${state.vol5mHistory.length},${state.vol15mHistory.length}]`)
     }
 
     // Process 5m window
@@ -195,7 +196,7 @@ export class BubbleDetectionService {
 
     // Debug: Log detection status periodically
     if (import.meta.env.DEV && Math.random() < 0.005) { // 0.5% sample rate
-      console.log(`🫧 Bubble check for ${metrics.symbol}:`, {
+      debug.log(`🫧 Bubble check for ${metrics.symbol}:`, {
         vol5mHistory: state.vol5mHistory.length,
         vol15mHistory: state.vol15mHistory.length,
         minRequired5m: this.config.minHistoryLength5m,
@@ -261,7 +262,7 @@ export class BubbleDetectionService {
 
     // Debug: Log z-scores more frequently to see what's happening
     if (import.meta.env.DEV && Math.random() < 0.02) { // 2% sample rate (10x more)
-      console.log(`🫧 Z-score ${state.symbol} ${timeframe}: vol=${(volume/1e6).toFixed(1)}M ema=${(ema/1e6).toFixed(1)}M std=${(std/1e6).toFixed(1)}M z=${zScore.toFixed(2)}σ (need ${config.smallZScore.toFixed(1)}σ+)`)
+      debug.log(`🫧 Z-score ${state.symbol} ${timeframe}: vol=${(volume/1e6).toFixed(1)}M ema=${(ema/1e6).toFixed(1)}M std=${(std/1e6).toFixed(1)}M z=${zScore.toFixed(2)}σ (need ${config.smallZScore.toFixed(1)}σ+)`)
     }
 
     // Determine bubble size

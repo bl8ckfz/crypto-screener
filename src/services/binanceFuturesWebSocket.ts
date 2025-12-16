@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Binance Futures WebSocket Client
  * 
@@ -80,14 +81,14 @@ export class BinanceFuturesWebSocket {
     return new Promise((resolve, reject) => {
       try {
         this.connectionState = 'connecting'
-        console.log('🔌 Connecting to Binance Futures WebSocket...')
+        debug.log('🔌 Connecting to Binance Futures WebSocket...')
 
         // Create WebSocket connection
         this.ws = new WebSocket(WS_BASE_URL)
 
         // Connection opened
         this.ws.onopen = () => {
-          console.log('✅ WebSocket connected')
+          debug.log('✅ WebSocket connected')
           this.connectionState = 'connected'
           this.reconnectAttempts = 0
           this.startPingInterval()
@@ -115,7 +116,7 @@ export class BinanceFuturesWebSocket {
 
         // Connection closed
         this.ws.onclose = (event) => {
-          console.warn('⚠️  WebSocket closed', { code: event.code, reason: event.reason })
+          debug.warn('⚠️  WebSocket closed', { code: event.code, reason: event.reason })
           this.connectionState = 'disconnected'
           this.stopPingInterval()
           this.emit('close', event)
@@ -149,7 +150,7 @@ export class BinanceFuturesWebSocket {
     // Store subscriptions for reconnection
     streams.forEach(stream => this.subscriptions.add(stream))
 
-    console.log(`📡 Subscribed to ${streams.length} stream(s)`)
+    debug.log(`📡 Subscribed to ${streams.length} stream(s)`)
   }
 
   /**
@@ -172,7 +173,7 @@ export class BinanceFuturesWebSocket {
     // Remove from stored subscriptions
     streams.forEach(stream => this.subscriptions.delete(stream))
 
-    console.log(`🔕 Unsubscribed from ${streams.length} stream(s)`)
+    debug.log(`🔕 Unsubscribed from ${streams.length} stream(s)`)
   }
 
   /**
@@ -242,7 +243,7 @@ export class BinanceFuturesWebSocket {
    * Disconnect and cleanup
    */
   disconnect(): void {
-    console.log('🔌 Disconnecting WebSocket...')
+    debug.log('🔌 Disconnecting WebSocket...')
     
     this.stopPingInterval()
     
@@ -318,7 +319,7 @@ export class BinanceFuturesWebSocket {
   private handleMessage(data: any): void {
     // Handle subscription responses
     if (data.result === null && data.id) {
-      console.log(`✅ Subscription confirmed: ID ${data.id}`)
+      debug.log(`✅ Subscription confirmed: ID ${data.id}`)
       return
     }
 
@@ -400,7 +401,7 @@ export class BinanceFuturesWebSocket {
       30000 // Max 30 seconds
     )
 
-    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
+    debug.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
 
     this.reconnectTimer = setTimeout(async () => {
       try {
@@ -426,7 +427,7 @@ export class BinanceFuturesWebSocket {
         }
 
         this.emit('reconnect')
-        console.log('✅ Reconnected successfully')
+        debug.log('✅ Reconnected successfully')
       } catch (error) {
         console.error('❌ Reconnection failed:', error)
         this.handleReconnect()
@@ -444,7 +445,7 @@ export class BinanceFuturesWebSocket {
   private startPingInterval(): void {
     // Ping/pong is handled automatically by Binance server and browser WebSocket API
     // No manual ping needed - keeping this method for interface compatibility
-    console.log('💓 Heartbeat managed by Binance server (automatic ping/pong)')
+    debug.log('💓 Heartbeat managed by Binance server (automatic ping/pong)')
   }
 
   /**

@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Alert Engine - Core alert evaluation logic
  * Evaluates alert rules against coin data using futures-based metrics
@@ -52,8 +53,8 @@ export function evaluateAlertRules(
     }
   }
 
-  console.log(`🔍 Alert engine [${source}]: ${coinsChecked}/${coins.length} coins with metrics, ${coinsWithoutMetrics} without metrics`)
-  console.log(`📋 Evaluated ${conditionsEvaluated} conditions (${enabledRules.length} rules), ${conditionsTriggered} triggered`)
+  debug.log(`🔍 Alert engine [${source}]: ${coinsChecked}/${coins.length} coins with metrics, ${coinsWithoutMetrics} without metrics`)
+  debug.log(`📋 Evaluated ${conditionsEvaluated} conditions (${enabledRules.length} rules), ${conditionsTriggered} triggered`)
 
   return alerts
 }
@@ -187,7 +188,7 @@ function evaluateCondition(
 
   // Log when conditions are actually triggered (for debugging)
   if (result) {
-    console.log(`✅ ${coin.symbol}: ${type} triggered (mode: ${marketMode})`, {
+    debug.log(`✅ ${coin.symbol}: ${type} triggered (mode: ${marketMode})`, {
       change_5m: metrics.change_5m?.toFixed(2),
       change_15m: metrics.change_15m?.toFixed(2),
       change_1h: metrics.change_1h?.toFixed(2),

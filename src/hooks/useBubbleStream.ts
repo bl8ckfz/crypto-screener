@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
+import { debug } from '@/utils/debug'
 import type { Bubble } from '@/types/bubble'
 
 interface UseBubbleStreamOptions {
@@ -28,7 +29,7 @@ export function useBubbleStream(options: UseBubbleStreamOptions = {}) {
     // Get stream manager instance from window (set by main app)
     const streamManager = (window as any).__streamManager
     if (!streamManager) {
-      console.warn('Stream manager not available for bubble tracking')
+      debug.warn('Stream manager not available for bubble tracking')
       return
     }
 
@@ -39,7 +40,7 @@ export function useBubbleStream(options: UseBubbleStreamOptions = {}) {
         const filtered = symbolFilter 
           ? existingBubbles.filter((b: Bubble) => b.symbol === symbolFilter)
           : existingBubbles
-        console.log(`🫧 useBubbleStream: Initialized with ${filtered.length} existing bubbles for ${symbolFilter || 'all'}`)
+        debug.log(`🫧 useBubbleStream: Initialized with ${filtered.length} existing bubbles for ${symbolFilter || 'all'}`)
         setBubbles(filtered.slice(-maxHistory))
       }
     }
@@ -50,7 +51,7 @@ export function useBubbleStream(options: UseBubbleStreamOptions = {}) {
         return
       }
 
-      console.log(`🫧 useBubbleStream: Received bubble for ${bubble.symbol} (filter=${symbolFilter})`, bubble)
+      debug.log(`🫧 useBubbleStream: Received bubble for ${bubble.symbol} (filter=${symbolFilter})`, bubble)
 
       setBubbles(prev => {
         // Filter out bubbles older than maxAgeMinutes
@@ -93,7 +94,7 @@ export function useBubbleStream(options: UseBubbleStreamOptions = {}) {
       setBubbles(prev => {
         const filtered = prev.filter(b => b.time >= cutoffTime)
         if (filtered.length < prev.length) {
-          console.log(`🧹 useBubbleStream: Cleaned up ${prev.length - filtered.length} old bubbles (older than ${maxAgeMinutes}m)`)
+          debug.log(`🧹 useBubbleStream: Cleaned up ${prev.length - filtered.length} old bubbles (older than ${maxAgeMinutes}m)`)
         }
         return filtered
       })

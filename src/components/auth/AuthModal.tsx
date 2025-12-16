@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 import { useEffect, useState, memo } from 'react'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
@@ -83,11 +84,11 @@ function AuthModalComponent({ isOpen, onClose }: AuthModalProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔐 Auth state change:', event, 'Session:', session?.user?.email || 'none')
+      debug.log('🔐 Auth state change:', event, 'Session:', session?.user?.email || 'none')
       
       // Only close on successful sign in with valid session
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('✅ User signed in, closing modal')
+        debug.log('✅ User signed in, closing modal')
         onClose()
       }
     })

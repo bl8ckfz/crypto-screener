@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * WebSocket Stream Manager
  * 
@@ -113,15 +114,15 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
    */
   async getTopLiquidSymbols(limit: number = 200): Promise<string[]> {
     // Connect to WebSocket
-    console.log('📡 Connecting to Binance Futures WebSocket...')
+    debug.log('📡 Connecting to Binance Futures WebSocket...')
     await this.wsClient.connect()
 
     // Subscribe to ticker stream
-    console.log('📡 Subscribing to ticker stream...')
+    debug.log('📡 Subscribing to ticker stream...')
     await this.wsClient.subscribe(['!ticker@arr'])
 
     // Wait for first ticker batch
-    console.log('⏳ Waiting for ticker data...')
+    debug.log('⏳ Waiting for ticker data...')
     await this.waitForFirstTickers()
 
     // Sort by 24h quote volume (most liquid first)
@@ -131,8 +132,8 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
       .sort((a, b) => b.quoteVolume - a.quoteVolume) // Descending by volume
       .slice(0, limit)
 
-    console.log(`📈 Selected ${sortedTickers.length} most liquid symbols`)
-    console.log(`🔝 Top volumes: ${sortedTickers.slice(0, 5).map(t => `${t.symbol}:$${(t.quoteVolume / 1e9).toFixed(1)}B`).join(', ')}`)
+    debug.log(`📈 Selected ${sortedTickers.length} most liquid symbols`)
+    debug.log(`🔝 Top volumes: ${sortedTickers.slice(0, 5).map(t => `${t.symbol}:$${(t.quoteVolume / 1e9).toFixed(1)}B`).join(', ')}`)
 
     return sortedTickers.map(t => t.symbol)
   }
@@ -151,47 +152,47 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
    */
   async start(symbols: string[]): Promise<void> {
     if (this.isRunning) {
-      console.warn('⚠️  Stream already running')
+      debug.warn('⚠️  Stream already running')
       return
     }
 
     // Binance limit: max 200 streams per WebSocket connection
     const MAX_STREAMS = 200
     if (symbols.length > MAX_STREAMS) {
-      console.warn(`⚠️  Limiting to ${MAX_STREAMS} symbols (requested ${symbols.length}) due to Binance WebSocket limits`)
+      debug.warn(`⚠️  Limiting to ${MAX_STREAMS} symbols (requested ${symbols.length}) due to Binance WebSocket limits`)
       symbols = symbols.slice(0, MAX_STREAMS)
     }
 
     this.symbols = symbols
-    console.log(`🚀 Starting WebSocket stream for ${symbols.length} symbols...`)
+    debug.log(`🚀 Starting WebSocket stream for ${symbols.length} symbols...`)
 
     try {
       // Step 1: Connect to Binance Futures WebSocket (skip if already connected)
       const isAlreadyConnected = this.wsClient.getState() === 'connected'
       if (!isAlreadyConnected) {
-        console.log('📡 Connecting to Binance Futures WebSocket...')
+        debug.log('📡 Connecting to Binance Futures WebSocket...')
         await this.wsClient.connect()
 
         // Step 2: Subscribe to ticker stream IMMEDIATELY (get market data in <1s)
-        console.log('📡 Subscribing to ticker stream...')
+        debug.log('📡 Subscribing to ticker stream...')
         await this.wsClient.subscribe(['!ticker@arr'])
 
         // Wait for first ticker batch (typically arrives within 1 second)
-        console.log('⏳ Waiting for initial ticker data...')
+        debug.log('⏳ Waiting for initial ticker data...')
         await this.waitForFirstTickers()
       } else {
-        console.log('✅ Already connected to WebSocket with ticker data')
+        debug.log('✅ Already connected to WebSocket with ticker data')
       }
 
       // Step 3: Notify UI that tickers are ready (users see data now!)
-      console.log(`✅ Ticker data ready (${this.tickerData.size} symbols)`)
+      debug.log(`✅ Ticker data ready (${this.tickerData.size} symbols)`)
       this.emit('tickersReady', {
         symbols: this.tickerData.size,
         timestamp: Date.now(),
       })
 
       // Step 4: Initialize ring buffers (non-blocking)
-      console.log('📦 Initializing ring buffers...')
+      debug.log('📦 Initializing ring buffers...')
       await this.bufferManager.initialize(symbols)
 
       // Step 5: Backfill historical data in background (if enabled)
@@ -201,11 +202,11 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
       }
 
       // Step 6: Subscribe to kline streams (for real-time updates)
-      console.log(`📡 Subscribing to ${symbols.length} kline streams...`)
+      debug.log(`📡 Subscribing to ${symbols.length} kline streams...`)
       await this.subscribeKlineStreams(symbols)
 
       this.isRunning = true
-      console.log('✅ WebSocket streaming started!')
+      debug.log('✅ WebSocket streaming started!')
       
       this.emit('started', {
         symbols: symbols.length,
@@ -244,7 +245,7 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
    * Backfill historical data in background (non-blocking)
    */
   private async backfillInBackground(symbols: string[]): Promise<void> {
-    console.log('📥 Starting background backfill...')
+    debug.log('📥 Starting background backfill...')
     const startTime = Date.now()
     
     try {
@@ -253,16 +254,16 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
         batchDelay: 1000, // 1s delay = 10 req/s = 600 req/min (safe under limit)
         onProgress: (completed, total) => {
           const progress = Math.round((completed / total) * 100)
-          console.log(`📥 Backfill progress: ${completed}/${total} (${progress}%)`)
+          debug.log(`📥 Backfill progress: ${completed}/${total} (${progress}%)`)
           this.emit('backfillProgress', { completed, total, progress })
         },
       })
       
       const duration = ((Date.now() - startTime) / 1000).toFixed(1)
-      console.log(`✅ Backfill complete: ${result.successful.length}/${symbols.length} symbols in ${duration}s`)
+      debug.log(`✅ Backfill complete: ${result.successful.length}/${symbols.length} symbols in ${duration}s`)
       
       if (result.failed.length > 0) {
-        console.warn(`⚠️  Failed to backfill ${result.failed.length} symbols:`, result.failed)
+        debug.warn(`⚠️  Failed to backfill ${result.failed.length} symbols:`, result.failed)
       }
 
       this.emit('backfillComplete', {
@@ -286,7 +287,7 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
       return
     }
 
-    console.log('🛑 Stopping WebSocket stream...')
+    debug.log('🛑 Stopping WebSocket stream...')
     this.wsClient.disconnect()
     this.isRunning = false
     this.emit('stopped')
@@ -385,7 +386,7 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
       const batch = streams.slice(i, i + batchSize)
       await this.wsClient.subscribe(batch)
 
-      console.log(`📡 Subscribed to ${Math.min(i + batchSize, streams.length)}/${streams.length} kline streams`)
+      debug.log(`📡 Subscribed to ${Math.min(i + batchSize, streams.length)}/${streams.length} kline streams`)
 
       // Small delay between batches to avoid overwhelming the server
       if (i + batchSize < streams.length) {
@@ -416,13 +417,13 @@ export class WebSocketStreamManager extends SimpleEventEmitter {
 
     // Handle reconnection
     this.wsClient.on('reconnect', () => {
-      console.log('✅ WebSocket reconnected')
+      debug.log('✅ WebSocket reconnected')
       this.emit('reconnected')
     })
 
     // Handle connection close
     this.wsClient.on('close', () => {
-      console.warn('⚠️  WebSocket connection closed')
+      debug.warn('⚠️  WebSocket connection closed')
       this.emit('disconnected')
     })
 

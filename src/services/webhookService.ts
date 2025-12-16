@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Webhook service for sending alerts to external services (Discord, Telegram, etc.)
  * Features: Rate limiting, retry logic, multiple webhook support, batch summaries
@@ -115,25 +116,25 @@ function getAlertColor(alert: Alert): number {
   const type = String(alert.type || '') // Ensure it's a string
   
   // Debug log
-  console.log(`🔍 getAlertColor called: type="${type}", severity="${alert.severity}"`)
+  debug.log(`🔍 getAlertColor called: type="${type}", severity="${alert.severity}"`)
   
   // Bull alerts = Green
   if (type.includes('bull') || type === 'price_pump' || type === 'volume_spike') {
-    console.log('✅ Matched BULL → returning GREEN')
+    debug.log('✅ Matched BULL → returning GREEN')
     return 0x10b981 // Green
   }
   // Bear alerts = Red
   if (type.includes('bear') || type === 'price_dump' || type === 'volume_drop') {
-    console.log('✅ Matched BEAR → returning RED')
+    debug.log('✅ Matched BEAR → returning RED')
     return 0xef4444 // Red
   }
   // Hunter alerts = Purple
   if (type.includes('hunter')) {
-    console.log('✅ Matched HUNTER → returning PURPLE')
+    debug.log('✅ Matched HUNTER → returning PURPLE')
     return 0xa855f7 // Purple
   }
   // Default: Use severity-based colors
-  console.log(`⚠️ No match, using severity color for "${alert.severity}"`)
+  debug.log(`⚠️ No match, using severity color for "${alert.severity}"`)
   return SEVERITY_COLORS[alert.severity]
 }
 
@@ -189,7 +190,7 @@ export async function sendDiscordBatchSummary(
   summary: AlertSummary,
   _alerts: Alert[] // Reserved for future use (individual alert details)
 ): Promise<boolean> {
-  console.log(`📤 Sending batch summary to Discord: ${summary.totalAlerts} alerts`)
+  debug.log(`📤 Sending batch summary to Discord: ${summary.totalAlerts} alerts`)
   
   if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
     console.error('Invalid Discord webhook URL:', webhookUrl)
@@ -265,7 +266,7 @@ ${symbolLines.join('\n\n')}${timeframeSection}
       return false
     }
 
-    console.log(`✅ Discord batch summary sent: ${summary.totalAlerts} alerts`)
+    debug.log(`✅ Discord batch summary sent: ${summary.totalAlerts} alerts`)
     return true
   } catch (error) {
     console.error('Failed to send Discord batch summary:', error)
@@ -280,7 +281,7 @@ export async function sendDiscordWebhook(
   webhookUrl: string,
   alert: Alert
 ): Promise<boolean> {
-  console.log(`📤 sendDiscordWebhook called for ${alert.symbol} (${alert.type})`)
+  debug.log(`📤 sendDiscordWebhook called for ${alert.symbol} (${alert.type})`)
   
   if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
     console.error('Invalid Discord webhook URL:', webhookUrl)
@@ -294,7 +295,7 @@ export async function sendDiscordWebhook(
     const color = getAlertColor(alert)
     
     // Debug: Log alert type and color
-    console.log(`🎨 Discord webhook color for ${alert.symbol} (${alert.type}): ${color.toString(16)} ${color === 0x10b981 ? '(GREEN)' : color === 0xef4444 ? '(RED)' : color === 0xa855f7 ? '(PURPLE)' : '(OTHER)'}`)
+    debug.log(`🎨 Discord webhook color for ${alert.symbol} (${alert.type}): ${color.toString(16)} ${color === 0x10b981 ? '(GREEN)' : color === 0xef4444 ? '(RED)' : color === 0xa855f7 ? '(PURPLE)' : '(OTHER)'}`)
 
     // Build Discord embed
     const embed = {
@@ -349,7 +350,7 @@ export async function sendDiscordWebhook(
       return false
     }
 
-    console.log(`✅ Discord webhook sent: ${alert.symbol} - ${alert.title}`)
+    debug.log(`✅ Discord webhook sent: ${alert.symbol} - ${alert.title}`)
     return true
   } catch (error) {
     console.error('Failed to send Discord webhook:', error)
@@ -405,7 +406,7 @@ export async function testDiscordWebhook(webhookUrl: string): Promise<boolean> {
       return false
     }
 
-    console.log('✅ Discord webhook test successful')
+    debug.log('✅ Discord webhook test successful')
     return true
   } catch (error) {
     console.error('Failed to test Discord webhook:', error)
@@ -480,7 +481,7 @@ export async function sendTelegramWebhook(
       return false
     }
 
-    console.log(`✅ Telegram webhook sent: ${alert.symbol} - ${alert.title}`)
+    debug.log(`✅ Telegram webhook sent: ${alert.symbol} - ${alert.title}`)
     return true
   } catch (error) {
     console.error('Failed to send Telegram webhook:', error)
@@ -522,7 +523,7 @@ export async function testTelegramWebhook(
       return false
     }
 
-    console.log('✅ Telegram webhook test successful')
+    debug.log('✅ Telegram webhook test successful')
     return true
   } catch (error) {
     console.error('Failed to test Telegram webhook:', error)
@@ -543,7 +544,7 @@ export async function sendWebhookWithRetry(
   // Check rate limit
   if (!rateLimiter.canSend(webhookId)) {
     const waitTime = rateLimiter.getWaitTime(webhookId)
-    console.warn(`Webhook ${webhook.name} rate limited, wait ${waitTime}ms`)
+    debug.warn(`Webhook ${webhook.name} rate limited, wait ${waitTime}ms`)
     return {
       success: false,
       attempts: 0,
@@ -590,7 +591,7 @@ export async function sendWebhookWithRetry(
         retryConfig.baseDelayMs * Math.pow(2, attempt - 1),
         retryConfig.maxDelayMs
       )
-      console.log(`Retrying webhook in ${delay}ms...`)
+      debug.log(`Retrying webhook in ${delay}ms...`)
       await sleep(delay)
     }
   }
@@ -615,11 +616,11 @@ export async function sendToWebhooks(
   const enabledWebhooks = webhooks.filter(w => w.enabled)
 
   if (enabledWebhooks.length === 0) {
-    console.log(`No enabled webhooks for ${source} alerts`)
+    debug.log(`No enabled webhooks for ${source} alerts`)
     return results
   }
 
-  console.log(`📤 Sending ${source} alert to ${enabledWebhooks.length} webhooks: ${alert.symbol}`)
+  debug.log(`📤 Sending ${source} alert to ${enabledWebhooks.length} webhooks: ${alert.symbol}`)
 
   await Promise.all(
     enabledWebhooks.map(async (webhook) => {
@@ -644,11 +645,11 @@ export async function sendBatchToWebhooks(
   const enabledWebhooks = webhooks.filter(w => w.enabled)
 
   if (enabledWebhooks.length === 0) {
-    console.log('No enabled webhooks for batch summary')
+    debug.log('No enabled webhooks for batch summary')
     return results
   }
 
-  console.log(`📤 Sending batch summary to ${enabledWebhooks.length} webhooks`)
+  debug.log(`📤 Sending batch summary to ${enabledWebhooks.length} webhooks`)
 
   await Promise.all(
     enabledWebhooks.map(async (webhook) => {
@@ -659,7 +660,7 @@ export async function sendBatchToWebhooks(
           success = await sendDiscordBatchSummary(webhook.url, summary, alerts)
         } else if (webhook.type === 'telegram') {
           // TODO: Implement Telegram batch summary format
-          console.warn('Telegram batch summaries not yet implemented')
+          debug.warn('Telegram batch summaries not yet implemented')
           success = false
         }
 

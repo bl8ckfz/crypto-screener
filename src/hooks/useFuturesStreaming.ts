@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { debug } from '@/utils/debug'
 import { FuturesMetricsService } from '@/services/futuresMetricsService'
 import type { WarmupStatus, PartialChangeMetrics } from '@/types/metrics'
 import type { FuturesMetrics } from '@/types/api'
@@ -105,12 +106,12 @@ export function useFuturesStreaming() {
 
     const init = async () => {
       try {
-        console.log('🚀 Initializing futures streaming...')
+        debug.log('🚀 Initializing futures streaming...')
         
         // Subscribe to events BEFORE initializing (so we don't miss the tickersReady event)
         const unsubTickersReady = futuresMetricsService.on('tickersReady', () => {
           if (!isSubscribed) return
-          console.log('📊 Initial tickers ready - market data can be displayed')
+          debug.log('📊 Initial tickers ready - market data can be displayed')
           setTickersReady(true)
         })
         
@@ -121,7 +122,7 @@ export function useFuturesStreaming() {
           
           // Mark backfill complete when done
           if (progress >= 100) {
-            console.log('✅ Backfill complete - all historical data loaded!')
+            debug.log('✅ Backfill complete - all historical data loaded!')
             setBackfillComplete(true)
             setBackfillProgress(100)
           }
@@ -134,7 +135,7 @@ export function useFuturesStreaming() {
         
         setIsInitialized(true)
         setLastUpdate(Date.now()) // Mark connection time to prevent "stale" status
-        console.log('✅ Futures streaming initialized')
+        debug.log('✅ Futures streaming initialized')
         
         // Subscribe to real-time metrics updates
         const unsubMetrics = futuresMetricsService.onMetricsUpdate(({ symbol, metrics }: { symbol: string; metrics: PartialChangeMetrics }) => {
@@ -173,7 +174,7 @@ export function useFuturesStreaming() {
           // Stop tracking once fully warmed up
           if (status && status.overallProgress >= 100) {
             clearInterval(warmupInterval)
-            console.log('🔥 Fully warmed up - all timeframes ready!')
+            debug.log('🔥 Fully warmed up - all timeframes ready!')
           }
         }, 5000)
         
@@ -238,16 +239,16 @@ export function useFuturesStreaming() {
       converted.set(symbol, convertToFuturesMetrics(partial))
     })
     if (converted.size > 0) {
-      console.log(`🔄 Converted ${converted.size} WebSocket metrics to FuturesMetrics format`)
+      debug.log(`🔄 Converted ${converted.size} WebSocket metrics to FuturesMetrics format`)
       // Sample one for debugging
       const sample = Array.from(converted.values())[0]
-      console.log('📊 Sample futures metric:', sample?.symbol, {
+      debug.log('📊 Sample futures metric:', sample?.symbol, {
         change_5m: sample?.change_5m,
         change_15m: sample?.change_15m,
         volume_5m: sample?.volume_5m,
       })
     } else {
-      console.warn('⚠️ No metrics in metricsMap to convert!')
+      debug.warn('⚠️ No metrics in metricsMap to convert!')
     }
     return converted
   }, [metricsMap])

@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 import type { Coin } from '@/types/coin'
 
 /**
@@ -9,7 +10,7 @@ import type { Coin } from '@/types/coin'
  */
 export function exportToCSV(coins: Coin[], filename: string = 'crypto-screener-export.csv'): void {
   if (!coins || coins.length === 0) {
-    console.warn('No data to export')
+    debug.warn('No data to export')
     return
   }
 
@@ -63,7 +64,7 @@ export function exportToCSV(coins: Coin[], filename: string = 'crypto-screener-e
  */
 export function exportToJSON(coins: Coin[], filename: string = 'crypto-screener-export.json'): void {
   if (!coins || coins.length === 0) {
-    console.warn('No data to export')
+    debug.warn('No data to export')
     return
   }
 

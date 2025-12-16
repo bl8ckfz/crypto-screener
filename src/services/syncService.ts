@@ -1,4 +1,5 @@
 import { supabase } from '@/config'
+import { debug } from '@/utils/debug'
 import type { AlertRule, AlertSettings } from '@/types/alert'
 import type { Watchlist } from '@/types/screener'
 import type { WebhookConfig } from '@/types/alert'
@@ -505,7 +506,7 @@ export function setupRealtimeSync(
 
   // Return cleanup function
   return () => {
-    console.log('🧹 Unsubscribing from', channels.length, 'realtime channels')
+    debug.log('🧹 Unsubscribing from', channels.length, 'realtime channels')
     
     channels.forEach((channel) => {
       // Only unsubscribe channels that successfully connected

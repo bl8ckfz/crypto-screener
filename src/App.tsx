@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, lazy, Suspense, useEffect } from 'react'
+import { debug } from '@/utils/debug'
 import { useMarketData } from '@/hooks/useMarketData'
 import { useFuturesStreaming } from '@/hooks/useFuturesStreaming'
 import { useStore } from '@/hooks/useStore'
@@ -89,7 +90,7 @@ function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth state change:', event, session?.user?.email)
+      debug.log('🔐 Auth state change:', event, session?.user?.email)
       setSession(session)
       setUser(session?.user ?? null)
       
@@ -110,22 +111,22 @@ function App() {
   useEffect(() => {
     if (!user?.id) return
     
-    console.log('🔄 Setting up realtime sync for user:', user.id)
+    debug.log('🔄 Setting up realtime sync for user:', user.id)
     
     const setupSync = async () => {
       const { setupRealtimeSync } = await import('@/services/syncService')
       
       const cleanup = setupRealtimeSync(user.id, {
         onWatchlistChange: (newWatchlists) => {
-          console.log('🔄 Watchlists updated from cloud')
+          debug.log('🔄 Watchlists updated from cloud')
           useStore.setState({ watchlists: newWatchlists })
         },
         onAlertRuleChange: (newRules) => {
-          console.log('🔄 Alert rules updated from cloud')
+          debug.log('🔄 Alert rules updated from cloud')
           useStore.setState({ alertRules: newRules })
         },
         onWebhookChange: (newWebhooks) => {
-          console.log('🔄 Webhooks updated from cloud')
+          debug.log('🔄 Webhooks updated from cloud')
           const currentSettings = useStore.getState().alertSettings
           useStore.setState({
             alertSettings: {
@@ -143,7 +144,7 @@ function App() {
     setupSync().then((fn) => { cleanup = fn })
     
     return () => {
-      console.log('🔌 Cleaning up realtime sync')
+      debug.log('🔌 Cleaning up realtime sync')
       cleanup?.()
     }
   }, [user?.id])
@@ -153,7 +154,7 @@ function App() {
     const interval = setInterval(() => {
       const removedCount = alertHistoryService.cleanupOldAlerts()
       if (removedCount > 0) {
-        console.log(`🧹 Cleaned up ${removedCount} old alerts`)
+        debug.log(`🧹 Cleaned up ${removedCount} old alerts`)
       }
     }, ALERT_HISTORY_CONFIG.CLEANUP_INTERVAL_MS)
     

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { debug } from '@/utils/debug'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { CurrencyPair, Coin, CoinSort } from '@/types/coin'
 import type { ScreeningListId, Watchlist } from '@/types/screener'
@@ -423,7 +424,7 @@ export const useStore = create<AppState>()(
             webhooks: state.alertSettings.webhooks,
           })
           
-          console.log('✅ Synced to cloud successfully')
+          debug.log('✅ Synced to cloud successfully')
         } catch (error) {
           console.error('❌ Sync to cloud failed:', error)
           throw error
@@ -474,7 +475,7 @@ export const useStore = create<AppState>()(
             },
           })
           
-          console.log('✅ Synced from cloud successfully')
+          debug.log('✅ Synced from cloud successfully')
         } catch (error) {
           console.error('❌ Sync from cloud failed:', error)
           throw error

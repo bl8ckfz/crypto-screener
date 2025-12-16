@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 import type {
   BinanceFuturesKline,
   ProcessedKlineData,
@@ -187,7 +188,7 @@ export class BinanceFuturesApiClient {
    * const result = await client.backfill1mCandles(['BTCUSDT', 'ETHUSDT'], {
    *   batchSize: 10,
    *   batchDelay: 1000,
-   *   onProgress: (completed, total) => console.log(`${completed}/${total}`)
+   *   onProgress: (completed, total) => debug.log(`${completed}/${total}`)
    * })
    */
   async backfill1mCandles(
@@ -211,22 +212,22 @@ export class BinanceFuturesApiClient {
       data: new Map<string, Candle1m[]>(),
     }
     
-    console.log(`🔧 Starting backfill for ${symbols.length} symbols...`)
-    console.log(`📊 Batch size: ${batchSize}, delay: ${batchDelay}ms`)
+    debug.log(`🔧 Starting backfill for ${symbols.length} symbols...`)
+    debug.log(`📊 Batch size: ${batchSize}, delay: ${batchDelay}ms`)
     
     for (let i = 0; i < symbols.length; i += batchSize) {
       const batch = symbols.slice(i, i + batchSize)
       const batchNum = Math.floor(i / batchSize) + 1
       const totalBatches = Math.ceil(symbols.length / batchSize)
       
-      console.log(`📦 Processing batch ${batchNum}/${totalBatches} (${batch.length} symbols)...`)
+      debug.log(`📦 Processing batch ${batchNum}/${totalBatches} (${batch.length} symbols)...`)
       
       const batchPromises = batch.map(async (symbol) => {
         try {
           const candles = await this.fetch1mKlines(symbol, 1440)
           results.data.set(symbol, candles)
           results.successful.push(symbol)
-          console.log(`✅ Backfilled ${symbol}: ${candles.length} candles`)
+          debug.log(`✅ Backfilled ${symbol}: ${candles.length} candles`)
           
           if (options.onProgress) {
             options.onProgress(
@@ -246,15 +247,15 @@ export class BinanceFuturesApiClient {
       
       // Rate limiting delay between batches
       if (i + batchSize < symbols.length) {
-        console.log(`⏳ Waiting ${batchDelay}ms before next batch...`)
+        debug.log(`⏳ Waiting ${batchDelay}ms before next batch...`)
         await new Promise(resolve => setTimeout(resolve, batchDelay))
       }
     }
     
-    console.log(`✅ Backfill complete: ${results.successful.length} successful, ${results.failed.length} failed`)
+    debug.log(`✅ Backfill complete: ${results.successful.length} successful, ${results.failed.length} failed`)
     
     if (results.failed.length > 0) {
-      console.warn(`❌ Failed symbols:`, results.failed.map(f => f.symbol).join(', '))
+      debug.warn(`❌ Failed symbols:`, results.failed.map(f => f.symbol).join(', '))
     }
     
     return results
@@ -278,7 +279,7 @@ export class BinanceFuturesApiClient {
 
     // Return cached symbols if still valid
     if (cachedFuturesSymbols && now - cacheTimestamp < CACHE_DURATION) {
-      console.log(`Using cached Futures symbols (${cachedFuturesSymbols.length} symbols)`)
+      debug.log(`Using cached Futures symbols (${cachedFuturesSymbols.length} symbols)`)
       return cachedFuturesSymbols
     }
 
@@ -289,7 +290,7 @@ export class BinanceFuturesApiClient {
         ? `${API_CONFIG.corsProxy}${encodeURIComponent(`https://fapi.binance.com${exchangeInfoEndpoint}`)}`
         : `${this.baseUrl}${exchangeInfoEndpoint}`
 
-      console.log('Fetching USDT-M futures symbols from exchange info...')
+      debug.log('Fetching USDT-M futures symbols from exchange info...')
       const exchangeInfo = await this.fetchWithRetry<BinanceFuturesExchangeInfo>(exchangeInfoUrl)
 
       // Filter to USDT-M perpetual futures with TRADING status
@@ -301,7 +302,7 @@ export class BinanceFuturesApiClient {
         )
         .map((symbol: BinanceFuturesSymbol) => symbol.symbol)
 
-      console.log(`✅ Found ${tradingSymbols.length} USDT-M perpetual futures`)
+      debug.log(`✅ Found ${tradingSymbols.length} USDT-M perpetual futures`)
 
       // Step 2: Fetch 24hr ticker data to get volumes
       const tickerEndpoint = '/fapi/v1/ticker/24hr'
@@ -309,7 +310,7 @@ export class BinanceFuturesApiClient {
         ? `${API_CONFIG.corsProxy}${encodeURIComponent(`https://fapi.binance.com${tickerEndpoint}`)}`
         : `${this.baseUrl}${tickerEndpoint}`
 
-      console.log('Fetching 24hr ticker data to sort by volume...')
+      debug.log('Fetching 24hr ticker data to sort by volume...')
       await rateLimitedDelay()
       const tickers = await this.fetchWithRetry<any[]>(tickerUrl)
 
@@ -328,8 +329,8 @@ export class BinanceFuturesApiClient {
         return volumeB - volumeA // Descending order
       })
 
-      console.log(`✅ Sorted ${sortedSymbols.length} symbols by 24hr volume`)
-      console.log(`🔝 Top 10 by volume: ${sortedSymbols.slice(0, 10).join(', ')}`)
+      debug.log(`✅ Sorted ${sortedSymbols.length} symbols by 24hr volume`)
+      debug.log(`🔝 Top 10 by volume: ${sortedSymbols.slice(0, 10).join(', ')}`)
 
       // Update cache
       cachedFuturesSymbols = sortedSymbols
@@ -341,7 +342,7 @@ export class BinanceFuturesApiClient {
 
       // If we have old cached data, use it as fallback
       if (cachedFuturesSymbols) {
-        console.warn('Using stale cached Futures symbols as fallback')
+        debug.warn('Using stale cached Futures symbols as fallback')
         return cachedFuturesSymbols
       }
 
@@ -483,7 +484,7 @@ export class BinanceFuturesApiClient {
 
       // Exponential backoff: 1s, 2s, 4s
       const delay = Math.pow(2, attempt - 1) * 1000
-      console.warn(`Attempt ${attempt} failed, retrying in ${delay}ms...`)
+      debug.warn(`Attempt ${attempt} failed, retrying in ${delay}ms...`)
 
       await new Promise((resolve) => setTimeout(resolve, delay))
       return this.fetchWithRetry<T>(url, attempt + 1)

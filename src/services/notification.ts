@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Browser Notification Service
  * 
@@ -29,13 +30,13 @@ export function getNotificationPermission(): NotificationPermissionStatus {
  */
 export async function requestNotificationPermission(): Promise<NotificationPermissionStatus> {
   if (!isNotificationSupported()) {
-    console.warn('Browser notifications are not supported')
+    debug.warn('Browser notifications are not supported')
     return 'unsupported'
   }
 
   try {
     const permission = await Notification.requestPermission()
-    console.log('Notification permission:', permission)
+    debug.log('Notification permission:', permission)
     return permission as NotificationPermissionStatus
   } catch (error) {
     console.error('Failed to request notification permission:', error)
@@ -63,7 +64,7 @@ export function showNotification(options: NotificationOptions): Notification | n
   const permission = getNotificationPermission()
 
   if (permission !== 'granted') {
-    console.warn('Cannot show notification: permission not granted')
+    debug.warn('Cannot show notification: permission not granted')
     return null
   }
 

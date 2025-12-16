@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Stream1mManager - Orchestrates 1m candle streaming with sliding windows
  * 
@@ -143,7 +144,7 @@ export class Stream1mManager extends SimpleEventEmitter {
   setInitialTickers(tickers: any[]): void {
     // Parse all tickers to convert strings to numbers
     this.initialTickers = tickers.map(t => this.parseRestTicker(t))
-    console.log(`📊 Stored ${this.initialTickers.length} initial tickers for immediate display`)
+    debug.log(`📊 Stored ${this.initialTickers.length} initial tickers for immediate display`)
     
     // Emit event to trigger UI update
     this.emit('tickersReady', { count: this.initialTickers.length })
@@ -161,7 +162,7 @@ export class Stream1mManager extends SimpleEventEmitter {
       try {
         // Validate data structure (KlineData format from WebSocket)
         if (!data || !data.kline) {
-          console.warn('⚠️ Invalid kline data structure:', data)
+          debug.warn('⚠️ Invalid kline data structure:', data)
           return
         }
 
@@ -170,7 +171,7 @@ export class Stream1mManager extends SimpleEventEmitter {
         
         // Debug: Log first few klines to verify data flow
         if (klinesReceived <= 3) {
-          console.log(`📊 Kline #${klinesReceived} received for ${symbol}: closed=${kline.isFinal}`)
+          debug.log(`📊 Kline #${klinesReceived} received for ${symbol}: closed=${kline.isFinal}`)
         }
 
         // Only process closed candles
@@ -180,7 +181,7 @@ export class Stream1mManager extends SimpleEventEmitter {
 
         closedCandles++
         if (closedCandles <= 3) {
-          console.log(`✅ Closed candle #${closedCandles} for ${symbol} - processing metrics`)
+          debug.log(`✅ Closed candle #${closedCandles} for ${symbol} - processing metrics`)
         }
 
         const candle: Candle1m = {
@@ -204,15 +205,15 @@ export class Stream1mManager extends SimpleEventEmitter {
 
     // Handle reconnections
     this.wsClient.on('reconnect', () => {
-      console.log('🔄 WebSocket reconnecting...')
+      debug.log('🔄 WebSocket reconnecting...')
     })
 
     this.wsClient.on('connect', () => {
-      console.log('✅ WebSocket connected')
+      debug.log('✅ WebSocket connected')
       
       // Resubscribe after reconnection
       if (this.isRunning && this.symbols.length > 0) {
-        console.log('📡 Resubscribing to 1m kline streams...')
+        debug.log('📡 Resubscribing to 1m kline streams...')
         this.wsClient.subscribe1mKlines(this.symbols).catch(error => {
           console.error('❌ Failed to resubscribe:', error)
         })
@@ -240,16 +241,16 @@ export class Stream1mManager extends SimpleEventEmitter {
    */
   async start(symbols: string[], options: StartOptions = {}): Promise<void> {
     if (this.isRunning) {
-      console.warn('⚠️  Stream already running')
+      debug.warn('⚠️  Stream already running')
       return
     }
 
     this.symbols = symbols
-    console.log(`🚀 Starting 1m stream for ${symbols.length} symbols...`)
+    debug.log(`🚀 Starting 1m stream for ${symbols.length} symbols...`)
 
     try {
       // Step 1: Backfill historical 1m data
-      console.log('📥 Backfilling 1m candles (1440 per symbol)...')
+      debug.log('📥 Backfilling 1m candles (1440 per symbol)...')
       const startTime = Date.now()
 
       const backfillResult = await this.apiClient.backfill1mCandles(symbols, {
@@ -257,7 +258,7 @@ export class Stream1mManager extends SimpleEventEmitter {
         batchDelay: options.batchDelay || 1000,
         onProgress: (completed, total) => {
           const progress = Math.round((completed / total) * 100)
-          console.log(`📥 Backfill progress: ${completed}/${total} (${progress}%)`)
+          debug.log(`📥 Backfill progress: ${completed}/${total} (${progress}%)`)
           this.emit('backfillProgress', { completed, total, progress })
           
           if (options.onProgress) {
@@ -267,25 +268,25 @@ export class Stream1mManager extends SimpleEventEmitter {
       })
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(1)
-      console.log(
+      debug.log(
         `✅ Backfill complete: ${backfillResult.successful.length}/${symbols.length} in ${duration}s`
       )
 
       // Handle backfill failures
       if (backfillResult.failed.length > 0) {
-        console.warn(`⚠️  Failed to backfill ${backfillResult.failed.length} symbols:`)
+        debug.warn(`⚠️  Failed to backfill ${backfillResult.failed.length} symbols:`)
         backfillResult.failed.forEach(f => {
-          console.warn(`  - ${f.symbol}: ${f.error}`)
+          debug.warn(`  - ${f.symbol}: ${f.error}`)
         })
-        console.warn(`📊 Success rate: ${backfillResult.successful.length}/${symbols.length} (${Math.round(backfillResult.successful.length / symbols.length * 100)}%)`)
+        debug.warn(`📊 Success rate: ${backfillResult.successful.length}/${symbols.length} (${Math.round(backfillResult.successful.length / symbols.length * 100)}%)`)
       }
 
       // Step 2: Initialize buffers and running sums
-      console.log('📦 Initializing ring buffers and running sums...')
+      debug.log('📦 Initializing ring buffers and running sums...')
       for (const symbol of backfillResult.successful) {
         const candles = backfillResult.data.get(symbol)
         if (!candles) {
-          console.warn(`⚠️  No candles data for ${symbol}`)
+          debug.warn(`⚠️  No candles data for ${symbol}`)
           continue
         }
 
@@ -306,11 +307,11 @@ export class Stream1mManager extends SimpleEventEmitter {
         }
 
         this.buffers.set(symbol, buffer)
-        console.log(`✅ ${symbol}: ${buffer.getFillPercentage().toFixed(0)}% filled`)
+        debug.log(`✅ ${symbol}: ${buffer.getFillPercentage().toFixed(0)}% filled`)
       }
 
       // Step 2.5: Seed bubble detection with historical volume data
-      console.log('🫧 Seeding bubble detection with historical volumes...')
+      debug.log('🫧 Seeding bubble detection with historical volumes...')
       let seededCount = 0
       for (const symbol of backfillResult.successful) {
         const buffer = this.buffers.get(symbol)
@@ -335,26 +336,26 @@ export class Stream1mManager extends SimpleEventEmitter {
           seededCount++
         }
       }
-      console.log(`✅ Seeded ${seededCount}/${backfillResult.successful.length} symbols for bubble detection`)
+      debug.log(`✅ Seeded ${seededCount}/${backfillResult.successful.length} symbols for bubble detection`)
 
       // Step 3: Connect WebSocket
-      console.log('📡 Connecting to Binance Futures WebSocket...')
+      debug.log('📡 Connecting to Binance Futures WebSocket...')
       await this.wsClient.connect()
 
       // Step 4: Subscribe to ticker stream (for live prices/volumes)
-      console.log('📡 Subscribing to ticker stream...')
+      debug.log('📡 Subscribing to ticker stream...')
       await this.wsClient.subscribeTicker()
 
       // Update tracked symbols to only successful ones
       this.symbols = backfillResult.successful
       
       // Step 5: Subscribe to 1m kline streams
-      console.log(`📡 Subscribing to ${backfillResult.successful.length} 1m kline streams...`)
+      debug.log(`📡 Subscribing to ${backfillResult.successful.length} 1m kline streams...`)
       await this.wsClient.subscribe1mKlines(backfillResult.successful)
 
       this.isRunning = true
-      console.log('✅ 1m streaming started!')
-      console.log(`📊 Tracking ${this.symbols.length} symbols, ${this.buffers.size} buffers initialized`)
+      debug.log('✅ 1m streaming started!')
+      debug.log(`📊 Tracking ${this.symbols.length} symbols, ${this.buffers.size} buffers initialized`)
 
       this.emit('started', { symbols: backfillResult.successful.length })
     } catch (error) {
@@ -377,7 +378,7 @@ export class Stream1mManager extends SimpleEventEmitter {
     const buffer = this.buffers.get(symbol)
 
     if (!buffer) {
-      console.warn(`⚠️  Received candle for untracked symbol: ${symbol}`)
+      debug.warn(`⚠️  Received candle for untracked symbol: ${symbol}`)
       return
     }
 
@@ -400,7 +401,7 @@ export class Stream1mManager extends SimpleEventEmitter {
       
       // Debug: Log first few metric emissions to verify data flow
       if (import.meta.env.DEV && Math.random() < 0.01) { // 1% sample rate
-        console.log(`📊 Emitting metrics for ${symbol}:`, {
+        debug.log(`📊 Emitting metrics for ${symbol}:`, {
           change_5m: metrics.m5.priceChangePercent.toFixed(2) + '%',
           change_15m: metrics.m15.priceChangePercent.toFixed(2) + '%',
           volume_5m: '$' + (metrics.m5.quoteVolume / 1000).toFixed(0) + 'K',
@@ -428,7 +429,7 @@ export class Stream1mManager extends SimpleEventEmitter {
       // Emit bubble events and store in history
       bubbles.forEach(bubble => {
         // Always log bubble detections (not sampled)
-        console.log(`🫧 BUBBLE DETECTED: ${bubble.symbol} ${bubble.size} ${bubble.side} on ${bubble.timeframe} (z=${bubble.zScore.toFixed(2)}σ, price=${bubble.priceChangePct >= 0 ? '+' : ''}${bubble.priceChangePct.toFixed(2)}%)`)
+        debug.log(`🫧 BUBBLE DETECTED: ${bubble.symbol} ${bubble.size} ${bubble.side} on ${bubble.timeframe} (z=${bubble.zScore.toFixed(2)}σ, price=${bubble.priceChangePct >= 0 ? '+' : ''}${bubble.priceChangePct.toFixed(2)}%)`)
         
         // Store in history for late-subscribing components
         this.bubbleHistory.push(bubble)
@@ -442,7 +443,7 @@ export class Stream1mManager extends SimpleEventEmitter {
       // Debug: Why no partial metrics?
       if (import.meta.env.DEV && Math.random() < 0.01) { // 1% sample
         const buffer = this.buffers.get(symbol)
-        console.log(`🫧 No partial metrics for ${symbol}:`, {
+        debug.log(`🫧 No partial metrics for ${symbol}:`, {
           hasBuffer: !!buffer,
           bufferCount: buffer?.getCount() || 0,
           needs5m: 5,
@@ -501,7 +502,7 @@ export class Stream1mManager extends SimpleEventEmitter {
     if (!m5 || !m15 || !h1 || !h8 || !h24) {
       // Debug: Log missing metrics
       if (import.meta.env.DEV && Math.random() < 0.005) { // 0.5% sample rate
-        console.log(`⚠️  Missing metrics for ${symbol}:`, {
+        debug.log(`⚠️  Missing metrics for ${symbol}:`, {
           m5: !!m5,
           m15: !!m15,
           h1: !!h1,
@@ -606,16 +607,16 @@ export class Stream1mManager extends SimpleEventEmitter {
     
     // Once WebSocket has data, clear initial tickers to save memory
     if (filtered.length > 0 && this.initialTickers.length > 0) {
-      console.log(`✅ WebSocket ticker data available, clearing initial REST data`)
+      debug.log(`✅ WebSocket ticker data available, clearing initial REST data`)
       this.initialTickers = []
     }
     
     // Debug: Log if mismatch
     if (filtered.length !== this.symbols.length && import.meta.env.DEV) {
-      console.warn(`⚠️  Ticker data mismatch: ${filtered.length} tickers vs ${this.symbols.length} tracked symbols`)
+      debug.warn(`⚠️  Ticker data mismatch: ${filtered.length} tickers vs ${this.symbols.length} tracked symbols`)
       const missingSymbols = this.symbols.filter(s => !filtered.some(t => t.symbol === s))
       if (missingSymbols.length > 0) {
-        console.warn(`Missing ticker data for: ${missingSymbols.join(', ')}`)
+        debug.warn(`Missing ticker data for: ${missingSymbols.join(', ')}`)
       }
     }
     
@@ -646,11 +647,11 @@ export class Stream1mManager extends SimpleEventEmitter {
    */
   async stop(): Promise<void> {
     if (!this.isRunning) {
-      console.warn('⚠️  Stream not running')
+      debug.warn('⚠️  Stream not running')
       return
     }
 
-    console.log('🛑 Stopping 1m stream...')
+    debug.log('🛑 Stopping 1m stream...')
 
     try {
       // Disconnect WebSocket
@@ -663,7 +664,7 @@ export class Stream1mManager extends SimpleEventEmitter {
       this.symbols = []
       this.isRunning = false
 
-      console.log('✅ 1m stream stopped')
+      debug.log('✅ 1m stream stopped')
       this.emit('stopped')
     } catch (error) {
       console.error('❌ Failed to stop 1m stream:', error)

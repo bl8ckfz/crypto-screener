@@ -1,4 +1,5 @@
 import type { FuturesMetrics } from '@/types/api'
+import { debug } from '@/utils/debug'
 import { CoinGeckoApiClient } from './coinGeckoApi'
 import { getCoinGeckoId as mapSymbolToCoinGeckoId } from '@/config/coinGeckoMapping'
 import { Stream1mManager, type AllTimeframeMetrics } from './stream1mManager'
@@ -51,7 +52,7 @@ export class FuturesMetricsService {
       (window as any).__streamManager = this.stream1mManager
     }
     
-    console.log(`🎯 Using 1m streaming (max ${FuturesMetricsService.MAX_SYMBOLS} symbols)`)
+    debug.log(`🎯 Using 1m streaming (max ${FuturesMetricsService.MAX_SYMBOLS} symbols)`)
   }
 
   /**
@@ -66,7 +67,7 @@ export class FuturesMetricsService {
    * @param symbols - Array of symbols to stream (optional, uses top N by volume if not provided)
    */
   async initialize(symbols?: string[]): Promise<void> {
-    console.log('🚀 Initializing 1m streaming...')
+    debug.log('🚀 Initializing 1m streaming...')
     
     let symbolsToStream: string[]
     
@@ -75,26 +76,26 @@ export class FuturesMetricsService {
     } else {
       // Get all futures symbols (already sorted by 24hr volume)
       const allSymbols = await this.futuresClient.fetchAllFuturesSymbols()
-      console.log(`📋 Found ${allSymbols.length} USDT-M perpetual futures (sorted by volume)`)
+      debug.log(`📋 Found ${allSymbols.length} USDT-M perpetual futures (sorted by volume)`)
       
       // Take top N most liquid pairs
       symbolsToStream = allSymbols.slice(0, FuturesMetricsService.MAX_SYMBOLS)
-      console.log(`🎯 Selected top ${symbolsToStream.length} by 24hr volume`)
+      debug.log(`🎯 Selected top ${symbolsToStream.length} by 24hr volume`)
     }
     
-    console.log(`📈 Starting 1m stream for ${symbolsToStream.length} symbols`)
-    console.log(`🔝 Top 10: ${symbolsToStream.slice(0, 10).join(', ')}`)
+    debug.log(`📈 Starting 1m stream for ${symbolsToStream.length} symbols`)
+    debug.log(`🔝 Top 10: ${symbolsToStream.slice(0, 10).join(', ')}`)
     
     // Fetch initial ticker data for immediate display
     try {
       const tickers = await this.futuresClient.fetch24hrTickers()
       const trackedTickers = tickers.filter(t => symbolsToStream.includes(t.symbol))
-      console.log(`📊 Fetched ${trackedTickers.length} initial tickers for display`)
+      debug.log(`📊 Fetched ${trackedTickers.length} initial tickers for display`)
       
       // Store in stream manager for immediate access
       this.stream1mManager.setInitialTickers(trackedTickers)
     } catch (err) {
-      console.warn('⚠️  Failed to fetch initial tickers:', err)
+      debug.warn('⚠️  Failed to fetch initial tickers:', err)
     }
     
     // Start streaming in background (non-blocking)
@@ -103,7 +104,7 @@ export class FuturesMetricsService {
       console.error('❌ Failed to start 1m streaming:', err)
     })
     
-    console.log('✅ 1m streaming initialized (backfill in progress)')
+    debug.log('✅ 1m streaming initialized (backfill in progress)')
   }
 
   /**
@@ -150,7 +151,7 @@ export class FuturesMetricsService {
       // Debug: Log first few metrics to verify data flow
       metricsReceived++
       if (metricsReceived <= 3 || (import.meta.env.DEV && metricsReceived % 100 === 0)) {
-        console.log(`📈 FuturesMetricsService received metric #${metricsReceived} for ${data.symbol}`)
+        debug.log(`📈 FuturesMetricsService received metric #${metricsReceived} for ${data.symbol}`)
       }
       
       handler({ symbol: data.symbol, metrics: converted })
@@ -256,7 +257,7 @@ export class FuturesMetricsService {
    * 
    * @example
    * const metrics = await service.fetchSymbolMetrics('BTCUSDT')
-   * console.log(metrics.change_1h, metrics.volume_1h, metrics.marketCap)
+   * debug.log(metrics.change_1h, metrics.volume_1h, metrics.marketCap)
    */
   async fetchSymbolMetrics(
     symbol: string,
@@ -355,7 +356,7 @@ export class FuturesMetricsService {
    * @example
    * const metrics = await service.fetchMultipleSymbolMetrics(
    *   ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'],
-   *   (progress) => console.log(`${progress.completed}/${progress.total}`)
+   *   (progress) => debug.log(`${progress.completed}/${progress.total}`)
    * )
    */
   async fetchMultipleSymbolMetrics(
@@ -363,7 +364,7 @@ export class FuturesMetricsService {
     onProgress?: (progress: { completed: number; total: number; current: string }) => void,
     options: { skipMarketCap?: boolean } = {}
   ): Promise<FuturesMetrics[]> {
-    console.log(`📊 Fetching metrics for ${symbols.length} symbols...`)
+    debug.log(`📊 Fetching metrics for ${symbols.length} symbols...`)
     const startTime = Date.now()
 
     const results: FuturesMetrics[] = []
@@ -398,8 +399,8 @@ export class FuturesMetricsService {
     }
 
     const duration = Date.now() - startTime
-    console.log(`✅ Fetched ${results.length}/${symbols.length} metrics in ${duration}ms`)
-    console.log(`📈 Average: ${Math.round(duration / symbols.length)}ms per symbol`)
+    debug.log(`✅ Fetched ${results.length}/${symbols.length} metrics in ${duration}ms`)
+    debug.log(`📈 Average: ${Math.round(duration / symbols.length)}ms per symbol`)
 
     return results
   }
@@ -460,25 +461,25 @@ export class FuturesMetricsService {
    * 
    * @example
    * const passingMetrics = await service.scanAllFutures()
-   * console.log(`Found ${passingMetrics.length} symbols passing filters`)
+   * debug.log(`Found ${passingMetrics.length} symbols passing filters`)
    */
   async scanAllFutures(): Promise<FuturesMetrics[]> {
-    console.log('🔍 Scanning all USDT-M futures...')
+    debug.log('🔍 Scanning all USDT-M futures...')
 
     // Fetch all available futures symbols
     const symbols = await this.getAllFuturesSymbols()
-    console.log(`📋 Found ${symbols.length} USDT-M perpetual futures`)
+    debug.log(`📋 Found ${symbols.length} USDT-M perpetual futures`)
 
     // Fetch metrics for all symbols
     const allMetrics = await this.fetchMultipleSymbolMetrics(symbols, (progress) => {
       if (progress.completed % 10 === 0) {
-        console.log(`📊 Progress: ${progress.completed}/${progress.total}`)
+        debug.log(`📊 Progress: ${progress.completed}/${progress.total}`)
       }
     })
 
     // Filter to only passing symbols
     const passingMetrics = allMetrics.filter((m) => m.passes_filters)
-    console.log(`✅ ${passingMetrics.length}/${allMetrics.length} symbols passed filters`)
+    debug.log(`✅ ${passingMetrics.length}/${allMetrics.length} symbols passed filters`)
 
     return passingMetrics
   }

@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Ring Buffer Manager
  * 
@@ -73,7 +74,7 @@ export class RingBufferManager {
    * Initialize buffers for given symbols
    */
   async initialize(symbols: string[]): Promise<void> {
-    console.log(`🔧 Initializing ring buffers for ${symbols.length} symbols...`)
+    debug.log(`🔧 Initializing ring buffers for ${symbols.length} symbols...`)
 
     for (const symbol of symbols) {
       if (!this.buffers.has(symbol)) {
@@ -81,7 +82,7 @@ export class RingBufferManager {
       }
     }
 
-    console.log(`✅ Ring buffers initialized for ${this.buffers.size} symbols`)
+    debug.log(`✅ Ring buffers initialized for ${this.buffers.size} symbols`)
   }
 
   /**
@@ -304,7 +305,7 @@ export class RingBufferManager {
         buffer.push(candle)
       }
 
-      console.log(`✅ Backfilled ${symbol}: ${klines.length} candles`)
+      debug.log(`✅ Backfilled ${symbol}: ${klines.length} candles`)
     } catch (error) {
       console.error(`❌ Failed to backfill ${symbol}:`, error)
       throw error
@@ -340,8 +341,8 @@ export class RingBufferManager {
     const successful: string[] = []
     const failed: string[] = []
 
-    console.log(`🔧 Starting backfill for ${symbols.length} symbols...`)
-    console.log(`📊 Batch size: ${batchSize}, delay: ${batchDelay}ms`)
+    debug.log(`🔧 Starting backfill for ${symbols.length} symbols...`)
+    debug.log(`📊 Batch size: ${batchSize}, delay: ${batchDelay}ms`)
 
     // Process in batches
     for (let i = 0; i < symbols.length; i += batchSize) {
@@ -349,7 +350,7 @@ export class RingBufferManager {
       const batchNum = Math.floor(i / batchSize) + 1
       const totalBatches = Math.ceil(symbols.length / batchSize)
 
-      console.log(`📦 Processing batch ${batchNum}/${totalBatches} (${batch.length} symbols)...`)
+      debug.log(`📦 Processing batch ${batchNum}/${totalBatches} (${batch.length} symbols)...`)
 
       // Process batch in parallel (but rate-limited by BinanceFuturesApiClient)
       const results = await Promise.allSettled(
@@ -373,12 +374,12 @@ export class RingBufferManager {
 
       // Delay before next batch (except for last batch)
       if (i + batchSize < symbols.length) {
-        console.log(`⏳ Waiting ${batchDelay}ms before next batch...`)
+        debug.log(`⏳ Waiting ${batchDelay}ms before next batch...`)
         await new Promise(resolve => setTimeout(resolve, batchDelay))
       }
     }
 
-    console.log(`✅ Backfill complete: ${successful.length} successful, ${failed.length} failed`)
+    debug.log(`✅ Backfill complete: ${successful.length} successful, ${failed.length} failed`)
 
     return { successful, failed }
   }

@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * IndexedDB Storage Utilities
  * 
@@ -55,8 +56,8 @@ class IndexedDBStorage implements Storage {
    */
   private logWarningOnce(message: string, error?: unknown): void {
     if (!this.hasLoggedError) {
-      console.warn(message, error)
-      console.warn('Falling back to localStorage for all operations')
+      debug.warn(message, error)
+      debug.warn('Falling back to localStorage for all operations')
       this.hasLoggedError = true
     }
   }
@@ -176,7 +177,7 @@ export const createIndexedDBStorage = () => ({
  * Migration utility to move data from localStorage to IndexedDB
  */
 export async function migrateFromLocalStorage(keys: string[]): Promise<void> {
-  console.log('Migrating data from localStorage to IndexedDB...')
+  debug.log('Migrating data from localStorage to IndexedDB...')
   
   let migratedCount = 0
   
@@ -188,11 +189,11 @@ export async function migrateFromLocalStorage(keys: string[]): Promise<void> {
         migratedCount++
       }
     } catch (error) {
-      console.warn(`Failed to migrate key "${key}":`, error)
+      debug.warn(`Failed to migrate key "${key}":`, error)
     }
   }
   
-  console.log(`Migration complete: ${migratedCount} items migrated`)
+  debug.log(`Migration complete: ${migratedCount} items migrated`)
 }
 
 /**
@@ -241,11 +242,11 @@ export async function exportAllData(): Promise<Record<string, string>> {
  * Import data from backup
  */
 export async function importAllData(data: Record<string, string>): Promise<void> {
-  console.log('Importing data...')
+  debug.log('Importing data...')
   
   for (const [key, value] of Object.entries(data)) {
     await storage.setItem(key, value)
   }
   
-  console.log(`Import complete: ${Object.keys(data).length} items imported`)
+  debug.log(`Import complete: ${Object.keys(data).length} items imported`)
 }

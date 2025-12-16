@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 import type {
   BinanceTicker24hr,
   ProcessedTicker,
@@ -43,7 +44,7 @@ export class BinanceApiClient {
     
     // Return cached pairs if still valid
     if (cachedUSDTPairs && now - cacheTimestamp < CACHE_DURATION) {
-      console.log(`Using cached USDT pairs (${cachedUSDTPairs.length} symbols)`)
+      debug.log(`Using cached USDT pairs (${cachedUSDTPairs.length} symbols)`)
       return cachedUSDTPairs
     }
 
@@ -53,7 +54,7 @@ export class BinanceApiClient {
         ? `${API_CONFIG.corsProxy}${encodeURIComponent('https://api.binance.com/api/v3' + endpoint)}`
         : `${this.baseUrl}${endpoint}`
 
-      console.log('Fetching USDT pairs from exchange info...')
+      debug.log('Fetching USDT pairs from exchange info...')
       const data = await this.fetchWithRetry<BinanceExchangeInfo>(url)
 
       // Filter to USDT trading pairs with TRADING status
@@ -64,7 +65,7 @@ export class BinanceApiClient {
         )
         .map((symbol: BinanceSymbol) => symbol.symbol)
 
-      console.log(`✅ Loaded ${usdtPairs.length} USDT trading pairs`)
+      debug.log(`✅ Loaded ${usdtPairs.length} USDT trading pairs`)
       
       // Update cache
       cachedUSDTPairs = usdtPairs
@@ -76,7 +77,7 @@ export class BinanceApiClient {
       
       // If we have old cached data, use it as fallback
       if (cachedUSDTPairs) {
-        console.warn('Using stale cached USDT pairs as fallback')
+        debug.warn('Using stale cached USDT pairs as fallback')
         return cachedUSDTPairs
       }
       
@@ -106,7 +107,7 @@ export class BinanceApiClient {
 
     // Filter to only USDT pairs
     const filtered = data.filter(ticker => usdtPairs.includes(ticker.symbol))
-    console.log(`Filtered ${data.length} tickers to ${filtered.length} USDT pairs`)
+    debug.log(`Filtered ${data.length} tickers to ${filtered.length} USDT pairs`)
 
     return filtered
   }
@@ -154,7 +155,7 @@ export class BinanceApiClient {
 
         // Don't retry on the last attempt
         if (attempt < maxRetries) {
-          console.warn(
+          debug.warn(
             `API request failed (attempt ${attempt + 1}/${maxRetries + 1}): ${lastError.message}`
           )
           await this.delay(retryDelay * (attempt + 1)) // Exponential backoff

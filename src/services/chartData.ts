@@ -1,3 +1,4 @@
+import { debug } from '@/utils/debug'
 /**
  * Binance Chart Data Service
  * 
@@ -132,7 +133,7 @@ export async function fetchKlines(
     
     // Return mock data for development fallback
     if (import.meta.env.DEV) {
-      console.warn('⚠️ Using mock chart data (development fallback)')
+      debug.warn('⚠️ Using mock chart data (development fallback)')
       return generateMockChartData(fullSymbol, interval, limit)
     }
     
