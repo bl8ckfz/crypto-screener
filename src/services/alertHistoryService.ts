@@ -11,6 +11,11 @@ class AlertHistoryService {
   private readonly storageKey = ALERT_HISTORY_CONFIG.STORAGE_KEY
   private readonly retentionMs = ALERT_HISTORY_CONFIG.RETENTION_HOURS * 60 * 60 * 1000
   private readonly maxItems = ALERT_HISTORY_CONFIG.MAX_HISTORY_ITEMS
+  
+  // In-memory cache to avoid repeated sessionStorage reads
+  private cache: AlertHistoryEntry[] | null = null
+  private cacheTimestamp: number = 0
+  private readonly CACHE_TTL_MS = 1000 // Cache valid for 1 second
 
   /**
    * Add new alert to history
@@ -42,15 +47,28 @@ class AlertHistoryService {
     }
     
     this.saveToStorage(history)
+    this.invalidateCache() // Clear cache after write
   }
 
   /**
    * Get all alert history entries (within retention period)
+   * Uses in-memory cache to avoid repeated sessionStorage reads
    * @returns Array of alert entries, sorted newest first
    */
   getHistory(): AlertHistoryEntry[] {
+    // Return cached data if valid
+    if (this.cache && Date.now() - this.cacheTimestamp < this.CACHE_TTL_MS) {
+      return this.cache
+    }
+    
+    // Load from storage and cache
     const history = this.loadFromStorage()
-    return history.sort((a, b) => b.timestamp - a.timestamp)
+    const sorted = history.sort((a, b) => b.timestamp - a.timestamp)
+    
+    this.cache = sorted
+    this.cacheTimestamp = Date.now()
+    
+    return sorted
   }
 
   /**
@@ -92,6 +110,7 @@ class AlertHistoryService {
     const removedCount = history.length - validEntries.length
     if (removedCount > 0) {
       this.saveToStorage(validEntries)
+      this.invalidateCache() // Clear cache after cleanup
     }
 
     return removedCount
@@ -103,6 +122,7 @@ class AlertHistoryService {
   clearHistory(): void {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem(this.storageKey)
+      this.invalidateCache() // Clear cache
     }
   }
 
@@ -139,6 +159,15 @@ class AlertHistoryService {
     } catch (error) {
       console.error('Failed to save alert history:', error)
     }
+  }
+
+  /**
+   * Invalidate in-memory cache
+   * Called after write operations to ensure fresh data on next read
+   */
+  private invalidateCache(): void {
+    this.cache = null
+    this.cacheTimestamp = 0
   }
 
   /**
