@@ -151,6 +151,64 @@ function formatAlertValue(alert: Alert): string {
 }
 
 /**
+ * Get emoji badge for alert type
+ */
+function getAlertTypeEmoji(type: string): string {
+  if (type.includes('bull') || type === 'price_pump') return '📈'
+  if (type.includes('bear') || type === 'price_dump') return '📉'
+  if (type.includes('hunter')) return '🎣'
+  if (type.includes('volume')) return '📊'
+  if (type === 'vcp_signal') return '🎯'
+  if (type === 'fibonacci_break') return '🔢'
+  return '🔔'
+}
+
+/**
+ * Get human-readable label for alert type (same as UI)
+ */
+function getAlertTypeLabel(type: string): string {
+  // Futures alerts (the only ones we use)
+  if (type === 'futures_big_bull_60') return '60 Big Bull'
+  if (type === 'futures_big_bear_60') return '60 Big Bear'
+  if (type === 'futures_pioneer_bull') return 'Pioneer Bull'
+  if (type === 'futures_pioneer_bear') return 'Pioneer Bear'
+  if (type === 'futures_5_big_bull') return '5 Big Bull'
+  if (type === 'futures_5_big_bear') return '5 Big Bear'
+  if (type === 'futures_15_big_bull') return '15 Big Bull'
+  if (type === 'futures_15_big_bear') return '15 Big Bear'
+  if (type === 'futures_bottom_hunter') return 'Bottom Hunter'
+  if (type === 'futures_top_hunter') return 'Top Hunter'
+  
+  // Legacy spot alerts (not used)
+  if (type === 'futures_bull_5m') return 'Bull 5m'
+  if (type === 'futures_bull_15m') return 'Bull 15m'
+  if (type === 'futures_bull_1h') return 'Bull 1h'
+  if (type === 'futures_bear_5m') return 'Bear 5m'
+  if (type === 'futures_bear_15m') return 'Bear 15m'
+  if (type === 'futures_bear_1h') return 'Bear 1h'
+  if (type === 'futures_volume_5m') return 'Volume 5m'
+  if (type === 'futures_volume_15m') return 'Volume 15m'
+  if (type === 'futures_volume_1h') return 'Volume 1h'
+  if (type === 'futures_hunter_bull') return 'Hunter Bull'
+  if (type === 'futures_hunter_bear') return 'Hunter Bear'
+  
+  if (type === 'price_pump') return 'Price Pump'
+  if (type === 'price_dump') return 'Price Dump'
+  if (type === 'volume_spike') return 'Volume Spike'
+  if (type === 'volume_drop') return 'Volume Drop'
+  if (type === 'vcp_signal') return 'VCP Signal'
+  if (type === 'fibonacci_break') return 'Fibonacci Break'
+  if (type === 'trend_reversal') return 'Trend Reversal'
+  if (type === 'pioneer_bull') return 'Pioneer Bull'
+  if (type === 'pioneer_bear') return 'Pioneer Bear'
+  if (type === '5m_big_bull') return '5m Big Bull'
+  if (type === '5m_big_bear') return '5m Big Bear'
+  
+  // Default: capitalize and replace underscores
+  return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+/**
  * Send alert batch summary to Discord webhook
  * Formats multiple alerts into a single comprehensive message
  */
@@ -170,25 +228,23 @@ export async function sendDiscordBatchSummary(
     const startTime = new Date(summary.batchStartTime).toLocaleTimeString('en-US', { hour12: false })
     const endTime = new Date(summary.batchEndTime).toLocaleTimeString('en-US', { hour12: false })
 
-    // Build top symbols section (limit to top 5 most active in last hour)
-    const topSymbols = summary.symbolStats.slice(0, 5)
+    // Build coins section - show coins with alerts in this batch
+    const topSymbols = summary.symbolStats.slice(0, 10) // Show up to 10 coins
     const symbolLines = topSymbols.map(stat => {
-      // Show last 3 alert types
-      const recentTypes = stat.recentTypes.slice(0, 3).join(', ')
-      return `• **${stat.symbol}**: ${stat.lastHourCount} alerts in last hour\n  └─ Recent: ${recentTypes}\n  └─ 24h total: ${stat.lastDayCount}`
+      // Format: SYMBOL: hourCount / dayCount
+      const countLine = `**${stat.symbol}**: ${stat.lastHourCount} / ${stat.lastDayCount}`
+      
+      // Show last 3 alert types with emoji prefix + label
+      const typeLabels = stat.recentTypes.slice(0, 3)
+        .map(type => {
+          const emoji = getAlertTypeEmoji(type)
+          const label = getAlertTypeLabel(type)
+          return `${emoji} ${label}`
+        })
+        .join(', ')
+      
+      return `${countLine}\n${typeLabels}`
     })
-
-    // Build severity breakdown
-    const severityLines = Object.entries(summary.severityBreakdown)
-      .sort((a, b) => {
-        const order = { critical: 0, high: 1, medium: 2, low: 3 }
-        return (order[a[0] as keyof typeof order] || 99) - (order[b[0] as keyof typeof order] || 99)
-      })
-      .map(([severity, count]) => {
-        const emoji = severity === 'critical' ? '🔴' : severity === 'high' ? '🟠' : severity === 'medium' ? '🟡' : '🟢'
-        return `${emoji} ${severity.charAt(0).toUpperCase() + severity.slice(1)}: ${count}`
-      })
-      .join(' | ')
 
     // Build timeframe breakdown (if available)
     let timeframeSection = ''
@@ -200,29 +256,19 @@ export async function sendDiscordBatchSummary(
       timeframeSection = `\n\n**⏱️ Timeframes**: ${timeframeLines}`
     }
 
-    // Determine overall color based on max severity
-    let embedColor = 0x3b82f6 // Blue default
-    if (summary.severityBreakdown.critical) {
-      embedColor = 0x991b1b // Dark red
-    } else if (summary.severityBreakdown.high) {
-      embedColor = 0xef4444 // Red
-    } else if (summary.severityBreakdown.medium) {
-      embedColor = 0xf59e0b // Orange
-    }
+    // Use blue color for all batches
+    const embedColor = 0x3b82f6 // Blue
 
     const description = `
-**📊 This Batch**: ${summary.totalAlerts} alerts
+**📊 Last Minute**: ${summary.totalAlerts} alerts
 
-**🔥 Most Active (Last Hour)**:
-${symbolLines.join('\n')}
+${symbolLines.join('\n\n')}${timeframeSection}
 
-**⚡ Severity (This Batch)**: ${severityLines}${timeframeSection}
-
-**🕐 Batch Period**: ${startTime} - ${endTime} (${summary.batchDuration}s)
+**🕐 Period**: ${startTime} - ${endTime}
     `.trim()
 
     const embed = {
-      title: '🚨 Hourly Alert Summary',
+      title: '🚨 Alert Summary',
       description: description,
       color: embedColor,
       timestamp: new Date(summary.batchEndTime).toISOString(),
