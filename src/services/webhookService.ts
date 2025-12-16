@@ -151,13 +151,13 @@ function formatAlertValue(alert: Alert): string {
 }
 
 /**
- * Get emoji badge for alert type
+ * Get colored circle indicator for alert type (same as severity indicators)
  */
 function getAlertTypeEmoji(type: string): string {
-  if (type.includes('bull')) return '📈'
-  if (type.includes('bear')) return '📉'
-  if (type.includes('hunter')) return '🎣'
-  return '🔔'
+  if (type.includes('bull')) return '🟢' // Green circle for bull
+  if (type.includes('bear')) return '🔴' // Red circle for bear
+  if (type.includes('hunter')) return '🟣' // Purple circle for hunter
+  return '🔵' // Blue circle fallback
 }
 
 /**
