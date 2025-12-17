@@ -10,6 +10,7 @@ import { showCryptoAlertNotification, getNotificationPermission } from '@/servic
 import { audioNotificationService } from '@/services/audioNotification'
 import { sendBatchToWebhooks } from '@/services/webhookService'
 import { alertBatcher } from '@/services/alertBatcher'
+import { fetchIchimokuData } from '@/services/ichimokuMonitor'
 import { debug } from '@/utils/debug'
 import type { Coin } from '@/types/coin'
 import type { Alert } from '@/types/alert'
@@ -25,6 +26,10 @@ let isEvaluatingAlerts = false
 let lastKlinesUpdate = 0
 const cachedKlinesMetrics = new Map<string, FuturesMetrics>()
 const KLINES_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
+
+// Ichimoku caching: Fetch 15m Ichimoku data every 15 minutes for all coins
+let lastIchimokuUpdate = 0
+const ICHIMOKU_CACHE_DURATION = 15 * 60 * 1000 // 15 minutes in milliseconds
 
 // Set up alert batcher callback (only once)
 let batchCallbackInitialized = false
@@ -435,6 +440,34 @@ export function useMarketData(wsMetricsMap?: Map<string, any>, wsGetTickerData?:
     const marketMode = useStore.getState().marketMode
     const activeWatchlistId = useStore.getState().currentWatchlistId
     debug.log(`📋 Evaluating ${enabledRules.length} enabled alert rules (market mode: ${marketMode}, UI watchlist: ${activeWatchlistId || 'none'})...`)
+    
+    // Fetch Ichimoku data if needed (check if any rules use ichimoku_bull or ichimoku_bear)
+    const hasIchimokuRules = enabledRules.some(rule => 
+      rule.conditions.some(c => c.type === 'ichimoku_bull' || c.type === 'ichimoku_bear')
+    )
+    
+    if (hasIchimokuRules) {
+      const now = Date.now()
+      const needsIchimokuUpdate = now - lastIchimokuUpdate > ICHIMOKU_CACHE_DURATION
+      
+      if (needsIchimokuUpdate) {
+        debug.log('📊 Fetching 15m Ichimoku data for all coins...')
+        const symbols = coins.map(coin => ({ symbol: coin.symbol, pair: coin.pair }))
+        
+        // Fetch async but don't block alert evaluation
+        fetchIchimokuData(symbols)
+          .then(() => {
+            lastIchimokuUpdate = now
+            debug.log('✅ Ichimoku data fetched and cached')
+          })
+          .catch(error => {
+            debug.error('❌ Failed to fetch Ichimoku data:', error)
+          })
+      } else {
+        const timeUntilNext = Math.ceil((ICHIMOKU_CACHE_DURATION - (now - lastIchimokuUpdate)) / 60000)
+        debug.log(`♻️ Using cached Ichimoku data (next update in ${timeUntilNext}min)`)
+      }
+    }
     
     // Debug: Log sample of metrics
     const sampleCoin = coinsWithMetrics[0]

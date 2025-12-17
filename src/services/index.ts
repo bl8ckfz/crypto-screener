@@ -36,6 +36,8 @@ export type { AlertSeverity } from './audioNotification'
 export { sendDiscordWebhook, testDiscordWebhook, isValidDiscordWebhookUrl, sendBatchToWebhooks } from './webhookService'
 export { alertBatcher } from './alertBatcher'
 export type { AlertSummary, SymbolStats } from './alertBatcher'
+export { fetchIchimokuData, getCachedIchimokuData, clearIchimokuCache } from './ichimokuMonitor'
+export type { IchimokuCloudData } from './ichimokuMonitor'
 
 // Bubble Detection
 export { BubbleDetectionService, DEFAULT_BUBBLE_CONFIG } from './bubbleDetectionService'

@@ -11,6 +11,7 @@ import type {
   AlertCondition,
 } from '@/types/alert'
 import type { FuturesMetrics } from '@/types/api'
+import { getCachedIchimokuData } from './ichimokuMonitor'
 
 /**
  * Evaluate all alert rules against all coins
@@ -182,6 +183,14 @@ function evaluateCondition(
       result = evaluateFuturesTopHunter(metrics)
       break
     
+    case 'ichimoku_bull':
+      result = evaluateIchimokuBull(coin.symbol)
+      break
+    
+    case 'ichimoku_bear':
+      result = evaluateIchimokuBear(coin.symbol)
+      break
+    
     default:
       result = false
   }
@@ -247,6 +256,12 @@ function generateAlertMessage(coin: Coin, rule: AlertRule): string {
     
     case 'futures_top_hunter':
       return `${coin.symbol} potential top reversal detected`
+    
+    case 'ichimoku_bull':
+      return `${coin.symbol} breaking above Ichimoku Cloud (15m) - bullish breakout`
+    
+    case 'ichimoku_bear':
+      return `${coin.symbol} breaking below Ichimoku Cloud (15m) - bearish breakdown`
     
     default:
       return `Alert triggered for ${coin.symbol}`
@@ -413,6 +428,34 @@ export function evaluateFuturesTopHunter(metrics: FuturesMetrics): boolean {
     metrics.volume_5m > metrics.volume_15m / 2 &&
     metrics.volume_5m > metrics.volume_1h / 8
   )
+}
+
+/**
+ * Evaluate Ichimoku Bull alert
+ * Detects bullish breakout above Ichimoku Cloud (15m)
+ */
+export function evaluateIchimokuBull(symbol: string): boolean {
+  const ichimokuData = getCachedIchimokuData(symbol)
+  
+  if (!ichimokuData) {
+    return false
+  }
+  
+  return ichimokuData.isBullishBreakout
+}
+
+/**
+ * Evaluate Ichimoku Bear alert
+ * Detects bearish breakdown below Ichimoku Cloud (15m)
+ */
+export function evaluateIchimokuBear(symbol: string): boolean {
+  const ichimokuData = getCachedIchimokuData(symbol)
+  
+  if (!ichimokuData) {
+    return false
+  }
+  
+  return ichimokuData.isBearishBreakout
 }
 
 /**

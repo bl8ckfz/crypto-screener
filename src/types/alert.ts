@@ -15,6 +15,8 @@ export type FuturesAlertType =
   | 'futures_15_big_bear' // 15-minute Big Bear (medium-term bearish spike)
   | 'futures_bottom_hunter' // Bottom Hunter (potential bottom reversal)
   | 'futures_top_hunter' // Top Hunter (potential top reversal)
+  | 'ichimoku_bull' // Ichimoku Cloud bullish breakout (15m)
+  | 'ichimoku_bear' // Ichimoku Cloud bearish breakdown (15m)
 
 /**
  * Legacy alert types (DEPRECATED - kept for backwards compatibility only)
@@ -479,6 +481,20 @@ export const FUTURES_ALERT_PRESETS: FuturesAlertPreset[] = [
     severity: 'medium',
     marketMode: 'both',
   },
+  {
+    type: 'ichimoku_bull',
+    name: 'Ichimoku Bull',
+    description: 'Price breaking above Ichimoku Cloud (15m) - bullish breakout signal',
+    severity: 'high',
+    marketMode: 'bull',
+  },
+  {
+    type: 'ichimoku_bear',
+    name: 'Ichimoku Bear',
+    description: 'Price breaking below Ichimoku Cloud (15m) - bearish breakdown signal',
+    severity: 'high',
+    marketMode: 'bear',
+  },
 ]
 
 /**
@@ -495,6 +511,8 @@ export const FUTURES_ALERT_LABELS: Record<FuturesAlertType, string> = {
   futures_15_big_bear: '15 Big Bear',
   futures_bottom_hunter: 'Bottom Hunter',
   futures_top_hunter: 'Top Hunter',
+  ichimoku_bull: 'Ichimoku Bull',
+  ichimoku_bear: 'Ichimoku Bear',
 }
 
 /**
@@ -513,6 +531,8 @@ export const DEFAULT_FUTURES_ALERT_CONFIG: FuturesAlertConfig = {
     futures_15_big_bear: { enabled: true, severity: 'high' },
     futures_bottom_hunter: { enabled: true, severity: 'medium' },
     futures_top_hunter: { enabled: true, severity: 'medium' },
+    ichimoku_bull: { enabled: true, severity: 'high' },
+    ichimoku_bear: { enabled: true, severity: 'high' },
   },
   globalThresholds: {
     priceChange_15m: 1.0, // 1%
