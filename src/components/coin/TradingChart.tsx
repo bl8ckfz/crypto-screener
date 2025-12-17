@@ -439,19 +439,24 @@ export function TradingChart({
     if (showIchimoku && ichimokuData.length > 0) {
       const displacement = 26 // Standard Ichimoku displacement
 
-      // Prepare data with forward displacement for Senkou spans
-      const senkouData = ichimokuData.map((d, i) => {
-        // Find the time 26 periods forward for displacement
-        const displacedIndex = Math.min(i + displacement, ichimokuData.length - 1)
-        const displacedTime = ichimokuData[displacedIndex]?.time || d.time
+      // For Senkou spans: plot them 26 periods ahead
+      // We take values from early data points and plot them at future times
+      const senkouData: Array<{ time: any; spanA: number; spanB: number }> = []
+      
+      for (let i = 0; i < ichimokuData.length; i++) {
+        const futureIndex = i + displacement
         
-        return {
-          time: displacedTime,
-          spanA: d.senkouSpanA,
-          spanB: d.senkouSpanB,
-          isBullish: d.senkouSpanA > d.senkouSpanB,
+        // Only create data points where we have a future time to plot to
+        if (futureIndex < ichimokuData.length) {
+          senkouData.push({
+            time: ichimokuData[futureIndex].time,
+            spanA: ichimokuData[i].senkouSpanA,
+            spanB: ichimokuData[i].senkouSpanB,
+          })
         }
-      })
+      }
+
+      debug.log(`📊 Ichimoku: ${senkouData.length} cloud points (displaced +${displacement})`)
 
       // Senkou Span B (cloud bottom line)
       const senkouBSeries = chart.addLineSeries({
@@ -463,15 +468,17 @@ export function TradingChart({
         crosshairMarkerVisible: false,
       })
 
-      senkouBSeries.setData(
-        senkouData.map((d) => ({
-          time: d.time as any,
-          value: d.spanB,
-        }))
-      )
+      if (senkouData.length > 0) {
+        senkouBSeries.setData(
+          senkouData.map((d) => ({
+            time: d.time as any,
+            value: d.spanB,
+          }))
+        )
+      }
       senkouBRef.current = senkouBSeries
 
-      // Senkou Span A (cloud top line) with dynamic color
+      // Senkou Span A (cloud top line)
       const senkouASeries = chart.addLineSeries({
         color: '#9ca3af', // gray-400
         lineWidth: 1,
@@ -481,12 +488,14 @@ export function TradingChart({
         crosshairMarkerVisible: false,
       })
 
-      senkouASeries.setData(
-        senkouData.map((d) => ({
-          time: d.time as any,
-          value: d.spanA,
-        }))
-      )
+      if (senkouData.length > 0) {
+        senkouASeries.setData(
+          senkouData.map((d) => ({
+            time: d.time as any,
+            value: d.spanA,
+          }))
+        )
+      }
       senkouARef.current = senkouASeries
 
       // Kijun-sen (Base Line) - red
@@ -538,18 +547,24 @@ export function TradingChart({
         crosshairMarkerRadius: 3,
       })
 
-      // Chikou Span is plotted 26 periods back (use same displacement constant)
-      chikouSeries.setData(
-        ichimokuData
-          .filter((_, i) => i >= displacement) // Start from period 26
-          .map((d, i) => ({
-            time: ichimokuData[i]?.time as any, // Use time from 26 periods ago
-            value: d.chikouSpan,
-          }))
-      )
+      // Chikou Span is plotted 26 periods back (backward displacement)
+      // We take current closing prices and plot them 26 periods in the past
+      const chikouData: Array<{ time: any; value: number }> = []
+      
+      for (let i = displacement; i < ichimokuData.length; i++) {
+        const pastIndex = i - displacement
+        chikouData.push({
+          time: ichimokuData[pastIndex].time,
+          value: ichimokuData[i].chikouSpan,
+        })
+      }
+
+      if (chikouData.length > 0) {
+        chikouSeries.setData(chikouData)
+      }
       chikouRef.current = chikouSeries
 
-      debug.log(`📊 Ichimoku Cloud rendered with ${ichimokuData.length} data points`)
+      debug.log(`📊 Ichimoku Cloud rendered: ${senkouData.length} cloud points, ${chikouData.length} chikou points`)
     }
   }, [showIchimoku, ichimokuData]) // Only Ichimoku toggle and data trigger update
 
