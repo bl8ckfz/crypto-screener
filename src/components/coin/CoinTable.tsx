@@ -13,10 +13,32 @@ interface CoinTableProps {
 
 export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTableProps) {
   const { sort, setSort } = useStore()
+  const currentWatchlistId = useStore((state) => state.currentWatchlistId)
+  const watchlists = useStore((state) => state.watchlists)
 
-  const sortedCoins = useMemo(() => {
-    return sortCoins(coins, sort)
-  }, [coins, sort])
+  const { watchlistCoins, otherCoins } = useMemo(() => {
+    // Get current watchlist symbols
+    const currentWatchlist = watchlists.find((wl) => wl.id === currentWatchlistId)
+    const watchlistSymbols = currentWatchlist?.symbols || []
+
+    // Separate coins into watchlist and non-watchlist
+    const watchlist: Coin[] = []
+    const other: Coin[] = []
+
+    coins.forEach((coin) => {
+      if (watchlistSymbols.includes(coin.symbol)) {
+        watchlist.push(coin)
+      } else {
+        other.push(coin)
+      }
+    })
+
+    // Sort each group independently
+    return {
+      watchlistCoins: sortCoins(watchlist, sort),
+      otherCoins: sortCoins(other, sort),
+    }
+  }, [coins, sort, currentWatchlistId, watchlists])
 
   const handleSort = (field: typeof sort.field) => {
     setSort({
@@ -96,19 +118,47 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
             // Show skeleton rows while loading
             Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} />)
           ) : (
-            sortedCoins.map((coin, index) => (
-              <CoinTableRow
-                key={coin.id}
-                coin={coin}
-                index={index}
-                onClick={onCoinClick}
-              />
-            ))
+            <>
+              {/* Watchlist coins - always on top */}
+              {watchlistCoins.map((coin, index) => (
+                <CoinTableRow
+                  key={coin.id}
+                  coin={coin}
+                  index={index}
+                  onClick={onCoinClick}
+                />
+              ))}
+              
+              {/* Visual separator between watchlist and other coins */}
+              {watchlistCoins.length > 0 && otherCoins.length > 0 && (
+                <tr>
+                  <td colSpan={6} className="px-0 py-0">
+                    <div className="border-t-2 border-accent/30 relative">
+                      <div className="absolute left-0 right-0 top-0 flex items-center justify-center">
+                        <span className="bg-gray-800 px-3 py-0.5 text-xs text-accent/60 -mt-2.5 rounded-full border border-accent/30">
+                          Other Coins
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              
+              {/* Other coins */}
+              {otherCoins.map((coin, index) => (
+                <CoinTableRow
+                  key={coin.id}
+                  coin={coin}
+                  index={watchlistCoins.length + index}
+                  onClick={onCoinClick}
+                />
+              ))}
+            </>
           )}
         </tbody>
       </table>
 
-      {sortedCoins.length === 0 && (
+      {watchlistCoins.length === 0 && otherCoins.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           No coins found for this pair
         </div>
