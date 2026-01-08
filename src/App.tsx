@@ -256,7 +256,7 @@ function App() {
               <WatchlistSelector />
             </div>
 
-            {/* Alert History Table */}
+            {/* Alert History Table with Inline Chart */}
             <div className="bg-gray-900 rounded-lg overflow-hidden">
               <AlertHistoryTable
                 stats={filteredAlertStats}
@@ -267,18 +267,16 @@ function App() {
                     clearAlertHistory()
                   }
                 }}
+                renderChart={
+                  selectedAlert?.coin ? (
+                    <ChartSection 
+                      selectedCoin={selectedAlert.coin}
+                      onClose={() => setSelectedAlert(null)}
+                    />
+                  ) : undefined
+                }
               />
             </div>
-
-            {/* Chart Section - Slides down when coin selected */}
-            {selectedAlert?.coin && (
-              <div className="animate-slide-down">
-                <ChartSection 
-                  selectedCoin={selectedAlert.coin}
-                  onClose={() => setSelectedAlert(null)}
-                />
-              </div>
-            )}
           </div>
 
           {/* Right Column - Coin Details Sidebar */}
