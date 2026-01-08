@@ -12,7 +12,6 @@ import { Layout } from '@/components/layout'
 import { ChartSection, CoinDetailsPanel } from '@/components/coin'
 import { MarketSummary } from '@/components/market'
 import { SearchBar } from '@/components/controls'
-import { WatchlistSelector } from '@/components/watchlist'
 import { ShortcutHelp, LiveStatusBadge } from '@/components/ui'
 import { StorageMigration } from '@/components/StorageMigration'
 import { AlertNotificationContainer, AlertHistoryTable } from '@/components/alerts'
@@ -244,13 +243,8 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           {/* Left Column - Alert History (Wider) */}
           <div className="lg:col-span-5 space-y-3">
-            {/* Search Bar and Watchlist Selector */}
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <SearchBar ref={searchInputRef} onSearch={setSearchQuery} />
-              </div>
-              <WatchlistSelector />
-            </div>
+            {/* Search Bar */}
+            <SearchBar ref={searchInputRef} onSearch={setSearchQuery} />
 
             {/* Alert History Table - Compact */}
             <div className="bg-gray-800/50 rounded-lg overflow-hidden border border-gray-700">

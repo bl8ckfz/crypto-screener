@@ -83,93 +83,96 @@ export function CoinDetailsPanel({ coin, onClose, className = '' }: CoinDetailsP
       </div>
 
       {/* Scrollable Content */}
-      <div className="space-y-4 p-4">
+      <div className="space-y-3 p-3">
         {/* Current Price */}
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="text-sm text-gray-400 mb-1">
+        <div className="bg-gray-800 rounded-lg p-3">
+          <div className="text-xs text-gray-400 mb-1">
             Current Price
           </div>
-          <div className={`text-2xl font-bold ${priceChangeColor}`}>
+          <div className={`text-xl font-bold ${priceChangeColor}`}>
             {formatPrice(coin.lastPrice)}
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 mt-0.5">
             {formatDateTime(coin.closeTime)}
           </div>
         </div>
 
-        {/* 24h Statistics */}
-        <div className="bg-gray-800 rounded-lg p-4 space-y-3">
-          <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-            24h Statistics
-          </h4>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">High</span>
-              <span className="font-mono text-red-400">
-                {formatPrice(coin.highPrice)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Low</span>
-              <span className="font-mono text-green-400">
-                {formatPrice(coin.lowPrice)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Open</span>
-              <span className="font-mono text-gray-300">
-                {formatPrice(coin.openPrice)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Prev Close</span>
-              <span className="font-mono text-gray-300">
-                {formatPrice(coin.prevClosePrice)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Weighted Avg</span>
-              <span className="font-mono text-gray-300">
-                {formatPrice(coin.weightedAvgPrice)}
-              </span>
+        {/* 24h Statistics & Volume - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* 24h Statistics */}
+          <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              24h Statistics
+            </h4>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">High</span>
+                <span className="font-mono text-red-400">
+                  {formatPrice(coin.highPrice)}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Low</span>
+                <span className="font-mono text-green-400">
+                  {formatPrice(coin.lowPrice)}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Open</span>
+                <span className="font-mono text-gray-300">
+                  {formatPrice(coin.openPrice)}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Prev Close</span>
+                <span className="font-mono text-gray-300">
+                  {formatPrice(coin.prevClosePrice)}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Weighted Avg</span>
+                <span className="font-mono text-gray-300">
+                  {formatPrice(coin.weightedAvgPrice)}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Volume Information */}
-        <div className="bg-gray-800 rounded-lg p-4 space-y-3">
-          <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-            Volume
-          </h4>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">24h Volume</span>
-              <span className="font-mono text-gray-300">
-                {formatLargeNumber(coin.volume)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Quote Volume</span>
-              <span className="font-mono text-gray-300">
-                {formatLargeNumber(coin.quoteVolume)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Trades</span>
-              <span className="font-mono text-gray-300">
-                {formatLargeNumber(coin.count)}
-              </span>
+          {/* Volume Information */}
+          <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Volume
+            </h4>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">24h Volume</span>
+                <span className="font-mono text-gray-300">
+                  {formatLargeNumber(coin.volume)}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Quote Volume</span>
+                <span className="font-mono text-gray-300">
+                  {formatLargeNumber(coin.quoteVolume)}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Trades</span>
+                <span className="font-mono text-gray-300">
+                  {formatLargeNumber(coin.count)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Order Book */}
-        <div className="bg-gray-800 rounded-lg p-4 space-y-3">
-          <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+        <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+          <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
             Order Book
           </h4>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs">
               <span className="text-gray-400">Best Bid</span>
               <span className="font-mono text-green-400">
                 {formatPrice(coin.bidPrice)}
@@ -179,7 +182,7 @@ export function CoinDetailsPanel({ coin, onClose, className = '' }: CoinDetailsP
               <span>Bid Qty</span>
               <span>{formatLargeNumber(coin.bidQty)}</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-xs">
               <span className="text-gray-400">Best Ask</span>
               <span className="font-mono text-red-400">
                 {formatPrice(coin.askPrice)}
@@ -189,8 +192,8 @@ export function CoinDetailsPanel({ coin, onClose, className = '' }: CoinDetailsP
               <span>Ask Qty</span>
               <span>{formatLargeNumber(coin.askQty)}</span>
             </div>
-            <div className="pt-2 border-t border-gray-700">
-              <div className="flex justify-between text-sm">
+            <div className="pt-1.5 border-t border-gray-700">
+              <div className="flex justify-between text-xs">
                 <span className="text-gray-400">Spread</span>
                 <span className="font-mono text-gray-300">
                   {formatPercent(

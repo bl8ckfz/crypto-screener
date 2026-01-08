@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react'
 import { AlertConfig } from '@/components/alerts/AlertConfig'
 import { WebhookManager } from '@/components/alerts/WebhookManager'
 import { GeneralSettings } from './GeneralSettings'
+import { WatchlistManager } from '@/components/watchlist/WatchlistManager'
 import { useStore } from '@/hooks/useStore'
 import { Button } from '@/components/ui'
 
 export interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
-  initialTab?: 'alerts' | 'webhooks' | 'general'
+  initialTab?: 'alerts' | 'webhooks' | 'watchlist' | 'general'
 }
 
-type SettingsTab = 'alerts' | 'webhooks' | 'general'
+type SettingsTab = 'alerts' | 'webhooks' | 'watchlist' | 'general'
 
 /**
  * SettingsModal Component
@@ -59,6 +60,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'alerts' }: Settin
   const tabs: { id: SettingsTab; label: string; icon: string }[] = [
     { id: 'alerts', label: 'Alert Rules', icon: '🔔' },
     { id: 'webhooks', label: 'Webhooks', icon: '🔗' },
+    { id: 'watchlist', label: 'Watchlist', icon: '⭐' },
     { id: 'general', label: 'General', icon: '⚙️' },
   ]
 
@@ -129,6 +131,8 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'alerts' }: Settin
             )}
 
             {activeTab === 'webhooks' && <WebhookManager />}
+
+            {activeTab === 'watchlist' && <WatchlistManager />}
 
             {activeTab === 'general' && <GeneralSettings />}
           </div>
