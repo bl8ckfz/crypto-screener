@@ -9,7 +9,7 @@ import { supabase } from '@/config'
 import { alertHistoryService } from '@/services'
 import { ALERT_HISTORY_CONFIG } from '@/types'
 import { Layout } from '@/components/layout'
-import { ChartSection, CoinDetailsPanel, CoinTable } from '@/components/coin'
+import { ChartSection, CoinTable } from '@/components/coin'
 import { MarketSummary } from '@/components/market'
 import { SearchBar } from '@/components/controls'
 import { ShortcutHelp, LiveStatusBadge } from '@/components/ui'
@@ -307,23 +307,13 @@ function App() {
             </div>
           </div>
 
-          {/* Right Column - Chart + Coin Details Below */}
-          <div className="lg:col-span-7 space-y-4">
-            {/* Chart Section - Fixed Position */}
+          {/* Right Column - Chart Only */}
+          <div className="lg:col-span-7">
+            {/* Chart Section */}
             <ChartSection 
               selectedCoin={selectedAlert?.coin || null}
               onClose={() => setSelectedAlert(null)}
             />
-
-            {/* Coin Details Below Chart */}
-            {selectedAlert?.coin && (
-              <div className="bg-gray-800 rounded-lg border border-gray-700">
-                <CoinDetailsPanel 
-                  coin={selectedAlert.coin}
-                  onClose={() => setSelectedAlert(null)}
-                />
-              </div>
-            )}
           </div>
         </div>
 

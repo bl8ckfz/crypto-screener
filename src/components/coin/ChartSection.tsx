@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { TradingChart } from './TradingChart'
 import { AlertTimelineChart } from './AlertTimelineChart'
+import { ExternalLinks } from './ExternalLinks'
 import { fetchKlines, type KlineInterval, COMMON_INTERVALS, INTERVAL_LABELS } from '@/services/chartData'
 import { alertHistoryService } from '@/services/alertHistoryService'
 import { useBubbleStream } from '@/hooks/useBubbleStream'
@@ -321,6 +322,11 @@ export function ChartSection({ selectedCoin, onClose, className = '' }: ChartSec
           </h4>
           <AlertTimelineChart symbol={selectedCoin.symbol} height={150} />
         </div>
+      </div>
+
+      {/* External Links */}
+      <div className="px-4 pb-4">
+        <ExternalLinks coin={selectedCoin} />
       </div>
     </div>
   )
