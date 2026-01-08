@@ -13,7 +13,7 @@ export function Layout({ children, title, subtitle, onOpenSettings }: LayoutProp
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Header title={title} subtitle={subtitle} onOpenSettings={onOpenSettings} />
-      <main className="flex-1 container mx-auto px-4 py-6 animate-fade-in">
+      <main className="flex-1 w-full max-w-[1920px] mx-auto px-6 py-6 animate-fade-in">
         {children}
       </main>
       <Footer />

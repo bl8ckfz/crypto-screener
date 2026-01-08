@@ -215,8 +215,8 @@ export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClear
             </button>
           </div>
           {!watchlistCollapsed && (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div>
+              <table className="w-full table-fixed">
                 <thead>
                   <tr className="border-b border-gray-600/50 bg-gray-700/30">
                     <th className="text-center py-1 px-2 text-xs font-semibold text-gray-300 w-10">
@@ -305,24 +305,24 @@ export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClear
 
       {/* Main Alerts Section */}
       {mainStats.length > 0 && (
-        <div className="bg-blue-900/10 border-l-4 border-blue-500 rounded-r-lg overflow-hidden">
-          <div className="sticky top-0 bg-gray-900 px-4 py-3 flex items-center justify-between border-b border-blue-500/30">
+        <div className="bg-blue-800/20 border-l-2 border-blue-400 rounded-r-lg overflow-hidden">
+          <div className="sticky top-0 bg-gray-700/50 backdrop-blur-sm px-3 py-1.5 flex items-center justify-between border-b border-blue-400/30">
             <Badge variant="info" size="md">
               📊 All Alerts ({mainStats.length})
             </Badge>
             <button
               onClick={() => setMainCollapsed(!mainCollapsed)}
-              className="text-xs text-gray-400 hover:text-white transition-colors"
+              className="text-[10px] text-gray-300 hover:text-white transition-colors"
             >
               {mainCollapsed ? 'Expand ▼' : 'Collapse ▲'}
             </button>
           </div>
           {!mainCollapsed && (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div>
+              <table className="w-full table-fixed">
                 <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-center py-3 px-3 text-sm font-semibold text-gray-400 w-16">
+                  <tr className="border-b border-gray-600/50 bg-gray-700/30">
+                    <th className="text-center py-1 px-2 text-xs font-semibold text-gray-300 w-10">
                       ⭐
                     </th>
                     <th 

@@ -8,7 +8,7 @@ import { useKeyboardShortcuts, useAlertStats } from '@/hooks'
 import { supabase } from '@/config'
 import { alertHistoryService } from '@/services'
 import { ALERT_HISTORY_CONFIG } from '@/types'
-import { Layout, Sidebar } from '@/components/layout'
+import { Layout } from '@/components/layout'
 import { ChartSection, CoinDetailsPanel } from '@/components/coin'
 import { MarketSummary } from '@/components/market'
 import { SearchBar } from '@/components/controls'
@@ -37,8 +37,6 @@ function App() {
   
   const currentWatchlistId = useStore((state) => state.currentWatchlistId)
   const watchlists = useStore((state) => state.watchlists)
-  const rightSidebarCollapsed = useStore((state) => state.rightSidebarCollapsed)
-  const setRightSidebarCollapsed = useStore((state) => state.setRightSidebarCollapsed)
   
   // Alert history state
   const clearAlertHistory = useStore((state) => state.clearAlertHistory)
@@ -242,10 +240,10 @@ function App() {
           </div>
         </div>
 
-        {/* Three Column Layout: Alert History | Fixed Chart | Coin Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-          {/* Left Column - Alert History (Compact) */}
-          <div className="lg:col-span-4 space-y-3">
+        {/* Two Column Layout: Alert History | Chart + Coin Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* Left Column - Alert History (Wider) */}
+          <div className="lg:col-span-5 space-y-3">
             {/* Search Bar and Watchlist Selector */}
             <div className="flex items-center gap-2">
               <div className="flex-1">
@@ -269,35 +267,23 @@ function App() {
             </div>
           </div>
 
-          {/* Middle Column - Fixed Chart (Never Moves) */}
-          <div className={`transition-all duration-300 ${
-            rightSidebarCollapsed ? 'lg:col-span-8' : 'lg:col-span-5'
-          }`}>
+          {/* Right Column - Chart + Coin Details Below */}
+          <div className="lg:col-span-7 space-y-4">
+            {/* Chart Section - Fixed Position */}
             <ChartSection 
               selectedCoin={selectedAlert?.coin || null}
               onClose={() => setSelectedAlert(null)}
             />
-          </div>
 
-          {/* Right Column - Coin Details Sidebar */}
-          <div className={`transition-all duration-300 ${
-            rightSidebarCollapsed ? 'self-start lg:col-span-0' : 'lg:col-span-3'
-          }`}>
-            <Sidebar
-              position="right"
-              title="Coin Details"
-              isCollapsed={rightSidebarCollapsed}
-              onToggle={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
-            >
-              {!rightSidebarCollapsed && (
-                <div className="mt-4">
-                  <CoinDetailsPanel 
-                    coin={selectedAlert?.coin || null}
-                    onClose={() => setSelectedAlert(null)}
-                  />
-                </div>
-              )}
-            </Sidebar>
+            {/* Coin Details Below Chart */}
+            {selectedAlert?.coin && (
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
+                <CoinDetailsPanel 
+                  coin={selectedAlert.coin}
+                  onClose={() => setSelectedAlert(null)}
+                />
+              </div>
+            )}
           </div>
         </div>
 
