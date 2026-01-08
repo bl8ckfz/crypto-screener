@@ -1,4 +1,4 @@
-import { useState, useMemo, ReactNode } from 'react'
+import { useState, useMemo } from 'react'
 import type { CoinAlertStats } from '@/types/alertHistory'
 import { AlertBadges } from './AlertBadges'
 import { EmptyAlertHistory } from './EmptyAlertHistory'
@@ -12,7 +12,6 @@ interface AlertHistoryTableProps {
   selectedSymbol?: string
   onAlertClick: (symbol: string, alert: CoinAlertStats) => void
   onClearHistory: () => void
-  renderChart?: ReactNode // Chart component to render inline after selected row
 }
 
 type SortField = 'symbol' | 'price' | 'change' | 'alerts' | 'lastAlert'
@@ -23,7 +22,7 @@ type SortDirection = 'asc' | 'desc'
  * Split into two sections: Watchlist Alerts (top) and Main Alerts (bottom)
  * Phase 8.1.2: Redesign with visual separation
  */
-export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClearHistory, renderChart }: AlertHistoryTableProps) {
+export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClearHistory }: AlertHistoryTableProps) {
   const [sortField, setSortField] = useState<SortField>('alerts')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [watchlistCollapsed, setWatchlistCollapsed] = useState(false)
@@ -102,93 +101,78 @@ export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClear
     return `${Math.floor(seconds / 86400)}d ago`
   }
   
-  // Render table rows for a section with inline chart expansion
+  // Render table rows for a section
   const renderRows = (statsToRender: CoinAlertStats[]) => (
-    <>
-      {statsToRender.map((stat) => (
-        <>
-          <tr
-            key={stat.symbol}
-            className={`border-b border-gray-800 hover:bg-gray-800/50 transition-colors cursor-pointer ${
-              selectedSymbol === stat.symbol ? 'bg-blue-900/30' : ''
-            }`}
-            onClick={() => onAlertClick(stat.symbol, stat)}
+    statsToRender.map((stat) => (
+      <tr
+        key={stat.symbol}
+        className={`border-b border-gray-800 hover:bg-gray-800/50 transition-colors cursor-pointer ${
+          selectedSymbol === stat.symbol ? 'bg-blue-900/30' : ''
+        }`}
+        onClick={() => onAlertClick(stat.symbol, stat)}
+      >
+        {/* Watchlist Star */}
+        <td className="py-3 px-3 w-16" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-center">
+            <WatchlistBadge symbol={stat.symbol} />
+          </div>
+        </td>
+
+        {/* Symbol */}
+        <td className="py-3 px-4">
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-semibold text-white">
+              {stat.symbol}
+            </span>
+            <span className="text-xs text-gray-500">USDT</span>
+          </div>
+        </td>
+
+        {/* Current Price */}
+        <td className="py-3 px-4 text-right font-mono text-sm text-gray-200">
+          {stat.currentPrice < 0.0001
+            ? stat.currentPrice.toFixed(8)
+            : stat.currentPrice < 1
+            ? stat.currentPrice.toFixed(6)
+            : formatNumber(stat.currentPrice)}
+        </td>
+
+        {/* 24h Change */}
+        <td className="py-3 px-4 text-right font-mono text-sm font-semibold">
+          <span
+            className={
+              stat.priceChange >= 0
+                ? 'text-green-400'
+                : 'text-red-400'
+            }
           >
-            {/* Watchlist Star */}
-            <td className="py-3 px-3 w-16" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-center">
-                <WatchlistBadge symbol={stat.symbol} />
-              </div>
-            </td>
+            {stat.priceChange >= 0 ? '+' : ''}
+            {stat.priceChange.toFixed(2)}%
+          </span>
+        </td>
 
-            {/* Symbol */}
-            <td className="py-3 px-4">
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-semibold text-white">
-                  {stat.symbol}
-                </span>
-                <span className="text-xs text-gray-500">USDT</span>
-              </div>
-            </td>
+        {/* Total Alerts */}
+        <td className="py-3 px-4 text-center">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-accent/20 text-accent font-bold text-sm">
+            {stat.totalAlerts}
+          </span>
+        </td>
 
-            {/* Current Price */}
-            <td className="py-3 px-4 text-right font-mono text-sm text-gray-200">
-              {stat.currentPrice < 0.0001
-                ? stat.currentPrice.toFixed(8)
-                : stat.currentPrice < 1
-                ? stat.currentPrice.toFixed(6)
-                : formatNumber(stat.currentPrice)}
-            </td>
+        {/* Alert Type Badges */}
+        <td className="py-3 px-4">
+          <AlertBadges 
+            alertTypes={stat.alertTypes} 
+            maxVisible={3}
+            latestAlertType={stat.alerts[0]?.alertType}
+          />
+        </td>
 
-            {/* 24h Change */}
-            <td className="py-3 px-4 text-right font-mono text-sm font-semibold">
-              <span
-                className={
-                  stat.priceChange >= 0
-                    ? 'text-green-400'
-                    : 'text-red-400'
-                }
-              >
-                {stat.priceChange >= 0 ? '+' : ''}
-                {stat.priceChange.toFixed(2)}%
-              </span>
-            </td>
-
-            {/* Total Alerts */}
-            <td className="py-3 px-4 text-center">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-accent/20 text-accent font-bold text-sm">
-                {stat.totalAlerts}
-              </span>
-            </td>
-
-            {/* Alert Type Badges */}
-            <td className="py-3 px-4">
-              <AlertBadges 
-                alertTypes={stat.alertTypes} 
-                maxVisible={3}
-                latestAlertType={stat.alerts[0]?.alertType}
-              />
-            </td>
-
-            {/* Last Alert Time */}
-            <td className="py-3 px-4 text-right text-xs text-gray-400">
-              {formatTimeAgo(stat.lastAlertTimestamp)}
-            </td>
-          </tr>
-          
-          {/* Inline Chart Expansion - renders right after selected row */}
-          {selectedSymbol === stat.symbol && renderChart && (
-            <tr key={`${stat.symbol}-chart`} className="border-b border-gray-800">
-              <td colSpan={7} className="p-0">
-                <div className="animate-slide-down bg-gray-950/50">
-                  {renderChart}
-                </div>
-              </td>
-            </tr>
-          )}
-        </>
-      ))}
-    </>
+        {/* Last Alert Time */}
+        <td className="py-3 px-4 text-right text-xs text-gray-400">
+          {formatTimeAgo(stat.lastAlertTimestamp)}
+        </td>
+      </tr>
+    ))
   )
   
   // Early return AFTER all hooks

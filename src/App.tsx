@@ -244,7 +244,7 @@ function App() {
 
         {/* Two Column Layout: Alert History with Charts | Coin Details */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          {/* Left Column - Alert History with Expandable Charts */}
+          {/* Left Column - Alert History with Sticky Chart Above */}
           <div className={`transition-all duration-300 space-y-4 ${
             rightSidebarCollapsed ? 'lg:col-span-12' : 'lg:col-span-9'
           }`}>
@@ -256,7 +256,17 @@ function App() {
               <WatchlistSelector />
             </div>
 
-            {/* Alert History Table with Inline Chart */}
+            {/* Sticky Chart Section - Appears above table when coin selected */}
+            {selectedAlert?.coin && (
+              <div className="sticky top-0 z-10 animate-slide-down">
+                <ChartSection 
+                  selectedCoin={selectedAlert.coin}
+                  onClose={() => setSelectedAlert(null)}
+                />
+              </div>
+            )}
+
+            {/* Alert History Table - Full Width */}
             <div className="bg-gray-900 rounded-lg overflow-hidden">
               <AlertHistoryTable
                 stats={filteredAlertStats}
@@ -267,14 +277,6 @@ function App() {
                     clearAlertHistory()
                   }
                 }}
-                renderChart={
-                  selectedAlert?.coin ? (
-                    <ChartSection 
-                      selectedCoin={selectedAlert.coin}
-                      onClose={() => setSelectedAlert(null)}
-                    />
-                  ) : undefined
-                }
               />
             </div>
           </div>
