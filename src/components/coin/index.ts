@@ -5,6 +5,7 @@ export { ExternalLinks } from './ExternalLinks'
 export { CoinModal } from './CoinModal'
 export { TradingChart } from './TradingChart'
 export { ChartContainer } from './ChartContainer'
+export { ChartSection } from './ChartSection'
 export { AlertTimelineChart } from './AlertTimelineChart'
 export { 
   VirtualizedCoinTable, 
