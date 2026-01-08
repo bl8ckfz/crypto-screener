@@ -37,9 +37,7 @@ function App() {
   
   const currentWatchlistId = useStore((state) => state.currentWatchlistId)
   const watchlists = useStore((state) => state.watchlists)
-  const leftSidebarCollapsed = useStore((state) => state.leftSidebarCollapsed)
   const rightSidebarCollapsed = useStore((state) => state.rightSidebarCollapsed)
-  const setLeftSidebarCollapsed = useStore((state) => state.setLeftSidebarCollapsed)
   const setRightSidebarCollapsed = useStore((state) => state.setRightSidebarCollapsed)
   
   // Alert history state
@@ -223,87 +221,82 @@ function App() {
         subtitle="Real-time USDT market analysis"
         onOpenSettings={() => setIsSettingsOpen(true)}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* Left Sidebar - Filters & Controls */}
-        <div className={`transition-all duration-300 ${leftSidebarCollapsed ? 'self-start lg:col-span-1' : 'lg:col-span-3'}`}>
-          <Sidebar
-            position="left"
-            title="Filters & Controls"
-            isCollapsed={leftSidebarCollapsed}
-            onToggle={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
-          >
+        {/* Market Summary - Full Width Above Content */}
+        <div className="mb-6">
+          <div className="bg-gray-900 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Market Overview</h2>
+              <div className="flex items-center space-x-4">
+                <WatchlistSelector />
+                <LiveStatusBadge
+                  connected={isInitialized}
+                  lastUpdate={lastUpdate}
+                  warmupStatus={warmupStatus}
+                />
+              </div>
+            </div>
             <MarketSummary coins={coins} isLoading={isLoading} />
-            
-            {/* Watchlist Selector */}
-            <WatchlistSelector />
-            
-            {/* ListSelector removed per new plan (dropdown under Market Summary) */}
-            <LiveStatusBadge
-              connected={isInitialized}
-              lastUpdate={lastUpdate}
-              warmupStatus={warmupStatus}
-              className="mb-4"
-            />
             {wsError && (
-              <div className="text-xs text-error-text bg-error-bg border border-error-border rounded px-2 py-1 mb-4">
+              <div className="text-xs text-error-text bg-error-bg border border-error-border rounded px-2 py-1 mt-4">
                 WebSocket Error: {wsError.message}
               </div>
             )}
-            {/* TimeframeSelector removed per new plan */}
-          </Sidebar>
-        </div>
-
-        {/* Main Content - Alert History Centric Layout */}
-        <div className={`transition-all duration-300 space-y-4 ${
-          leftSidebarCollapsed && rightSidebarCollapsed
-            ? 'lg:col-span-10'
-            : leftSidebarCollapsed || rightSidebarCollapsed
-            ? 'lg:col-span-8'
-            : 'lg:col-span-6'
-        }`}>
-          {/* Chart Section - Always Visible */}
-          <ChartSection 
-            selectedCoin={selectedAlert?.coin || null}
-            onClose={() => setSelectedAlert(null)}
-          />
-
-          {/* Search Bar */}
-          <SearchBar ref={searchInputRef} onSearch={setSearchQuery} />
-
-          {/* Alert History Table - ONLY VIEW */}
-          <div className="bg-gray-900 rounded-lg overflow-hidden p-6">
-            <AlertHistoryTable
-              stats={filteredAlertStats}
-              selectedSymbol={selectedAlert?.coin?.symbol}
-              onAlertClick={handleAlertClick}
-              onClearHistory={() => {
-                if (confirm('Clear all alert history? This cannot be undone.')) {
-                  clearAlertHistory()
-                }
-              }}
-            />
           </div>
         </div>
 
-        {/* Right Sidebar - Coin Details */}
-        <div className={`transition-all duration-300 ${rightSidebarCollapsed ? 'self-start lg:col-span-1' : 'lg:col-span-3'}`}>
-          <Sidebar
-            position="right"
-            title="Coin Details"
-            isCollapsed={rightSidebarCollapsed}
-            onToggle={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
-          >
-            {!rightSidebarCollapsed && (
-              <div className="mt-4">
-                <CoinDetailsPanel 
-                  coin={selectedAlert?.coin || null}
-                  onClose={() => setSelectedAlert(null)}
-                />
-              </div>
-            )}
-          </Sidebar>
+        {/* Three Column Layout: Alert History | Chart | Coin Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* Left Column - Alert History */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Search Bar */}
+            <SearchBar ref={searchInputRef} onSearch={setSearchQuery} />
+
+            {/* Alert History Table */}
+            <div className="bg-gray-900 rounded-lg overflow-hidden">
+              <AlertHistoryTable
+                stats={filteredAlertStats}
+                selectedSymbol={selectedAlert?.coin?.symbol}
+                onAlertClick={handleAlertClick}
+                onClearHistory={() => {
+                  if (confirm('Clear all alert history? This cannot be undone.')) {
+                    clearAlertHistory()
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Middle Column - Chart Section */}
+          <div className={`transition-all duration-300 ${
+            rightSidebarCollapsed ? 'lg:col-span-8' : 'lg:col-span-5'
+          }`}>
+            <ChartSection 
+              selectedCoin={selectedAlert?.coin || null}
+              onClose={() => setSelectedAlert(null)}
+            />
+          </div>
+
+          {/* Right Column - Coin Details Sidebar */}
+          <div className={`transition-all duration-300 ${
+            rightSidebarCollapsed ? 'self-start lg:col-span-0' : 'lg:col-span-3'
+          }`}>
+            <Sidebar
+              position="right"
+              title="Coin Details"
+              isCollapsed={rightSidebarCollapsed}
+              onToggle={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
+            >
+              {!rightSidebarCollapsed && (
+                <div className="mt-4">
+                  <CoinDetailsPanel 
+                    coin={selectedAlert?.coin || null}
+                    onClose={() => setSelectedAlert(null)}
+                  />
+                </div>
+              )}
+            </Sidebar>
+          </div>
         </div>
-      </div>
 
       {/* Settings Modal */}
       <SettingsModal
