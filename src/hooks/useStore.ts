@@ -30,6 +30,10 @@ interface AppState {
 
   // Sorting
   sort: CoinSort
+  alertHistorySort: {
+    field: 'symbol' | 'price' | 'change' | 'alerts' | 'lastAlert'
+    direction: 'asc' | 'desc'
+  }
 
   // Sentiment filter
   sentimentFilter: 'all' | 'bullish' | 'neutral' | 'bearish'
@@ -78,6 +82,7 @@ interface AppState {
   setError: (error: string | null) => void
   setLastUpdated: (timestamp: number) => void
   setSort: (sort: CoinSort) => void
+  setAlertHistorySort: (sort: { field: 'symbol' | 'price' | 'change' | 'alerts' | 'lastAlert'; direction: 'asc' | 'desc' }) => void
   setSentimentFilter: (filter: 'all' | 'bullish' | 'neutral' | 'bearish') => void
   setMarketMode: (mode: 'bull' | 'bear') => void
   setAutoRefresh: (enabled: boolean) => void
@@ -126,6 +131,10 @@ const initialState = {
   lastUpdated: null,
   sort: {
     field: 'priceChangePercent' as const,
+    direction: 'desc' as const,
+  },
+  alertHistorySort: {
+    field: 'alerts' as const,
     direction: 'desc' as const,
   },
   config: DEFAULT_CONFIG,
@@ -201,6 +210,9 @@ export const useStore = create<AppState>()(
 
       setSort: (sort) =>
         set({ sort }),
+
+      setAlertHistorySort: (alertHistorySort) =>
+        set({ alertHistorySort }),
 
       setSentimentFilter: (sentimentFilter) =>
         set({ sentimentFilter }),
@@ -422,6 +434,7 @@ export const useStore = create<AppState>()(
         currentPair: state.currentPair,
         currentList: state.currentList,
         sort: state.sort,
+        alertHistorySort: state.alertHistorySort,
         sentimentFilter: state.sentimentFilter,
         config: state.config,
         autoRefresh: state.autoRefresh,

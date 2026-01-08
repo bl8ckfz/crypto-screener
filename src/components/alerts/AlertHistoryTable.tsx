@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import type { CoinAlertStats } from '@/types/alertHistory'
 import { AlertBadges } from './AlertBadges'
 import { EmptyAlertHistory } from './EmptyAlertHistory'
@@ -15,20 +15,19 @@ interface AlertHistoryTableProps {
 }
 
 type SortField = 'symbol' | 'price' | 'change' | 'alerts' | 'lastAlert'
-type SortDirection = 'asc' | 'desc'
 
 export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClearHistory }: AlertHistoryTableProps) {
-  const [sortField, setSortField] = useState<SortField>('alerts')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  
   const watchlistSymbols = useStore((state) => state.watchlistSymbols)
+  const alertHistorySort = useStore((state) => state.alertHistorySort)
+  const setAlertHistorySort = useStore((state) => state.setAlertHistorySort)
+  
+  const { field: sortField, direction: sortDirection } = alertHistorySort
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+      setAlertHistorySort({ field, direction: sortDirection === 'asc' ? 'desc' : 'asc' })
     } else {
-      setSortField(field)
-      setSortDirection(field === 'symbol' ? 'asc' : 'desc')
+      setAlertHistorySort({ field, direction: field === 'symbol' ? 'asc' : 'desc' })
     }
   }
 
