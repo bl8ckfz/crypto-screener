@@ -326,21 +326,23 @@ export function ChartSection({ selectedCoin, onClose, className = '' }: ChartSec
       </div>
 
       {/* Trading Chart */}
-      <div className="p-4">
-        <TradingChart
-          data={chartData}
-          symbol={selectedCoin.fullSymbol}
-          height={360} // Mobile: 300px, Desktop: 480px handled by responsive CSS (20% increase)
-          showVolume={true}
-          showWeeklyVWAP={showWeeklyVWAP}
-          vwapData={vwapData}
-          showIchimoku={showIchimoku}
-          ichimokuData={ichimokuData}
-          showAlerts={showAlerts}
-          alerts={coinAlerts}
-          showBubbles={showBubbles}
-          bubbles={filteredBubbles}
-        />
+      <div className="px-4 pt-4">
+        <div className="bg-gray-900 rounded-lg p-3">
+          <TradingChart
+            data={chartData}
+            symbol={selectedCoin.fullSymbol}
+            height={360} // Mobile: 300px, Desktop: 480px handled by responsive CSS (20% increase)
+            showVolume={true}
+            showWeeklyVWAP={showWeeklyVWAP}
+            vwapData={vwapData}
+            showIchimoku={showIchimoku}
+            ichimokuData={ichimokuData}
+            showAlerts={showAlerts}
+            alerts={coinAlerts}
+            showBubbles={showBubbles}
+            bubbles={filteredBubbles}
+          />
+        </div>
       </div>
 
       {/* Alert Timeline Chart */}
