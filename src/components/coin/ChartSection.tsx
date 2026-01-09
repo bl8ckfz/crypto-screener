@@ -5,6 +5,7 @@ import { ExternalLinks } from './ExternalLinks'
 import { fetchKlines, type KlineInterval, COMMON_INTERVALS, INTERVAL_LABELS } from '@/services/chartData'
 import { alertHistoryService } from '@/services/alertHistoryService'
 import { useBubbleStream } from '@/hooks/useBubbleStream'
+import { useStore } from '@/hooks/useStore'
 import { calculateIchimoku, type IchimokuData } from '@/utils/indicators'
 import type { Coin } from '@/types/coin'
 import { ChartSkeleton, ErrorState, EmptyState } from '@/components/ui'
@@ -39,7 +40,6 @@ export function ChartSection({ selectedCoin, onClose, className = '' }: ChartSec
   const [ichimokuData, setIchimokuData] = useState<IchimokuData[]>([]) // Ichimoku indicator data
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [alertRefresh, setAlertRefresh] = useState(0)
 
   // Get bubbles for current coin (use fullSymbol to match futures symbol)
   const { bubbles: allBubbles } = useBubbleStream({ symbolFilter: selectedCoin?.fullSymbol })
@@ -63,19 +63,14 @@ export function ChartSection({ selectedCoin, onClose, className = '' }: ChartSec
     return filtered
   }, [allBubbles, bubbleTimeframe, bubbleSize])
   
-  // Get alerts for current coin from history - refresh every 3 seconds
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setAlertRefresh(prev => prev + 1)
-    }, 3000)
-    return () => window.clearInterval(timer)
-  }, [])
-
+  // Get alerts for current coin from history - updates reactively when alerts change
+  const alertHistoryRefresh = useStore((state) => state.alertHistoryRefresh)
+  
   const coinAlerts = useMemo(() => {
     if (!selectedCoin) return []
     const allAlerts = alertHistoryService.getHistory()
     return allAlerts.filter(alert => alert.symbol === selectedCoin.symbol)
-  }, [selectedCoin?.symbol, alertRefresh])
+  }, [selectedCoin?.symbol, alertHistoryRefresh])
 
   // Fetch chart data when coin or interval changes
   useEffect(() => {

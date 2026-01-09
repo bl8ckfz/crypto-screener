@@ -3,6 +3,7 @@ import { TradingChart } from './TradingChart'
 import { fetchKlines, type KlineInterval, COMMON_INTERVALS, INTERVAL_LABELS } from '@/services/chartData'
 import { alertHistoryService } from '@/services/alertHistoryService'
 import { useBubbleStream } from '@/hooks/useBubbleStream'
+import { useStore } from '@/hooks/useStore'
 import { calculateIchimoku, type IchimokuData } from '@/utils/indicators'
 import type { Coin } from '@/types/coin'
 import { ChartSkeleton, ErrorState } from '@/components/ui'
@@ -34,7 +35,6 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
   const [ichimokuData, setIchimokuData] = useState<IchimokuData[]>([]) // Ichimoku indicator data
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [alertRefresh, setAlertRefresh] = useState(0)
 
   // Get bubbles for current coin (use fullSymbol to match futures symbol like PIEVERSEUSDT)
   const { bubbles: allBubbles } = useBubbleStream({ symbolFilter: coin.fullSymbol })
@@ -63,18 +63,13 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
     debug.log(`🫧 ChartContainer: ${coin.fullSymbol} has ${filteredBubbles.length}/${allBubbles.length} bubbles (timeframe=${bubbleTimeframe}, size=${bubbleSize})`, filteredBubbles.slice(0, 3))
   }, [filteredBubbles.length, allBubbles.length, coin.fullSymbol, bubbleTimeframe, bubbleSize])
 
-  // Get alerts for current coin from history - refresh every 3 seconds
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setAlertRefresh(prev => prev + 1)
-    }, 3000)
-    return () => window.clearInterval(timer)
-  }, [])
-
+  // Get alerts for current coin from history - updates reactively when alerts change
+  const alertHistoryRefresh = useStore((state) => state.alertHistoryRefresh)
+  
   const coinAlerts = useMemo(() => {
     const allAlerts = alertHistoryService.getHistory()
     return allAlerts.filter(alert => alert.symbol === coin.symbol)
-  }, [coin.symbol, alertRefresh])
+  }, [coin.symbol, alertHistoryRefresh])
 
   // Fetch chart data when coin or interval changes
   useEffect(() => {
