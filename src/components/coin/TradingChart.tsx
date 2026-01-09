@@ -35,33 +35,75 @@ export interface TradingChartProps {
 
 /**
  * Determine alert marker size based on alert type priority
+ * Option D: Minimalist dots with glow - using smaller sizes for subtlety
  */
 const getAlertMarkerSize = (alertType: string): 0 | 1 | 2 => {
-  // High priority alerts - large markers
-  if (alertType.includes('60') || alertType.includes('pioneer')) {
-    return 2
+  // High priority alerts (60m) - medium dots for emphasis
+  if (alertType.includes('60')) {
+    return 1
   }
-  // Medium/low priority alerts - normal size (was 0, now 1 for visibility)
-  return 1
+  // All other alerts - small dots
+  return 0
 }
 
 /**
  * Get alert marker color and position based on alert type
+ * Option D: Minimalist dots with glow effect
  */
 const getAlertMarkerStyle = (alertType: string): { color: string; position: 'aboveBar' | 'belowBar'; shape: 'circle' | 'arrowUp' | 'arrowDown' } => {
-  // Bullish alerts - green, below bar, arrow up
-  if (alertType.includes('bull') || alertType.includes('bottom_hunter')) {
+  // Reversal hunters - yellow/orange glow (positioned at reversal points)
+  if (alertType.includes('bottom_hunter')) {
     return {
-      color: '#22c55e', // green-500
+      color: '#f59e0b', // amber-500 - warm glow for bottom reversal
       position: 'belowBar' as const,
-      shape: 'arrowUp' as const,
+      shape: 'circle' as const,
     }
   }
-  // Bearish alerts - red, above bar, arrow down
+  if (alertType.includes('top_hunter')) {
+    return {
+      color: '#f59e0b', // amber-500 - warm glow for top reversal
+      position: 'aboveBar' as const,
+      shape: 'circle' as const,
+    }
+  }
+  
+  // Ichimoku cloud alerts - purple glow
+  if (alertType.includes('ichimoku')) {
+    const isBull = alertType.includes('bull')
+    return {
+      color: '#a855f7', // purple-500 - distinctive cloud indicator
+      position: isBull ? 'belowBar' : 'aboveBar',
+      shape: 'circle' as const,
+    }
+  }
+  
+  // Bull momentum alerts - bright green glow
+  if (alertType.includes('bull')) {
+    // Intensity based on timeframe (60m brighter than 15m/5m)
+    const color = alertType.includes('60') ? '#10b981' : '#22c55e' // emerald-500 vs green-500
+    return {
+      color,
+      position: 'belowBar' as const,
+      shape: 'circle' as const,
+    }
+  }
+  
+  // Bear momentum alerts - red glow
+  if (alertType.includes('bear')) {
+    // Intensity based on timeframe (60m brighter than 15m/5m)
+    const color = alertType.includes('60') ? '#dc2626' : '#ef4444' // red-600 vs red-500
+    return {
+      color,
+      position: 'aboveBar' as const,
+      shape: 'circle' as const,
+    }
+  }
+  
+  // Default - neutral blue
   return {
-    color: '#ef4444', // red-500
-    position: 'aboveBar' as const,
-    shape: 'arrowDown' as const,
+    color: '#3b82f6', // blue-500
+    position: 'belowBar' as const,
+    shape: 'circle' as const,
   }
 }
 
