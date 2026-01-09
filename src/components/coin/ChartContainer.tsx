@@ -28,6 +28,7 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
   const [showBubbles, setShowBubbles] = useState(true)
   const [bubbleTimeframe, setBubbleTimeframe] = useState<'5m' | '15m' | 'both'>('both')
   const [bubbleSize, setBubbleSize] = useState<'large' | 'medium+' | 'all'>('large')
+  const [chartUpdateKey, setChartUpdateKey] = useState(0) // Force chart re-render on data change
   
   // Ref for debouncing interval changes
   const intervalTimerRef = useRef<number | null>(null)
@@ -125,6 +126,7 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
           const lastCandle = data.candlesticks[data.candlesticks.length - 1]
           debug.log(`🔄 Chart data refreshed - Last candle: time=${new Date(lastCandle.time * 1000).toISOString()}, close=${lastCandle.close}, volume=${lastCandle.volume}`)
           setChartData(data.candlesticks)
+          setChartUpdateKey(prev => prev + 1) // Force chart component to detect change
         }
       } catch (err) {
         // Silent fail on refresh - don't show error for background updates
@@ -371,6 +373,7 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
           />
         ) : (
           <TradingChart
+            key={chartUpdateKey}
             data={chartData}
             symbol={`${coin.symbol}/${coin.pair}`}
             height={480}

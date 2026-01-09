@@ -329,7 +329,12 @@ export function TradingChart({
   // Update main chart series when data or chart type changes
   // Uses incremental updates for better performance with live data
   useEffect(() => {
-    if (!chartRef.current || data.length === 0) return
+    if (!chartRef.current || data.length === 0) {
+      debug.log('📊 Chart update skipped: no chart or no data')
+      return
+    }
+
+    debug.log(`📊 Chart update triggered: ${data.length} candles, last close=${data[data.length-1]?.close}`)
 
     const chart = chartRef.current
     const previousData = previousDataRef.current
