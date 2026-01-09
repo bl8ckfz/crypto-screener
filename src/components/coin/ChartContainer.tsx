@@ -124,9 +124,13 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
         
         if (!isCancelled) {
           const lastCandle = data.candlesticks[data.candlesticks.length - 1]
-          debug.log(`🔄 Chart data refreshed - Last candle: time=${new Date(lastCandle.time * 1000).toISOString()}, close=${lastCandle.close}, volume=${lastCandle.volume}`)
+          console.log(`🔄 Chart refresh ${Date.now()}: last=${lastCandle.close}, time=${new Date(lastCandle.time * 1000).toISOString()}`)
           setChartData(data.candlesticks)
-          setDataRevision(prev => prev + 1) // Increment to force prop change detection
+          setDataRevision(prev => {
+            const next = prev + 1
+            console.log(`📈 DataRevision: ${prev} → ${next}`)
+            return next
+          })
         }
       } catch (err) {
         // Silent fail on refresh - don't show error for background updates

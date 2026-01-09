@@ -330,12 +330,14 @@ export function TradingChart({
   // Update main chart series when data or chart type changes
   // Separated from markers to avoid unnecessary series recreation
   useEffect(() => {
+    console.log(`📊 TradingChart useEffect: data.length=${data.length}, dataRevision=${dataRevision}, chartRef=${!!chartRef.current}`)
+    
     if (!chartRef.current || data.length === 0) {
-      debug.log('📊 TradingChart: Skipping update - no chart or no data')
+      console.log('📊 Skipping: no chart or no data')
       return
     }
 
-    debug.log(`📊 TradingChart: Updating with ${data.length} candles, last close=${data[data.length - 1]?.close}`)
+    console.log(`📊 UPDATING CHART: ${data.length} candles, last close=${data[data.length - 1]?.close}`)
 
     setIsLoading(true)
 
