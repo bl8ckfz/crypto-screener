@@ -122,8 +122,9 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
         const data = await fetchKlines(coin.symbol, coin.pair, interval, 100)
         
         if (!isCancelled) {
+          const lastCandle = data.candlesticks[data.candlesticks.length - 1]
+          debug.log(`🔄 Chart data refreshed - Last candle: time=${new Date(lastCandle.time * 1000).toISOString()}, close=${lastCandle.close}, volume=${lastCandle.volume}`)
           setChartData(data.candlesticks)
-          debug.log('🔄 Chart data refreshed')
         }
       } catch (err) {
         // Silent fail on refresh - don't show error for background updates

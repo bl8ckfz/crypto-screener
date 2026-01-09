@@ -347,7 +347,8 @@ export function TradingChart({
       const mainSeries = mainSeriesRef.current
       
       // Update all candles that might have changed (especially the latest one)
-      for (let i = Math.max(0, previousData.length - 2); i < data.length; i++) {
+      const startIdx = Math.max(0, previousData.length - 2)
+      for (let i = startIdx; i < data.length; i++) {
         const candle = data[i]
         const candleData: CandlestickData = {
           time: candle.time as any,
@@ -359,9 +360,15 @@ export function TradingChart({
         mainSeries.update(candleData)
       }
       
-      debug.log(`📊 Updated ${data.length - Math.max(0, previousData.length - 2)} candles incrementally`)
+      debug.log(`📊 Incremental update: ${data.length - startIdx} candles updated (${previousData.length} → ${data.length})`)
     } else {
       // Full recreation needed (first load, symbol change, or data mismatch)
+      const reason = !mainSeriesRef.current ? 'no series' : 
+                     previousData.length === 0 ? 'first load' :
+                     data.length < previousData.length ? 'data shrunk' :
+                     'timestamps mismatch'
+      debug.log(`📊 Full recreation: ${reason}, ${data.length} candles`)
+      
       setIsLoading(true)
 
       // Remove existing main series
@@ -417,12 +424,11 @@ export function TradingChart({
       mainSeries.setData(candlestickData)
       mainSeriesRef.current = mainSeries
 
-      debug.log(`📊 Created new series with ${data.length} candles`)
       setIsLoading(false)
     }
 
-    // Store current data for next comparison
-    previousDataRef.current = data
+    // Store a shallow copy for next comparison
+    previousDataRef.current = [...data]
   }, [data]) // Only data triggers main series recreation
 
   // Update volume series when data or showVolume changes
