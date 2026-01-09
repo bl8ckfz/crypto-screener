@@ -32,6 +32,7 @@ export interface TradingChartProps {
   showBubbles?: boolean
   bubbles?: Bubble[]
   className?: string
+  dataRevision?: number // Optional prop to force re-render on data changes
 }
 
 /**
@@ -191,6 +192,7 @@ export function TradingChart({
   showBubbles = false,
   bubbles = [],
   className = '',
+  dataRevision = 0,
 }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -328,7 +330,12 @@ export function TradingChart({
   // Update main chart series when data or chart type changes
   // Separated from markers to avoid unnecessary series recreation
   useEffect(() => {
-    if (!chartRef.current || data.length === 0) return
+    if (!chartRef.current || data.length === 0) {
+      debug.log('📊 TradingChart: Skipping update - no chart or no data')
+      return
+    }
+
+    debug.log(`📊 TradingChart: Updating with ${data.length} candles, last close=${data[data.length - 1]?.close}`)
 
     setIsLoading(true)
 
@@ -388,7 +395,7 @@ export function TradingChart({
     mainSeriesRef.current = mainSeries
 
     setIsLoading(false)
-  }, [data]) // Only data triggers main series recreation
+  }, [data, dataRevision]) // dataRevision forces re-run when data changes
 
   // Update volume series when data or showVolume changes
   useEffect(() => {

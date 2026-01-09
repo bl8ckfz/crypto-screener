@@ -32,6 +32,7 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
   // Ref for debouncing interval changes
   const intervalTimerRef = useRef<number | null>(null)
   const [chartData, setChartData] = useState<any[]>([])
+  const [dataRevision, setDataRevision] = useState(0) // Force React to detect data changes
   const [vwapData, setVwapData] = useState<any[]>([]) // Separate data for VWAP (15m interval)
   const [ichimokuData, setIchimokuData] = useState<IchimokuData[]>([]) // Ichimoku indicator data
   const [isLoading, setIsLoading] = useState(false)
@@ -125,6 +126,7 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
           const lastCandle = data.candlesticks[data.candlesticks.length - 1]
           debug.log(`🔄 Chart data refreshed - Last candle: time=${new Date(lastCandle.time * 1000).toISOString()}, close=${lastCandle.close}, volume=${lastCandle.volume}`)
           setChartData(data.candlesticks)
+          setDataRevision(prev => prev + 1) // Increment to force prop change detection
         }
       } catch (err) {
         // Silent fail on refresh - don't show error for background updates
@@ -372,6 +374,7 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
         ) : (
           <TradingChart
             data={chartData}
+            dataRevision={dataRevision}
             symbol={`${coin.symbol}/${coin.pair}`}
             height={480}
             showVolume={true}
