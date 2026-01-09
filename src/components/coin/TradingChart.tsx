@@ -16,7 +16,6 @@ import type { AlertHistoryEntry } from '@/types/alertHistory'
 import type { Bubble } from '@/types/bubble'
 import { calculateWeeklyVWAP, type IchimokuData } from '@/utils/indicators'
 import { debug } from '@/utils/debug'
-import { onVisibilityChange } from '@/utils/performance'
 
 export interface TradingChartProps {
   data: Candlestick[]
@@ -32,83 +31,37 @@ export interface TradingChartProps {
   showBubbles?: boolean
   bubbles?: Bubble[]
   className?: string
-  dataRevision?: number // Optional prop to force re-render on data changes
 }
 
 /**
  * Determine alert marker size based on alert type priority
- * All alerts now use medium or large sizes for visibility
  */
 const getAlertMarkerSize = (alertType: string): 0 | 1 | 2 => {
-  // 60m alerts - largest markers (most significant)
-  if (alertType.includes('60')) {
+  // High priority alerts - large markers
+  if (alertType.includes('60') || alertType.includes('pioneer')) {
     return 2
   }
-  // All other alerts - medium markers for visibility
-  // (15m, 5m, pioneer, hunter, ichimoku)
+  // Medium/low priority alerts - normal size (was 0, now 1 for visibility)
   return 1
 }
 
 /**
  * Get alert marker color and position based on alert type
- * Shape mapping (using lightweight-charts available shapes):
- * - Triangles (▲▼): arrowUp/arrowDown - for 5m/15m/60m + Pioneer (momentum/trend)
- * - Squares (■): circle with orange - for Hunters (reversals)
- * - Diamonds (◆): circle with purple - for Ichimoku (cloud signals)
- * Note: lightweight-charts only supports circle/arrowUp/arrowDown, so we use
- * shape + color combination to distinguish types
  */
 const getAlertMarkerStyle = (alertType: string): { color: string; position: 'aboveBar' | 'belowBar'; shape: 'circle' | 'arrowUp' | 'arrowDown' } => {
-  // Hunter reversals - SQUARES ■ (circles with orange to distinguish)
-  if (alertType.includes('bottom_hunter')) {
+  // Bullish alerts - green, below bar, arrow up
+  if (alertType.includes('bull') || alertType.includes('bottom_hunter')) {
     return {
-      color: '#f97316', // orange-500 - distinct square indicator
+      color: '#22c55e', // green-500
       position: 'belowBar' as const,
-      shape: 'circle' as const, // Represents squares ■
+      shape: 'arrowUp' as const,
     }
   }
-  
-  if (alertType.includes('top_hunter')) {
-    return {
-      color: '#f97316', // orange-500 - distinct square indicator
-      position: 'aboveBar' as const,
-      shape: 'circle' as const, // Represents squares ■
-    }
-  }
-  
-  // Ichimoku cloud alerts - DIAMONDS ◆ (circles with purple)
-  if (alertType.includes('ichimoku')) {
-    const isBull = alertType.includes('bull')
-    return {
-      color: '#a855f7', // purple-500 - distinctive diamonds ◆
-      position: isBull ? 'belowBar' : 'aboveBar',
-      shape: 'circle' as const, // Represents diamonds ◆
-    }
-  }
-  
-  // Bull momentum + pioneer alerts - TRIANGLES UP ▲
-  if (alertType.includes('bull')) {
-    return {
-      color: '#22c55e', // green-500 - matches AlertBadges
-      position: 'belowBar' as const,
-      shape: 'arrowUp' as const, // Triangles ▲
-    }
-  }
-  
-  // Bear momentum + pioneer alerts - TRIANGLES DOWN ▼
-  if (alertType.includes('bear')) {
-    return {
-      color: '#ef4444', // red-500 - matches AlertBadges
-      position: 'aboveBar' as const,
-      shape: 'arrowDown' as const, // Triangles ▼
-    }
-  }
-  
-  // Default - neutral circle
+  // Bearish alerts - red, above bar, arrow down
   return {
-    color: '#6b7280', // gray-500
-    position: 'belowBar' as const,
-    shape: 'circle' as const,
+    color: '#ef4444', // red-500
+    position: 'aboveBar' as const,
+    shape: 'arrowDown' as const,
   }
 }
 
@@ -181,7 +134,7 @@ const getBubbleMarkerStyle = (bubble: Bubble): {
 export function TradingChart({
   data,
   symbol,
-  height = 480,
+  height = 400,
   showVolume = true,
   showWeeklyVWAP = false,
   vwapData = [],
@@ -192,7 +145,6 @@ export function TradingChart({
   showBubbles = false,
   bubbles = [],
   className = '',
-  dataRevision = 0,
 }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -283,7 +235,7 @@ export function TradingChart({
     }
     timeScale.subscribeVisibleLogicalRangeChange(handleVisibleRangeChange)
 
-    // Handle container resize using ResizeObserver (not just window resize)
+    // Handle window resize
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
@@ -292,18 +244,11 @@ export function TradingChart({
       }
     }
 
-    // Use ResizeObserver to detect container size changes (e.g., modal open, layout shifts)
-    const resizeObserver = new ResizeObserver(() => {
-      handleResize()
-    })
-
-    if (chartContainerRef.current) {
-      resizeObserver.observe(chartContainerRef.current)
-    }
+    window.addEventListener('resize', handleResize)
 
     // Cleanup on unmount
     return () => {
-      resizeObserver.disconnect()
+      window.removeEventListener('resize', handleResize)
       timeScale.unsubscribeVisibleLogicalRangeChange(handleVisibleRangeChange)
       if (chartRef.current) {
         chartRef.current.remove()
@@ -313,31 +258,10 @@ export function TradingChart({
     }
   }, [height, showVolume])
 
-  // Force chart update when tab becomes visible again
-  // This ensures new data is properly rendered after the chart was hidden
-  useEffect(() => {
-    const unsubscribe = onVisibilityChange((isVisible) => {
-      if (isVisible && chartRef.current && mainSeriesRef.current) {
-        debug.log('👁️ Tab visible - fitting chart content')
-        // Force chart to recalculate and re-render
-        chartRef.current.timeScale().fitContent()
-      }
-    })
-
-    return unsubscribe
-  }, [])
-
   // Update main chart series when data or chart type changes
   // Separated from markers to avoid unnecessary series recreation
   useEffect(() => {
-    console.log(`📊 TradingChart useEffect: data.length=${data.length}, dataRevision=${dataRevision}, chartRef=${!!chartRef.current}`)
-    
-    if (!chartRef.current || data.length === 0) {
-      console.log('📊 Skipping: no chart or no data')
-      return
-    }
-
-    console.log(`📊 UPDATING CHART: ${data.length} candles, last close=${data[data.length - 1]?.close}`)
+    if (!chartRef.current || data.length === 0) return
 
     setIsLoading(true)
 
@@ -397,7 +321,7 @@ export function TradingChart({
     mainSeriesRef.current = mainSeries
 
     setIsLoading(false)
-  }, [data, dataRevision]) // dataRevision forces re-run when data changes
+  }, [data]) // Only data triggers main series recreation
 
   // Update volume series when data or showVolume changes
   useEffect(() => {
@@ -679,14 +603,12 @@ export function TradingChart({
 
     const mainSeries = mainSeriesRef.current
 
-    // Prepare alert markers if enabled
-    let alertMarkers: SeriesMarker<Time>[] = []
-    
+    // Add alert markers if enabled
     if (showAlerts && alerts.length > 0 && mainSeries) {
       debug.log(`🎯 Processing ${alerts.length} alerts for markers`)
       debug.log('Alert types:', alerts.map(a => a.alertType))
       
-      alertMarkers = alerts
+      const markers: SeriesMarker<Time>[] = alerts
         .map(alert => {
           // Convert alert timestamp (ms) to candle time (seconds)
           const alertTime = Math.floor(alert.timestamp / 1000)
@@ -722,20 +644,23 @@ export function TradingChart({
         })
         .filter((marker): marker is SeriesMarker<Time> => marker !== null)
 
-      debug.log(`📍 Prepared ${alertMarkers.length} alert markers`)
+      debug.log(`📍 Setting ${markers.length} alert markers on chart`)
       
-      if (alertMarkers.length === 0) {
+      // Store markers in ref for re-application on zoom
+      markersRef.current = markers
+      
+      if (markers.length > 0) {
+        mainSeries.setMarkers(markers)
+      } else {
         debug.warn('⚠️  No valid alert markers to display')
       }
     }
 
-    // Prepare bubble markers if enabled
-    let bubbleMarkers: SeriesMarker<Time>[] = []
-    
+    // Add bubble markers if enabled (combined with alert markers)
     if (showBubbles && bubbles.length > 0 && mainSeries) {
       debug.log(`🫧 Processing ${bubbles.length} bubbles for markers`)
       
-      bubbleMarkers = bubbles
+      const bubbleMarkers: SeriesMarker<Time>[] = bubbles
         .map(bubble => {
           // Convert bubble timestamp (ms) to candle time (seconds)
           const bubbleTime = Math.floor(bubble.time / 1000)
@@ -771,21 +696,45 @@ export function TradingChart({
         })
         .filter((marker): marker is SeriesMarker<Time> => marker !== null)
 
-      debug.log(`🫧 Prepared ${bubbleMarkers.length} bubble markers`)
-    }
-
-    // Combine markers and apply to chart
-    const combinedMarkers = [...alertMarkers, ...bubbleMarkers]
-    
-    if (combinedMarkers.length > 0) {
-      markersRef.current = combinedMarkers // Store for re-application on zoom
-      mainSeries.setMarkers(combinedMarkers)
-      debug.log(`📍 Set ${combinedMarkers.length} total markers (${alertMarkers.length} alerts + ${bubbleMarkers.length} bubbles)`)
-    } else {
-      // Clear markers when both are disabled or empty
-      markersRef.current = []
-      mainSeries.setMarkers([])
-      debug.log('📍 Cleared all markers')
+      debug.log(`🫧 Setting ${bubbleMarkers.length} bubble markers on chart`)
+      
+      // Combine alert and bubble markers
+      if (showAlerts && alerts.length > 0) {
+        // Get existing alert markers
+        const alertMarkers: SeriesMarker<Time>[] = alerts
+          .map(alert => {
+            const alertTime = Math.floor(alert.timestamp / 1000)
+            const closestCandle = findClosestCandle(alertTime, data)
+            
+            if (!closestCandle) return null
+            
+            const candleTime = typeof closestCandle.time === 'number' ? closestCandle.time : Number(closestCandle.time)
+            const timeDiff = Math.abs(candleTime - alertTime)
+            
+            if (timeDiff > 300) return null
+            
+            const style = getAlertMarkerStyle(alert.alertType)
+            const size = getAlertMarkerSize(alert.alertType)
+            
+            return {
+              time: closestCandle.time,
+              position: style.position,
+              color: style.color,
+              shape: style.shape,
+              size,
+            } as SeriesMarker<Time>
+          })
+          .filter((marker): marker is SeriesMarker<Time> => marker !== null)
+        
+        // Combine both types of markers
+        const combinedMarkers = [...alertMarkers, ...bubbleMarkers]
+        markersRef.current = combinedMarkers // Store for re-application
+        mainSeries.setMarkers(combinedMarkers)
+        debug.log(`📍 Set ${combinedMarkers.length} total markers (${alertMarkers.length} alerts + ${bubbleMarkers.length} bubbles)`)
+      } else if (bubbleMarkers.length > 0) {
+        markersRef.current = bubbleMarkers // Store for re-application
+        mainSeries.setMarkers(bubbleMarkers)
+      }
     }
   }, [showAlerts, alerts, showBubbles, bubbles, data]) // Only marker-related changes trigger update
 
@@ -802,7 +751,7 @@ export function TradingChart({
       
       <div
         ref={chartContainerRef}
-        className="w-full rounded-lg overflow-hidden"
+        className="rounded-lg overflow-hidden"
         style={{ height: `${height}px` }}
       />
       

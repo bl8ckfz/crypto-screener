@@ -3,12 +3,10 @@ import { TradingChart } from './TradingChart'
 import { fetchKlines, type KlineInterval, COMMON_INTERVALS, INTERVAL_LABELS } from '@/services/chartData'
 import { alertHistoryService } from '@/services/alertHistoryService'
 import { useBubbleStream } from '@/hooks/useBubbleStream'
-import { useStore } from '@/hooks/useStore'
 import { calculateIchimoku, type IchimokuData } from '@/utils/indicators'
 import type { Coin } from '@/types/coin'
 import { ChartSkeleton, ErrorState } from '@/components/ui'
 import { debug } from '@/utils/debug'
-import { isTabVisible, onVisibilityChange } from '@/utils/performance'
 
 export interface ChartContainerProps {
   coin: Coin
@@ -32,11 +30,11 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
   // Ref for debouncing interval changes
   const intervalTimerRef = useRef<number | null>(null)
   const [chartData, setChartData] = useState<any[]>([])
-  const [dataRevision, setDataRevision] = useState(0) // Force React to detect data changes
   const [vwapData, setVwapData] = useState<any[]>([]) // Separate data for VWAP (15m interval)
   const [ichimokuData, setIchimokuData] = useState<IchimokuData[]>([]) // Ichimoku indicator data
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [alertRefresh, setAlertRefresh] = useState(0)
 
   // Get bubbles for current coin (use fullSymbol to match futures symbol like PIEVERSEUSDT)
   const { bubbles: allBubbles } = useBubbleStream({ symbolFilter: coin.fullSymbol })
@@ -65,13 +63,18 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
     debug.log(`🫧 ChartContainer: ${coin.fullSymbol} has ${filteredBubbles.length}/${allBubbles.length} bubbles (timeframe=${bubbleTimeframe}, size=${bubbleSize})`, filteredBubbles.slice(0, 3))
   }, [filteredBubbles.length, allBubbles.length, coin.fullSymbol, bubbleTimeframe, bubbleSize])
 
-  // Get alerts for current coin from history - updates reactively when alerts change
-  const alertHistoryRefresh = useStore((state) => state.alertHistoryRefresh)
-  
+  // Get alerts for current coin from history - refresh every 3 seconds
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setAlertRefresh(prev => prev + 1)
+    }, 3000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   const coinAlerts = useMemo(() => {
     const allAlerts = alertHistoryService.getHistory()
     return allAlerts.filter(alert => alert.symbol === coin.symbol)
-  }, [coin.symbol, alertHistoryRefresh])
+  }, [coin.symbol, alertRefresh])
 
   // Fetch chart data when coin or interval changes
   useEffect(() => {
@@ -107,30 +110,15 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
   }, [coin.symbol, coin.pair, interval])
 
   // Auto-refresh chart data periodically to update the latest candle
-  // Pauses when tab is not visible and resumes when it becomes visible
   useEffect(() => {
     let isCancelled = false
-    let refreshInterval: number | null = null
     
     const refreshChartData = async () => {
-      // Skip refresh if tab is not visible (no point updating hidden charts)
-      if (!isTabVisible()) {
-        debug.log('⏸️ Chart refresh skipped (tab not visible)')
-        return
-      }
-      
       try {
         const data = await fetchKlines(coin.symbol, coin.pair, interval, 100)
         
         if (!isCancelled) {
-          const lastCandle = data.candlesticks[data.candlesticks.length - 1]
-          console.log(`🔄 Chart refresh ${Date.now()}: last=${lastCandle.close}, time=${new Date(lastCandle.time * 1000).toISOString()}`)
           setChartData(data.candlesticks)
-          setDataRevision(prev => {
-            const next = prev + 1
-            console.log(`📈 DataRevision: ${prev} → ${next}`)
-            return next
-          })
         }
       } catch (err) {
         // Silent fail on refresh - don't show error for background updates
@@ -138,44 +126,12 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
       }
     }
 
-    const startRefresh = () => {
-      // Only start if not already running
-      if (refreshInterval === null) {
-        refreshInterval = window.setInterval(refreshChartData, 5000)
-        debug.log('▶️ Chart refresh started')
-      }
-    }
-
-    const stopRefresh = () => {
-      if (refreshInterval !== null) {
-        window.clearInterval(refreshInterval)
-        refreshInterval = null
-        debug.log('⏹️ Chart refresh stopped')
-      }
-    }
-
-    // Start refresh if tab is visible
-    if (isTabVisible()) {
-      startRefresh()
-    }
-
-    // Listen for visibility changes
-    const unsubscribe = onVisibilityChange((isVisible) => {
-      if (isVisible) {
-        debug.log('👁️ Tab visible - resuming chart refresh')
-        // Force immediate refresh when tab becomes visible
-        refreshChartData()
-        startRefresh()
-      } else {
-        debug.log('🙈 Tab hidden - pausing chart refresh')
-        stopRefresh()
-      }
-    })
+    // Refresh every 5 seconds to update the current candle
+    const refreshInterval = window.setInterval(refreshChartData, 5000)
 
     return () => {
       isCancelled = true
-      stopRefresh()
-      unsubscribe()
+      window.clearInterval(refreshInterval)
     }
   }, [coin.symbol, coin.pair, interval])
 
@@ -364,7 +320,7 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
       {/* Chart */}
       <div className="bg-surface-dark border border-border rounded-lg p-4">
         {isLoading ? (
-          <ChartSkeleton height={480} />
+          <ChartSkeleton height={400} />
         ) : error ? (
           <ErrorState
             icon="📉"
@@ -378,9 +334,8 @@ export function ChartContainer({ coin, className = '' }: ChartContainerProps) {
         ) : (
           <TradingChart
             data={chartData}
-            dataRevision={dataRevision}
             symbol={`${coin.symbol}/${coin.pair}`}
-            height={480}
+            height={400}
             showVolume={true}
             showWeeklyVWAP={showWeeklyVWAP}
             vwapData={vwapData}
