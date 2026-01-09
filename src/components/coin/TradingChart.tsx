@@ -52,53 +52,56 @@ const getAlertMarkerSize = (alertType: string): 0 | 1 | 2 => {
 
 /**
  * Get alert marker color and position based on alert type
- * Option A: Shape-based by category with colors matching AlertBadges
- * Colors match the alert timeline: green-500 for bulls, red-500 for bears
+ * Shape mapping (using lightweight-charts available shapes):
+ * - Triangles (▲▼): arrowUp/arrowDown - for 5m/15m/60m + Pioneer (momentum/trend)
+ * - Squares (■): circle with orange - for Hunters (reversals)
+ * - Diamonds (◆): circle with purple - for Ichimoku (cloud signals)
+ * Note: lightweight-charts only supports circle/arrowUp/arrowDown, so we use
+ * shape + color combination to distinguish types
  */
 const getAlertMarkerStyle = (alertType: string): { color: string; position: 'aboveBar' | 'belowBar'; shape: 'circle' | 'arrowUp' | 'arrowDown' } => {
-  // Bottom Hunter - reversal (square) - green like other bulls
+  // Hunter reversals - SQUARES ■ (circles with orange to distinguish)
   if (alertType.includes('bottom_hunter')) {
     return {
-      color: '#22c55e', // green-500 - matches AlertBadges
+      color: '#f97316', // orange-500 - distinct square indicator
       position: 'belowBar' as const,
-      shape: 'circle' as const, // Using circle for squares (lighthouse-charts limitation)
+      shape: 'circle' as const, // Represents squares ■
     }
   }
   
-  // Top Hunter - reversal (square) - red like other bears
   if (alertType.includes('top_hunter')) {
     return {
-      color: '#ef4444', // red-500 - matches AlertBadges
+      color: '#f97316', // orange-500 - distinct square indicator
       position: 'aboveBar' as const,
-      shape: 'circle' as const, // Using circle for squares (lighthouse-charts limitation)
+      shape: 'circle' as const, // Represents squares ■
     }
   }
   
-  // Ichimoku cloud alerts - purple (diamond)
+  // Ichimoku cloud alerts - DIAMONDS ◆ (circles with purple)
   if (alertType.includes('ichimoku')) {
     const isBull = alertType.includes('bull')
     return {
-      color: '#a855f7', // purple-500 - distinctive cloud indicator
+      color: '#a855f7', // purple-500 - distinctive diamonds ◆
       position: isBull ? 'belowBar' : 'aboveBar',
-      shape: 'circle' as const, // Using circle for diamonds (lighthouse-charts limitation)
+      shape: 'circle' as const, // Represents diamonds ◆
     }
   }
   
-  // Bull momentum + pioneer alerts - green TRIANGLES (arrowUp)
+  // Bull momentum + pioneer alerts - TRIANGLES UP ▲
   if (alertType.includes('bull')) {
     return {
-      color: '#22c55e', // green-500 - matches AlertBadges bg-green-500
+      color: '#22c55e', // green-500 - matches AlertBadges
       position: 'belowBar' as const,
-      shape: 'arrowUp' as const, // Triangle pointing up for bulls
+      shape: 'arrowUp' as const, // Triangles ▲
     }
   }
   
-  // Bear momentum + pioneer alerts - red TRIANGLES (arrowDown)
+  // Bear momentum + pioneer alerts - TRIANGLES DOWN ▼
   if (alertType.includes('bear')) {
     return {
-      color: '#ef4444', // red-500 - matches AlertBadges bg-red-500
+      color: '#ef4444', // red-500 - matches AlertBadges
       position: 'aboveBar' as const,
-      shape: 'arrowDown' as const, // Triangle pointing down for bears
+      shape: 'arrowDown' as const, // Triangles ▼
     }
   }
   
