@@ -301,16 +301,24 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           {/* Left Column - Tabbed View (Coins / Alerts) */}
           <div className="lg:col-span-5 space-y-3">
-            {/* Search Bar */}
-            <SearchBar
-              ref={searchInputRef}
-              onSearch={setSearchQuery}
-              placeholder={
-                activeTab === 'alerts'
-                  ? 'Search alerts by symbol or type...'
-                  : 'Search coins...'
+            {/* Search Bar (sticky on mobile) */}
+            <div
+              className={
+                mobileSheetEnabled
+                  ? 'sticky top-[68px] z-30 bg-black/90 backdrop-blur-md border-b border-gray-800 py-2'
+                  : ''
               }
-            />
+            >
+              <SearchBar
+                ref={searchInputRef}
+                onSearch={setSearchQuery}
+                placeholder={
+                  activeTab === 'alerts'
+                    ? 'Search alerts by symbol or type...'
+                    : 'Search coins...'
+                }
+              />
+            </div>
 
             {/* Tabbed Content */}
             <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
