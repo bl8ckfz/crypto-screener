@@ -179,6 +179,21 @@ function App() {
     return filtered
   }, [coins, sentimentFilter, searchQuery])
 
+  // Filter alert stats when searching in the Alerts tab
+  const filteredAlertStats = useMemo(() => {
+    if (!searchQuery.trim()) return alertStats
+
+    const query = searchQuery.toLowerCase()
+
+    return alertStats.filter((stat) => {
+      const matchesSymbol = stat.symbol.toLowerCase().includes(query)
+      const matchesType = Array.from(stat.alertTypes || []).some((type) =>
+        type.toLowerCase().includes(query)
+      )
+      return matchesSymbol || matchesType
+    })
+  }, [alertStats, searchQuery])
+
   // Keyboard shortcuts
   useKeyboardShortcuts([
     {
@@ -273,7 +288,15 @@ function App() {
           {/* Left Column - Tabbed View (Coins / Alerts) */}
           <div className="lg:col-span-5 space-y-3">
             {/* Search Bar */}
-            <SearchBar ref={searchInputRef} onSearch={setSearchQuery} />
+            <SearchBar
+              ref={searchInputRef}
+              onSearch={setSearchQuery}
+              placeholder={
+                activeTab === 'alerts'
+                  ? 'Search alerts by symbol or type...'
+                  : 'Search coins...'
+              }
+            />
 
             {/* Tabbed Content */}
             <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
@@ -316,7 +339,7 @@ function App() {
                 />
               ) : (
                 <AlertHistoryTable
-                  stats={alertStats}
+                  stats={filteredAlertStats}
                   selectedSymbol={selectedAlert?.coin?.symbol}
                   onAlertClick={handleAlertClick}
                   onClearHistory={() => {
