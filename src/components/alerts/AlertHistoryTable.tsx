@@ -6,6 +6,7 @@ import { formatNumber } from '@/utils/format'
 import { Button } from '@/components/ui'
 import { WatchlistStar } from '@/components/coin/WatchlistStar'
 import { useStore } from '@/hooks/useStore'
+import { FEATURE_FLAGS } from '@/config'
 
 interface AlertHistoryTableProps {
   stats: CoinAlertStats[]
@@ -55,6 +56,48 @@ export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClear
       return sortDirection === 'asc' ? comparison : -comparison
     })
   }
+
+  const formatTimeAgo = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000)
+    if (seconds < 60) return `${seconds}s ago`
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+    return `${Math.floor(seconds / 86400)}d ago`
+  }
+
+  const renderCard = (stat: CoinAlertStats) => (
+    <button
+      key={stat.symbol}
+      onClick={() => onAlertClick(stat.symbol, stat)}
+      className={`w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-left shadow-sm transition hover:border-accent/60 hover:shadow-lg ${
+        selectedSymbol === stat.symbol ? 'ring-1 ring-accent' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <WatchlistStar symbol={stat.symbol} />
+          <div>
+            <div className="font-mono text-sm font-semibold text-white">{stat.symbol}</div>
+            <AlertBadges alertTypes={stat.alertTypes} maxVisible={2} latestAlertType={stat.alerts[0]?.alertType} />
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="font-mono text-sm text-gray-100">{stat.currentPrice < 1 ? stat.currentPrice.toFixed(6) : formatNumber(stat.currentPrice)}</div>
+          <div className={`font-mono text-xs font-semibold ${stat.priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {stat.priceChange >= 0 ? '+' : ''}
+            {stat.priceChange.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+        <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-1 font-semibold text-accent">
+          {stat.totalAlerts}
+          <span className="text-[10px] uppercase text-accent/70">alerts</span>
+        </span>
+        <span>{formatTimeAgo(stat.lastAlertTimestamp)}</span>
+      </div>
+    </button>
+  )
   
   // Split stats into watchlist and main sections, then sort each independently
   const { watchlistStats, mainStats } = useMemo(() => {
@@ -75,20 +118,41 @@ export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClear
     }
   }, [stats, watchlistSymbols, sortField, sortDirection])
 
-  const formatTimeAgo = (timestamp: number): string => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000)
-    if (seconds < 60) return `${seconds}s ago`
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-    return `${Math.floor(seconds / 86400)}d ago`
-  }
-
   if (stats.length === 0) {
     return <EmptyAlertHistory />
   }
 
-  return (
-    <div className="overflow-x-auto">
+  const showCards = FEATURE_FLAGS.mobileCardView
+
+  const cardContent = showCards ? (
+    <div className="space-y-2 md:hidden">
+      <div className="flex items-center justify-between px-1 text-sm text-gray-300">
+        <span className="font-semibold">Alert History</span>
+        <Button onClick={onClearHistory} variant="secondary" size="sm">
+          🗑️
+        </Button>
+      </div>
+
+      {watchlistStats.map((stat) => renderCard(stat))}
+
+      {watchlistStats.length > 0 && mainStats.length > 0 && (
+        <div className="flex items-center gap-2 px-1 py-1 text-xs text-accent/70">
+          <span className="h-px flex-1 bg-accent/30" />
+          <span>Other Alerts</span>
+          <span className="h-px flex-1 bg-accent/30" />
+        </div>
+      )}
+
+      {mainStats.map((stat) => renderCard(stat))}
+
+      {watchlistStats.length === 0 && mainStats.length === 0 && (
+        <div className="py-8 text-center text-gray-500">No alerts yet</div>
+      )}
+    </div>
+  ) : null
+
+  const tableContent = (
+    <div className={showCards ? 'hidden overflow-x-auto md:block' : 'overflow-x-auto'}>
       <table className="min-w-full text-sm">
         <thead className="bg-gray-900 sticky top-0 z-10">
           <tr className="border-b border-gray-700">
@@ -276,5 +340,12 @@ export function AlertHistoryTable({ stats, selectedSymbol, onAlertClick, onClear
         </tbody>
       </table>
     </div>
+  )
+
+  return (
+    <>
+      {cardContent}
+      {tableContent}
+    </>
   )
 }

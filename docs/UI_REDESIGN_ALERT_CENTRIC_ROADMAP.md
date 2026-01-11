@@ -85,6 +85,32 @@ Transform the app into an **Alert History Centric** layout where:
 
 ---
 
+## Mobile Experience Plan (≤768px)
+
+**Goals:** keep alerts first-class, reduce horizontal scroll, and make chart/details reachable without long scrolls.
+
+**Layout Strategy:**
+- Replace tables with compact cards: primary line (symbol, price, change badge), secondary line (alert types, last alert, watchlist star). Expand-on-tap shows full metrics (P/WA, volume, VCP badge, alert list).
+- Bottom sheet chart: tap on a card opens a slide-up chart/details sheet; swipe down or tap dimmer to close. Keeps list context visible.
+- Condensed chrome: shrink header/footer padding and typography; collapse settings/theme/auth into a single icon cluster or kebab.
+- Sticky filters: tab bar (Coins | Alerts) + horizontal pill filters (sentiment or alert type) under the header; search input with shorter placeholder and clear button.
+- Column prioritization: hide low-priority fields on phones; merge metrics into secondary text; rely on badges/pills instead of columns.
+- Touch targets: enforce 44px min height, generous row padding, and larger tap zones for watchlist stars and clear buttons.
+
+**Phased Implementation:**
+1) Mobile-only card view for CoinTable and AlertHistoryTable (keep desktop tables intact). Add feature flag for QA.
+2) Bottom sheet for ChartSection + CoinDetails on mobile, preserving existing desktop grid.
+3) Header/Footer compaction + sticky tab/filter row + refined spacing.
+4) Interaction polish: swipe-to-favorite, focus outline, and reduced motion toggle.
+
+**Acceptance Criteria:**
+- No horizontal scrolling required for primary info on ≤768px.
+- Chart/details accessible within one tap from any alert card.
+- Table layout unchanged on ≥1024px.
+- Lighthouse Mobile TTI unchanged or better; CLS < 0.1 on mobile.
+
+---
+
 ## Phase Breakdown
 
 ### Phase 8.1: Component Refactoring (Week 1)

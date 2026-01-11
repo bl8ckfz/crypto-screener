@@ -4,12 +4,53 @@ import { useStore } from '@/hooks/useStore'
 import { sortCoins } from '@/utils/sort'
 import { TableRowSkeleton } from '@/components/ui'
 import { CoinTableRow } from './CoinTableRow'
+import { WatchlistStar } from './WatchlistStar'
+import { FEATURE_FLAGS } from '@/config'
+import { formatPercent, formatPrice, formatVolume } from '@/utils/format'
 
 interface CoinTableProps {
   coins: Coin[]
   onCoinClick?: (coin: Coin) => void
   isLoading?: boolean
 }
+ 
+interface CoinCardProps {
+  coin: Coin
+  onClick?: (coin: Coin) => void
+}
+
+const CoinCard = ({ coin, onClick }: CoinCardProps) => {
+  const changeColor = coin.priceChangePercent > 0 ? 'text-green-400' : coin.priceChangePercent < 0 ? 'text-red-400' : 'text-gray-300'
+
+  return (
+    <button
+      onClick={() => onClick?.(coin)}
+      className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-left shadow-sm transition hover:border-accent/60 hover:shadow-lg"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <WatchlistStar symbol={coin.symbol} />
+          <div>
+            <div className="font-mono text-sm font-semibold text-white">{coin.symbol}</div>
+            <div className="text-xs text-gray-400">P/WA {coin.indicators.priceToWeightedAvg.toFixed(4)}</div>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="font-mono text-sm text-gray-100">{formatPrice(coin.lastPrice)}</div>
+          <div className={`font-mono text-xs font-semibold ${changeColor}`}>{formatPercent(coin.priceChangePercent)}</div>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+        <span>Vol {formatVolume(coin.quoteVolume)}</span>
+        <span className="text-gray-500">Tap for details</span>
+      </div>
+    </button>
+  )
+}
+
+const CardSkeleton = () => (
+  <div className="h-20 w-full animate-pulse rounded-lg border border-gray-800 bg-gray-900" />
+)
 
 export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTableProps) {
   const { sort, setSort } = useStore()
@@ -43,8 +84,10 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
     })
   }
 
-  return (
-    <div className="overflow-x-auto">
+  const showCards = FEATURE_FLAGS.mobileCardView
+
+  const tableContent = (
+    <div className={showCards ? 'hidden overflow-x-auto md:block' : 'overflow-x-auto'}>
       <table className="min-w-full text-sm">
         <thead className="bg-gray-900 sticky top-0 z-10">
           <tr className="border-b border-gray-700">
@@ -110,11 +153,9 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
         </thead>
         <tbody>
           {isLoading ? (
-            // Show skeleton rows while loading
             Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} />)
           ) : (
             <>
-              {/* Watchlist coins - always on top */}
               {watchlistCoins.map((coin, index) => (
                 <CoinTableRow
                   key={coin.id}
@@ -123,8 +164,7 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
                   onClick={onCoinClick}
                 />
               ))}
-              
-              {/* Visual separator between watchlist and other coins */}
+
               {watchlistCoins.length > 0 && otherCoins.length > 0 && (
                 <tr>
                   <td colSpan={6} className="px-0 py-0">
@@ -138,8 +178,7 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
                   </td>
                 </tr>
               )}
-              
-              {/* Other coins */}
+
               {otherCoins.map((coin, index) => (
                 <CoinTableRow
                   key={coin.id}
@@ -159,5 +198,42 @@ export function CoinTable({ coins, onCoinClick, isLoading = false }: CoinTablePr
         </div>
       )}
     </div>
+  )
+
+  const cardContent = showCards ? (
+    <div className="space-y-2 md:hidden">
+      {isLoading ? (
+        Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)
+      ) : (
+        <>
+          {watchlistCoins.map((coin) => (
+            <CoinCard key={coin.id} coin={coin} onClick={onCoinClick} />
+          ))}
+
+          {watchlistCoins.length > 0 && otherCoins.length > 0 && (
+            <div className="flex items-center gap-2 px-1 py-1 text-xs text-accent/70">
+              <span className="h-px flex-1 bg-accent/30" />
+              <span>Other Coins</span>
+              <span className="h-px flex-1 bg-accent/30" />
+            </div>
+          )}
+
+          {otherCoins.map((coin) => (
+            <CoinCard key={coin.id} coin={coin} onClick={onCoinClick} />
+          ))}
+
+          {watchlistCoins.length === 0 && otherCoins.length === 0 && (
+            <div className="py-10 text-center text-gray-500">No coins found for this pair</div>
+          )}
+        </>
+      )}
+    </div>
+  ) : null
+
+  return (
+    <>
+      {cardContent}
+      {tableContent}
+    </>
   )
 }
