@@ -150,7 +150,7 @@ function App() {
     const tickers = getTickerData()
     const symbol = selectedAlert.coin.fullSymbol || selectedAlert.coin.symbol
     return tickers?.find((t) => t.symbol === symbol)
-  }, [getTickerData, selectedAlert?.coin])
+  }, [getTickerData, selectedAlert?.coin, lastUpdate])
   
   // Ref for search input
   const searchInputRef = useRef<HTMLInputElement>(null)
