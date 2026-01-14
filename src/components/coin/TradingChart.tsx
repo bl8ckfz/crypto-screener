@@ -235,6 +235,7 @@ export function TradingChart({
         borderColor: '#334155',
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: (time) => formatLocalTimeLabel(time),
       },
       handleScroll: {
         mouseWheel: true,
