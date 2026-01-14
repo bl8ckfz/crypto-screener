@@ -23,7 +23,6 @@ const formatLocalTimeLabel = (time: Time): string => {
   return new Date(time * 1000).toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
     hour12: false,
   })
 }
