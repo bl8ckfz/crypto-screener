@@ -17,6 +17,17 @@ import type { Bubble } from '@/types/bubble'
 import { calculateWeeklyVWAP, type IchimokuData } from '@/utils/indicators'
 import { debug } from '@/utils/debug'
 
+// Format epoch seconds to local time string for axis/crosshair consistency with timeline
+const formatLocalTimeLabel = (time: Time): string => {
+  if (typeof time !== 'number') return ''
+  return new Date(time * 1000).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
+}
+
 export interface TradingChartProps {
   data: Candlestick[]
   symbol: string
@@ -235,6 +246,9 @@ export function TradingChart({
         axisPressedMouseMove: true,
         mouseWheel: true,
         pinch: true,
+      },
+      localization: {
+        timeFormatter: formatLocalTimeLabel,
       },
     })
 

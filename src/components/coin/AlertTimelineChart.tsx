@@ -125,7 +125,7 @@ export function AlertTimelineChart({ symbol, height: _unusedHeight }: AlertTimel
   const chartWidth = timeRange.max - timeRange.min
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto overflow-y-visible">
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mb-4 px-2">
         {alertTypes.map((type) => (
@@ -142,7 +142,7 @@ export function AlertTimelineChart({ symbol, height: _unusedHeight }: AlertTimel
       </div>
 
       {/* Dot Plot Chart */}
-      <div className="relative bg-gray-900/30 rounded border border-gray-700" style={{ height: dynamicHeight }}>
+      <div className="relative bg-gray-900/30 rounded border border-gray-700" style={{ height: dynamicHeight, overflow: 'visible' }}>
         {/* Y-axis labels */}
         <div className="absolute left-0 top-0 bottom-0 w-36 border-r border-gray-700 bg-gray-900/50">
           {alertTypes.map((type) => (
@@ -204,7 +204,7 @@ export function AlertTimelineChart({ symbol, height: _unusedHeight }: AlertTimel
                     isNearLeft ? 'left-0' : isNearRight ? 'right-0' : 'left-1/2 -translate-x-1/2'
                   }`}
                 >
-                  <div className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs whitespace-nowrap shadow-xl">
+                  <div className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs whitespace-nowrap shadow-xl z-50">
                     <div className="font-medium text-white">
                       {getAlertTypeName(entry.alertType)}
                     </div>
