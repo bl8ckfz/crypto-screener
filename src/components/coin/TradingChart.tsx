@@ -47,11 +47,19 @@ export interface TradingChartProps {
  * Determine alert marker size based on alert type priority
  */
 const getAlertMarkerSize = (alertType: string): 0 | 1 | 2 => {
+  const cleanType = alertType.replace(/^futures_/, '')
+
   // High priority alerts - large markers
-  if (alertType.includes('60') || alertType.includes('pioneer')) {
+  if (cleanType.includes('60') || cleanType.includes('pioneer')) {
     return 2
   }
-  // Medium/low priority alerts - normal size (was 0, now 1 for visibility)
+
+  // 15m big bull/bear → smallest size (diamond shape)
+  if (cleanType === '15_big_bull' || cleanType === '15_big_bear') {
+    return 0
+  }
+
+  // Medium/low priority alerts - normal size
   return 1
 }
 
@@ -74,20 +82,29 @@ const ALERT_MARKER_COLORS: Record<string, string> = {
 /**
  * Get alert marker color and position based on alert type
  */
-const getAlertMarkerStyle = (alertType: string): { color: string; position: 'aboveBar' | 'belowBar'; shape: 'circle' | 'arrowUp' | 'arrowDown' } => {
+const getAlertMarkerStyle = (alertType: string): { color: string; position: 'aboveBar' | 'belowBar'; shape: 'circle' | 'arrowUp' | 'arrowDown' | 'diamond' } => {
   const cleanType = alertType.replace(/^futures_/, '')
   const normalizedKey = alertType.startsWith('futures_') ? alertType : `futures_${alertType}`
   const isBullish = cleanType.includes('bull') || cleanType === 'bottom_hunter'
   const isHunter = cleanType === 'bottom_hunter' || cleanType === 'top_hunter'
+  const isFifteen = cleanType === '15_big_bull' || cleanType === '15_big_bear'
 
-  const color = ALERT_MARKER_COLORS[normalizedKey]
-    || (isBullish ? '#22c55e' : '#ef4444')
+  // Hunters use a distinct purple circle; others keep mapped/bull-bear colors
+  const color = isHunter
+    ? '#a855f7'
+    : ALERT_MARKER_COLORS[normalizedKey]
+      || (isBullish ? '#22c55e' : '#ef4444')
 
   return {
     color,
     position: isBullish ? 'belowBar' : 'aboveBar',
     // Bottom/Top hunters should be circles to match timeline dots
-    shape: isHunter ? 'circle' : (isBullish ? 'arrowUp' : 'arrowDown'),
+    // 15m big bull/bear use the smallest diamond shape for visual distinction
+    shape: isHunter
+      ? 'circle'
+      : isFifteen
+        ? 'diamond'
+        : (isBullish ? 'arrowUp' : 'arrowDown'),
   }
 }
 
