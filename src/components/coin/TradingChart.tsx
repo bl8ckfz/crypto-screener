@@ -48,18 +48,14 @@ export interface TradingChartProps {
  */
 const getAlertMarkerSize = (alertType: string): 0 | 1 | 2 => {
   const cleanType = alertType.replace(/^futures_/, '')
+  const isHunter = cleanType === 'bottom_hunter' || cleanType === 'top_hunter'
 
-  // High priority alerts - large markers
-  if (cleanType.includes('60') || cleanType.includes('pioneer')) {
+  // All arrows (non-hunter alerts) use pioneer-sized markers for visibility
+  if (!isHunter) {
     return 2
   }
 
-  // 15m big bull/bear → small diamond for visibility
-  if (cleanType === '15_big_bull' || cleanType === '15_big_bear') {
-    return 1
-  }
-
-  // Medium/low priority alerts - normal size
+  // Hunters stay smaller circles to avoid overpowering chart
   return 1
 }
 
@@ -82,12 +78,11 @@ const ALERT_MARKER_COLORS: Record<string, string> = {
 /**
  * Get alert marker color and position based on alert type
  */
-const getAlertMarkerStyle = (alertType: string): { color: string; position: 'aboveBar' | 'belowBar'; shape: 'circle' | 'arrowUp' | 'arrowDown' | 'square' } => {
+const getAlertMarkerStyle = (alertType: string): { color: string; position: 'aboveBar' | 'belowBar'; shape: 'circle' | 'arrowUp' | 'arrowDown' } => {
   const cleanType = alertType.replace(/^futures_/, '')
   const normalizedKey = alertType.startsWith('futures_') ? alertType : `futures_${alertType}`
   const isBullish = cleanType.includes('bull') || cleanType === 'bottom_hunter'
   const isHunter = cleanType === 'bottom_hunter' || cleanType === 'top_hunter'
-  const isFifteen = cleanType === '15_big_bull' || cleanType === '15_big_bear'
 
   // Hunters use a distinct purple circle; others keep mapped/bull-bear colors
   const color = isHunter
@@ -99,12 +94,9 @@ const getAlertMarkerStyle = (alertType: string): { color: string; position: 'abo
     color,
     position: isBullish ? 'belowBar' : 'aboveBar',
     // Bottom/Top hunters should be circles to match timeline dots
-    // 15m big bull/bear use a small square for visual distinction (diamond unsupported)
     shape: isHunter
       ? 'circle'
-      : isFifteen
-        ? 'square'
-        : (isBullish ? 'arrowUp' : 'arrowDown'),
+      : (isBullish ? 'arrowUp' : 'arrowDown'),
   }
 }
 
