@@ -50,12 +50,12 @@ const getAlertMarkerSize = (alertType: string): 0 | 1 | 2 => {
   const cleanType = alertType.replace(/^futures_/, '')
   const isHunter = cleanType === 'bottom_hunter' || cleanType === 'top_hunter'
 
-  // All arrows (non-hunter alerts) use pioneer-sized markers for visibility
+  // All arrows (non-hunter alerts) use unified size 1
   if (!isHunter) {
-    return 2
+    return 1
   }
 
-  // Hunters stay smaller circles to avoid overpowering chart
+  // Hunters stay size 1 circles to avoid overpowering chart
   return 1
 }
 
