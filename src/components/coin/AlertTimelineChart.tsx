@@ -7,21 +7,21 @@ interface AlertTimelineChartProps {
   height?: number
 }
 
-// Color scheme for futures alerts - bullish in green gamma, bearish in red gamma
+// Color scheme aligned with TradingChart markers
 const ALERT_TYPE_COLORS: Record<string, string> = {
-  // Bullish alerts - green gamma
-  futures_big_bull_60: '#22c55e', // green-500
-  futures_pioneer_bull: '#10b981', // green-500 (emerald)
-  futures_5_big_bull: '#84cc16', // lime-500
-  futures_15_big_bull: '#4ade80', // green-400
-  futures_bottom_hunter: '#a855f7', // purple for hunter alignment
+  // Bullish
+  futures_big_bull_60: '#14532d',
+  futures_pioneer_bull: '#a7f3d0',
+  futures_5_big_bull: '#84cc16',
+  futures_15_big_bull: '#16a34a',
+  futures_bottom_hunter: '#a855f7', // purple hunters match chart
   
-  // Bearish alerts - red gamma
-  futures_big_bear_60: '#ef4444', // red-500
-  futures_pioneer_bear: '#dc2626', // red-600
-  futures_5_big_bear: '#f87171', // red-400
-  futures_15_big_bear: '#fb923c', // orange-400 (red-orange)
-  futures_top_hunter: '#a855f7', // purple for hunter alignment
+  // Bearish
+  futures_big_bear_60: '#7f1d1d',
+  futures_pioneer_bear: '#fce7f3',
+  futures_5_big_bear: '#f87171',
+  futures_15_big_bear: '#dc2626',
+  futures_top_hunter: '#a855f7', // purple hunters match chart
 }
 
 // Display names for futures alert types - without "futures_" prefix
